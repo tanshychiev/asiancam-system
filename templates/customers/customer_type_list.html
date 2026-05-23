@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Customer Type{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div><h2>Customer Type</h2><p>Customer type setup.</p></div>
+        <a href="{% url 'customer_type_create' %}" class="btn">➕ Add</a>
+    </div>
+
+    <form method="get" class="form-actions">
+        <input type="text" name="q" value="{{ query }}" placeholder="Press Enter to Search">
+        <button class="btn">Search</button>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Name</th><th>Credit Limit</th><th>Credit Term</th><th>Memo</th></tr></thead>
+            <tbody>
+                {% for row in rows %}
+                <tr><td>{{ row.name }}</td><td>${{ row.credit_limit }}</td><td>{{ row.credit_term }}</td><td>{{ row.memo|default:"-" }}</td></tr>
+                {% empty %}
+                <tr><td colspan="4"><div class="empty-state">No data yet.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

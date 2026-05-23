@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Accounting Data{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Accounting Data</h2>
+            <p>Manual input and Excel imported journal entries for {{ company.name }}.</p>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'journal_create' %}" class="btn">➕ Manual Input</a>
+            <a href="{% url 'accounting_import_excel' %}" class="btn btn-light">📥 Import Excel</a>
+            <a href="{% url 'accounting_reports' %}" class="btn btn-light">📊 Auto Reports</a>
+        </div>
+    </div>
+
+    <form method="get" class="card" style="box-shadow:none; margin-bottom:20px;">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" value="{{ query }}" placeholder="Entry no, reference, account...">
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <select name="status">
+                    <option value="">All Status</option>
+                    {% for value,label in status_choices %}
+                        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}">
+            </div>
+
+            <div class="form-group">
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">🔍 Search</button>
+            <a href="{% url 'journal_list' %}" class="btn btn-light">Reset</a>
+        </div>
+    </form>
+
+    <div class="quick-grid" style="margin-bottom:20px;">
+        <div class="quick-card">
+            <div class="quick-icon">📘</div>
+            <span>Total Entries</span>
+            <h3>{{ total_entries }}</h3>
+        </div>
+
+        <div class="quick-card">
+            <div class="quick-icon">✅</div>
+            <span>Posted</span>
+            <h3>{{ posted_entries }}</h3>
+        </div>
+
+        <div class="quick-card">
+            <div class="quick-icon">📝</div>
+            <span>Draft</span>
+            <h3>{{ draft_entries }}</h3>
+        </div>
+
+        <a href="{% url 'accounting_reports' %}" class="quick-card">
+            <div class="quick-icon">📊</div>
+            <span>Output</span>
+            <h3>Reports</h3>
+        </a>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Entry No</th>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
+                    <th>Balance</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for entry in entries %}
+                    <tr>
+                        <td>
+                            <strong>{{ entry.entry_no|default:entry.id }}</strong>
+                        </td>
+                        <td>{{ entry.entry_date }}</td>
+                        <td>{{ entry.reference_no|default:"-" }}</td>
+                        <td>{{ entry.description|default:"-"|truncatechars:60 }}</td>
+                        <td>
+                            {% if entry.status == "posted" %}
+                                <span class="badge green">Posted</span>
+                            {% else %}
+                                <span class="badge orange">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ entry.total_debit }}</td>
+                        <td>${{ entry.total_credit }}</td>
+                        <td>
+                            {% if entry.is_balanced %}
+                                <span class="badge green">Balanced</span>
+                            {% else %}
+                                <span class="badge red">Not Balanced</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="form-actions" style="margin:0;">
+                                <a href="{% url 'journal_detail' entry.id %}" class="btn btn-light">View</a>
+                                <a href="{% url 'journal_edit' entry.id %}" class="btn btn-light">Edit</a>
+                                <a href="{% url 'journal_delete' entry.id %}" class="btn btn-danger">Delete</a>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="9">
+                            <div class="empty-state">
+                                <div class="emoji">📘</div>
+                                No accounting data yet.
+                                <br><br>
+                                <a href="{% url 'journal_create' %}" class="btn">Create First Entry</a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

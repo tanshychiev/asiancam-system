@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Batch Transaction{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Batch Transaction</h2>
+            <p>Upload many transactions by Excel template.</p>
+        </div>
+
+        <a href="{% url 'ops_import_batch_transaction' %}" class="btn">⬆ Import</a>
+    </div>
+
+    <div class="message">
+        Batch transaction should create JournalEntry + JournalEntryLine after parser is added.
+        This is the correct place for bulk bills, payments, invoices, and credit transactions.
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tran Type</th>
+                    <th>Warehouse</th>
+                    <th>Date</th>
+                    <th>Bill No.</th>
+                    <th>Vendor / Customer</th>
+                    <th>Memo</th>
+                    <th>Amount</th>
+                    <th>Tax</th>
+                    <th>Discount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="9"><div class="empty-state">Upload Excel file to preview batch transactions.</div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

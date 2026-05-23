@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Report Mapping{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Report Mapping</h2>
+            <p>Check how Chart of Accounts map to Balance Sheet and Profit & Loss for {{ company.name }}.</p>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'chart_of_accounts' %}" class="btn">📒 Chart of Accounts</a>
+            <a href="{% url 'accounting_reports' %}" class="btn btn-light">📊 Generate Reports</a>
+        </div>
+    </div>
+
+    <div class="message">
+        Report mapping is controlled by each account's <strong>Report Type</strong>, <strong>Account Type</strong>,
+        and <strong>Report Section</strong>.
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Report</th>
+                    <th>Account Types</th>
+                    <th>Generated Output</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Balance Sheet</strong></td>
+                    <td>Asset, Liability, Equity</td>
+                    <td>Assets = Liabilities + Equity + Profit</td>
+                </tr>
+                <tr>
+                    <td><strong>Profit & Loss</strong></td>
+                    <td>Revenue, COGS, Expense, Other Income, Other Expense</td>
+                    <td>Revenue - COGS - Expense + Other Income - Other Expense</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

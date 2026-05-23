@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Update Result{% endblock %}
+
+{% block content %}
+<style>
+    .result-wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 22px;
+    }
+
+    .result-hero {
+        border-radius: 24px;
+        padding: 26px;
+        color: white;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+        margin-bottom: 20px;
+    }
+
+    .hero-success {
+        background: linear-gradient(135deg, #15803d, #22c55e);
+    }
+
+    .hero-failed {
+        background: linear-gradient(135deg, #991b1b, #ef4444);
+    }
+
+    .result-hero h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 900;
+    }
+
+    .result-hero p {
+        margin: 8px 0 0;
+        opacity: .92;
+    }
+
+    .result-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .result-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .result-label {
+        color: #64748b;
+        font-size: 13px;
+        margin-bottom: 7px;
+    }
+
+    .result-value {
+        font-size: 26px;
+        font-weight: 900;
+        color: #0f172a;
+    }
+
+    .error-card {
+        background: white;
+        border: 1px solid #fecaca;
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 12px 30px rgba(153, 27, 27, 0.08);
+    }
+
+    .error-head {
+        padding: 18px 22px;
+        background: #fee2e2;
+        color: #991b1b;
+        font-weight: 900;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .success-card {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 22px;
+        padding: 24px;
+        color: #166534;
+        font-weight: 800;
+        box-shadow: 0 12px 30px rgba(22, 101, 52, 0.08);
+    }
+
+    .error-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .error-table th {
+        background: #fff1f2;
+        color: #991b1b;
+        text-align: left;
+        padding: 12px;
+        border-bottom: 1px solid #fecaca;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+
+    .error-table td {
+        padding: 13px 12px;
+        border-bottom: 1px solid #fee2e2;
+        color: #334155;
+        font-size: 14px;
+    }
+
+    .btn-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+
+    .btn-soft {
+        text-decoration: none;
+        border-radius: 14px;
+        padding: 12px 16px;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-blue {
+        background: #2563eb;
+        color: white;
+    }
+
+    .btn-light {
+        background: #eef2ff;
+        color: #1e40af;
+    }
+
+    @media (max-width: 900px) {
+        .result-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .error-card {
+            overflow-x: auto;
+        }
+
+        .error-table {
+            min-width: 760px;
+        }
+    }
+</style>
+
+<div class="result-wrap">
+    <div class="result-hero {% if errors %}hero-failed{% else %}hero-success{% endif %}">
+        {% if errors %}
+            <h1>❌ Bulk Update Finished With Errors</h1>
+            <p>Please check the red error report below. Correct Excel and upload again if needed.</p>
+        {% else %}
+            <h1>✅ Bulk Update Successful</h1>
+            <p>Items and customers were imported/updated successfully for {{ company.name }}.</p>
+        {% endif %}
+    </div>
+
+    <div class="result-grid">
+        <div class="result-card">
+            <div class="result-label">Item Created</div>
+            <div class="result-value">{{ item_created }}</div>
+        </div>
+        <div class="result-card">
+            <div class="result-label">Item Updated</div>
+            <div class="result-value">{{ item_updated }}</div>
+        </div>
+        <div class="result-card">
+            <div class="result-label">Customer Created</div>
+            <div class="result-value">{{ customer_created }}</div>
+        </div>
+        <div class="result-card">
+            <div class="result-label">Customer Updated</div>
+            <div class="result-value">{{ customer_updated }}</div>
+        </div>
+        <div class="result-card">
+            <div class="result-label">Errors</div>
+            <div class="result-value">{{ errors|length }}</div>
+        </div>
+    </div>
+
+    {% if errors %}
+        <div class="error-card">
+            <div class="error-head">
+                <span>🚨 Error Report</span>
+                <span>{{ errors|length }} error(s)</span>
+            </div>
+
+            <table class="error-table">
+                <thead>
+                    <tr>
+                        <th>Row</th>
+                        <th>Type</th>
+                        <th>Code</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for err in errors %}
+                        <tr>
+                            <td>{{ err.row }}</td>
+                            <td>{{ err.type }}</td>
+                            <td>{{ err.code }}</td>
+                            <td>{{ err.error }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="success-card">
+            🎉 No errors found. This import report is saved and the data is ready for accounting reports.
+        </div>
+    {% endif %}
+
+    <div class="btn-row">
+        <a href="{% url 'bulk_update_menu' %}" class="btn-soft btn-blue">Back to Bulk Update</a>
+        {% if log %}
+            <a href="{% url 'bulk_update_report' log.id %}" class="btn-soft btn-light">View Saved Report</a>
+        {% endif %}
+        <a href="{% url 'download_bulk_update_sample' %}" class="btn-soft btn-light">Download Sample Again</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Workspaces{% endblock %}
+{% block page_title %}Monthly Workspaces{% endblock %}
+{% block page_subtitle %}Track each client monthly accounting and tax work{% endblock %}
+
+{% block content %}
+
+<div class="section-card">
+    <div class="section-head">
+        <div>
+            <h2>Monthly Workspace List</h2>
+            <p>Each month has status, assigned staff and reports.</p>
+        </div>
+        <a href="/admin/workspaces/monthlyworkspace/add/" class="btn">+ Add Workspace</a>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>Client</th>
+                <th>Month</th>
+                <th>Year</th>
+                <th>Status</th>
+                <th>Assigned Staff</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for workspace in workspaces %}
+            <tr>
+                <td><strong>{{ workspace.client }}</strong></td>
+                <td>{{ workspace.month }}</td>
+                <td>{{ workspace.year }}</td>
+                <td><span class="badge orange">{{ workspace.status }}</span></td>
+                <td>{{ workspace.assigned_staff|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">
+                    <div class="empty-state">
+                        <div class="emoji">🗂️</div>
+                        <strong>No monthly workspace yet</strong>
+                        <p>Create one workspace for each client/month.</p>
+                        <a href="/admin/workspaces/monthlyworkspace/add/" class="btn">Add Workspace</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

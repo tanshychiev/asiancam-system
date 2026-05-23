@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h1>Approve Report</h1>
+    <p>Approve this report and make it visible to customer?</p>
+    <p><b>{{ report.title }}</b></p>
+    <p>{{ report.workspace.client.company_name }} - {{ report.workspace.year }}-{{ report.workspace.month|stringformat:"02d" }}</p>
+    <form method="post">
+        {% csrf_token %}
+        <button class="btn green" type="submit">Yes, Approve</button>
+        <a class="btn gray" href="{% url 'report_approval_list' %}">Cancel</a>
+    </form>
+</div>
+{% endblock %}

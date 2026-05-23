@@ -1,0 +1,45 @@
+{% extends "accounting/reports/report_base.html" %}
+
+{% block report_summary %}
+<section class="kpi-grid">
+    <div class="kpi-card"><span>Total Assets</span><strong>${{ total_assets }}</strong></div>
+    <div class="kpi-card"><span>Total Liabilities</span><strong>${{ total_liabilities }}</strong></div>
+    <div class="kpi-card"><span>Total Equity</span><strong>${{ total_equity }}</strong></div>
+    <div class="kpi-card"><span>Balance Check</span><strong>${{ balance_check }}</strong></div>
+</section>
+{% endblock %}
+
+{% block report_content %}
+<div class="table-wrap">
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Account</th>
+                <th>Type</th>
+                <th>Section</th>
+                <th class="money">Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in balance_sheet_rows %}
+                <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                    <td><span class="code-pill">{{ row.code }}</span></td>
+                    <td>{{ row.name }}</td>
+                    <td><span class="type-pill">{{ row.account_type }}</span></td>
+                    <td>{{ row.report_section|default:"-" }}</td>
+                    <td class="money">${{ row.balance }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5"><div class="empty-state">No Balance Sheet data.</div></td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="tfoot-total"><th colspan="4">Total Assets</th><th class="money">${{ total_assets }}</th></tr>
+            <tr class="tfoot-total"><th colspan="4">Total Liabilities</th><th class="money">${{ total_liabilities }}</th></tr>
+            <tr class="tfoot-total"><th colspan="4">Total Equity</th><th class="money">${{ total_equity }}</th></tr>
+            <tr class="tfoot-total"><th colspan="4">Balance Check</th><th class="money">${{ balance_check }}</th></tr>
+        </tfoot>
+    </table>
+</div>
+{% endblock %}

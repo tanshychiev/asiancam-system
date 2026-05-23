@@ -1,0 +1,1515 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}AsianCam Accounting Portal{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Professional font for English + Khmer -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --blue: #159de0;
+            --blue-dark: #056fae;
+            --blue-deep: #073763;
+            --blue-soft: #eef8ff;
+            --cyan: #68d4f5;
+            --white: #ffffff;
+            --text: #18344a;
+            --muted: #6b7c93;
+            --border: #d9edf8;
+            --bg: #f6fbff;
+            --shadow: 0 18px 42px rgba(0, 95, 150, 0.12);
+            --shadow-soft: 0 10px 26px rgba(0, 95, 150, 0.08);
+            --green: #13a05f;
+            --red: #ef4444;
+            --orange: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+            font-family: "Inter", "Noto Sans Khmer", "Segoe UI", Arial, sans-serif;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(21, 157, 224, 0.13), transparent 30%),
+                radial-gradient(circle at top right, rgba(104, 212, 245, 0.14), transparent 30%),
+                linear-gradient(135deg, #f6fbff 0%, #ffffff 50%, #eef8ff 100%);
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font-family: inherit;
+        }
+
+        .system-topbar {
+            height: 44px;
+            background: linear-gradient(90deg, #062b4f 0%, #073763 58%, #0b5a90 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            box-shadow: 0 8px 24px rgba(7, 55, 99, 0.18);
+            position: sticky;
+            top: 0;
+            z-index: 10001;
+        }
+
+        .top-left,
+        .top-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .top-pill {
+            height: 30px;
+            padding: 0 13px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .top-pill.active {
+            background: rgba(21, 157, 224, 0.26);
+            border-color: rgba(104, 212, 245, 0.50);
+        }
+
+        .top-pill:hover {
+            background: rgba(255, 255, 255, 0.20);
+        }
+
+        .top-icon {
+            width: 31px;
+            height: 31px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .top-icon:hover {
+            background: rgba(255, 255, 255, 0.20);
+        }
+
+        .select-company-notice {
+            margin: 22px 28px 0;
+            padding: 20px 24px;
+            border-radius: 24px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-soft);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .select-company-notice strong {
+            display: block;
+            color: var(--blue-deep);
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .select-company-notice span {
+            display: block;
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        .select-company-btn {
+            min-height: 42px;
+            padding: 0 20px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            color: white;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 20px rgba(21, 157, 224, 0.22);
+            white-space: nowrap;
+            transition: 0.16s ease;
+        }
+
+        .select-company-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .main-navbar {
+            min-height: 80px;
+            padding: 12px 26px;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(217, 237, 248, 0.95);
+            box-shadow: 0 12px 30px rgba(0, 95, 150, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            position: sticky;
+            top: 44px;
+            z-index: 10000;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .brand-logo {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            box-shadow: 0 12px 26px rgba(21, 157, 224, 0.24);
+        }
+
+        .brand-text strong {
+            display: block;
+            font-size: 21px;
+            line-height: 1.1;
+            color: var(--blue-deep);
+            letter-spacing: -0.35px;
+            font-weight: 700;
+        }
+
+        .brand-text span {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            flex-shrink: 0;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-item::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 100%;
+            height: 18px;
+        }
+
+        .nav-link {
+            min-height: 42px;
+            padding: 0 14px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--blue-deep);
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: 0.18s ease;
+            border: 0;
+            background: transparent;
+        }
+
+        .nav-link:hover,
+        .nav-link.active,
+        .nav-item:hover > .nav-link,
+        .nav-item.open > .nav-link {
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            color: #ffffff;
+            box-shadow: 0 10px 20px rgba(21, 157, 224, 0.20);
+            transform: translateY(-1px);
+        }
+
+        .mini-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(21, 157, 224, 0.11);
+            color: var(--blue-dark);
+            font-size: 13px;
+        }
+
+        .nav-link:hover .mini-icon,
+        .nav-link.active .mini-icon,
+        .nav-item:hover > .nav-link .mini-icon,
+        .nav-item.open > .nav-link .mini-icon {
+            background: rgba(255,255,255,0.24);
+            color: #ffffff;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 245px;
+            padding: 10px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            z-index: 20000;
+            pointer-events: auto;
+        }
+
+        .nav-item:hover > .dropdown-menu,
+        .nav-item.open > .dropdown-menu,
+        .dropdown-menu:hover {
+            display: block;
+            animation: menuPop 0.16s ease;
+        }
+
+        @keyframes menuPop {
+            from {
+                opacity: 0;
+                transform: translateY(8px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .dropdown-item {
+            position: relative;
+            min-height: 41px;
+            padding: 0 13px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--blue-deep);
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover,
+        .dropdown-item.active {
+            background: linear-gradient(135deg, var(--blue-soft), #ffffff);
+            color: var(--blue-dark);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #e5f4ff;
+            margin: 8px 4px;
+        }
+
+        .dropdown-label {
+            padding: 8px 13px 6px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dropdown-item.has-sub {
+            width: 100%;
+        }
+
+        .dropdown-item.has-sub::after {
+            content: "›";
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--blue);
+        }
+
+        .dropdown-item.has-sub::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: -24px;
+            width: 24px;
+            height: 100%;
+        }
+
+        .submenu-wrap {
+            position: relative;
+        }
+
+        .dropdown-menu.submenu {
+            top: -10px;
+            left: 100%;
+            margin-left: 0;
+            min-width: 235px;
+        }
+
+        .import-center-wrap > .import-center-menu {
+            top: -95px;
+            min-width: 255px;
+            max-height: 78vh;
+            overflow-y: auto;
+        }
+
+        .import-center-wrap > .import-center-menu::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .import-center-wrap > .import-center-menu::-webkit-scrollbar-thumb {
+            background: #bfe7fb;
+            border-radius: 999px;
+        }
+
+        .import-center-wrap > .import-center-menu::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .submenu-wrap:hover > .dropdown-menu.submenu,
+        .submenu-wrap.open > .dropdown-menu.submenu,
+        .dropdown-menu.submenu:hover {
+            display: block;
+            animation: menuPop 0.16s ease;
+        }
+
+        .right-chip {
+            min-height: 39px;
+            padding: 0 13px;
+            border-radius: 999px;
+            background: rgba(21, 157, 224, 0.10);
+            color: var(--blue-deep);
+            border: 1px solid rgba(21, 157, 224, 0.15);
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .right-chip:hover {
+            background: rgba(21, 157, 224, 0.16);
+        }
+
+        .right-round {
+            width: 39px;
+            height: 39px;
+            border-radius: 999px;
+            background: rgba(21, 157, 224, 0.10);
+            color: var(--blue-deep);
+            border: 1px solid rgba(21, 157, 224, 0.15);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .right-round:hover {
+            background: rgba(21, 157, 224, 0.16);
+        }
+
+        .page-shell {
+            min-height: calc(100vh - 44px);
+        }
+
+        .page-content {
+            padding: 28px 34px 56px;
+        }
+
+        .btn {
+            border: 0;
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            color: white;
+            padding: 12px 18px;
+            border-radius: 999px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            box-shadow: 0 10px 20px rgba(21, 157, 224, 0.22);
+            transition: 0.16s ease;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, var(--blue-dark), var(--blue));
+            transform: translateY(-1px);
+        }
+
+        .btn-light {
+            background: #ffffff;
+            color: var(--blue-dark);
+            border: 1px solid var(--border);
+            box-shadow: none;
+        }
+
+        .btn-danger {
+            background: var(--red);
+            box-shadow: none;
+        }
+
+        .btn-warning {
+            background: var(--orange);
+            box-shadow: none;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.92);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .card-head h2 {
+            color: var(--blue-deep);
+            margin: 0;
+            font-size: 22px;
+            letter-spacing: -0.3px;
+            font-weight: 700;
+        }
+
+        .card-head p {
+            margin: 5px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: #ffffff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+        }
+
+        th {
+            background: linear-gradient(180deg, #f3fbff, #eaf7ff);
+            color: var(--blue-deep);
+            padding: 15px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+        }
+
+        td {
+            padding: 15px;
+            border-top: 1px solid #edf7ff;
+            font-size: 14px;
+            vertical-align: middle;
+            font-weight: 400;
+        }
+
+        tr:hover td {
+            background: #fbfdff;
+        }
+
+        .badge {
+            display: inline-flex;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: var(--blue-soft);
+            color: var(--blue-dark);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.green {
+            background: #e8fff4;
+            color: #0f8a4a;
+        }
+
+        .badge.orange {
+            background: #fff7e8;
+            color: #b86b00;
+        }
+
+        .badge.red {
+            background: #fff0f0;
+            color: #d11f1f;
+        }
+
+        .badge.gray {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--blue-deep);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: #fbfdff;
+            border-radius: 14px;
+            padding: 13px 14px;
+            font-size: 14px;
+            outline: none;
+            color: var(--text);
+            font-weight: 400;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 4px rgba(21, 157, 224, 0.10);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 45px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state .emoji {
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        .detail-box {
+            background: #fbfdff;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        .detail-box span {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.35px;
+        }
+
+        .detail-box strong {
+            color: var(--blue-deep);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .messages {
+            margin-bottom: 18px;
+        }
+
+        .message {
+            padding: 13px 15px;
+            border-radius: 15px;
+            background: var(--blue-soft);
+            color: var(--blue-dark);
+            font-weight: 500;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .message.error {
+            background: #fff0f0;
+            color: #d11f1f;
+            border-color: #ffd5d5;
+        }
+
+        .message.warning {
+            background: #fff7e8;
+            color: #b86b00;
+            border-color: #ffe2a8;
+        }
+
+        .message.success {
+            background: #e8fff4;
+            color: #0f8a4a;
+            border-color: #c3f7dc;
+        }
+
+        .welcome-dashboard {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        .welcome-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 32px;
+            padding: 34px;
+            margin-bottom: 26px;
+            background:
+                radial-gradient(circle at 86% 8%, rgba(104, 212, 245, 0.30), transparent 32%),
+                radial-gradient(circle at 14% 90%, rgba(21, 157, 224, 0.14), transparent 34%),
+                linear-gradient(135deg, rgba(255,255,255,0.97), rgba(237,249,255,0.96));
+            border: 1px solid var(--border);
+            box-shadow: 0 18px 45px rgba(0, 95, 150, 0.10);
+        }
+
+        .welcome-grid {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: 1.12fr 0.88fr;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .welcome-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #e5f7ff, #ffffff);
+            border: 1px solid #c0e9fb;
+            color: var(--blue-dark);
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: 0 8px 20px rgba(21, 157, 224, 0.09);
+            margin-bottom: 18px;
+        }
+
+        .welcome-title {
+            margin: 0;
+            color: var(--blue-deep);
+            font-size: 36px;
+            line-height: 1.18;
+            letter-spacing: -0.6px;
+            font-weight: 700;
+        }
+
+        .welcome-title span {
+            color: var(--blue);
+        }
+
+        .welcome-desc {
+            margin: 14px 0 0;
+            color: #50677d;
+            font-size: 15px;
+            line-height: 1.75;
+            max-width: 760px;
+            font-weight: 400;
+        }
+
+        .welcome-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .welcome-btn {
+            min-height: 44px;
+            padding: 0 20px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            text-decoration: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: 0.16s ease;
+        }
+
+        .welcome-btn.primary {
+            color: white;
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            box-shadow: 0 12px 24px rgba(21, 157, 224, 0.22);
+        }
+
+        .welcome-btn.secondary {
+            color: var(--blue-dark);
+            background: white;
+            border-color: #cfeeff;
+            box-shadow: 0 8px 18px rgba(0, 128, 200, 0.06);
+        }
+
+        .welcome-btn.dark {
+            color: white;
+            background: linear-gradient(135deg, var(--blue-deep), #0c5e99);
+            box-shadow: 0 12px 24px rgba(7, 55, 99, 0.15);
+        }
+
+        .welcome-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .task-card {
+            background: rgba(255,255,255,0.90);
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            padding: 22px;
+            box-shadow: 0 14px 32px rgba(0, 95, 150, 0.09);
+            backdrop-filter: blur(16px);
+        }
+
+        .task-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .task-head h3 {
+            margin: 0;
+            color: var(--blue-deep);
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: -0.25px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #0f8a4a;
+            background: #e8fff4;
+            border: 1px solid #c3f7dc;
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-pill::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            background: #16c784;
+            border-radius: 999px;
+            box-shadow: 0 0 0 5px rgba(22, 199, 132, 0.12);
+        }
+
+        .task-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .task-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 13px 14px;
+            border-radius: 15px;
+            background: #f7fcff;
+            border: 1px solid #e3f5ff;
+        }
+
+        .task-row span {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .task-row strong {
+            color: var(--blue-deep);
+            font-size: 13px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .quick-section {
+            margin-top: 26px;
+        }
+
+        .section-title {
+            margin-bottom: 16px;
+        }
+
+        .section-title h2 {
+            margin: 0;
+            color: var(--blue-deep);
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .section-title p {
+            margin: 5px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .quick-card {
+            min-height: 150px;
+            padding: 22px;
+            border-radius: 26px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid var(--border);
+            box-shadow: 0 12px 28px rgba(0, 95, 150, 0.08);
+            transition: 0.16s ease;
+            color: inherit;
+            text-decoration: none;
+            display: block;
+        }
+
+        .quick-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .quick-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            color: white;
+            font-size: 20px;
+            box-shadow: 0 12px 24px rgba(21, 157, 224, 0.20);
+            margin-bottom: 15px;
+        }
+
+        .quick-card span {
+            display: block;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .quick-card h3 {
+            margin: 0;
+            color: var(--blue-deep);
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.25px;
+        }
+
+        @media (max-width: 1180px) {
+            .main-navbar {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 12px;
+                padding: 14px 20px;
+            }
+
+            .nav-left {
+                width: 100%;
+                justify-content: flex-start;
+                overflow-x: auto;
+                padding-bottom: 5px;
+            }
+
+            .nav-right {
+                position: absolute;
+                right: 20px;
+                top: 20px;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .welcome-grid,
+            .quick-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .system-topbar {
+                overflow-x: auto;
+            }
+
+            .brand-text span {
+                display: none;
+            }
+
+            .nav-right {
+                display: none;
+            }
+
+            .dropdown-menu {
+                position: fixed;
+                top: 128px;
+                left: 12px;
+            }
+
+            .dropdown-menu.submenu {
+                position: absolute;
+                top: -10px;
+                left: 100%;
+            }
+
+            .page-content {
+                padding: 20px;
+            }
+
+            .form-grid,
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-head {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .select-company-notice {
+                margin: 14px 14px 0;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .select-company-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .welcome-hero {
+                padding: 22px;
+                border-radius: 24px;
+            }
+
+            .welcome-grid,
+            .quick-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .welcome-title {
+                font-size: 28px;
+            }
+
+            .welcome-actions {
+                flex-direction: column;
+            }
+
+            .welcome-btn {
+                width: 100%;
+            }
+
+            .task-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 560px) {
+            body {
+                font-size: 13px;
+            }
+
+            .system-topbar {
+                height: 40px;
+                padding: 0 10px;
+            }
+
+            .main-navbar {
+                top: 40px;
+                padding: 12px 14px;
+            }
+
+            .brand-logo {
+                width: 46px;
+                height: 46px;
+                border-radius: 15px;
+            }
+
+            .brand-text strong {
+                font-size: 18px;
+            }
+
+            .nav-link {
+                min-height: 38px;
+                padding: 0 11px;
+                font-size: 12px;
+            }
+
+            .mini-icon {
+                width: 24px;
+                height: 24px;
+            }
+
+            .dropdown-item {
+                min-width: 205px;
+                font-size: 12px;
+            }
+
+            .page-content {
+                padding: 14px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .card {
+                padding: 18px;
+                border-radius: 22px;
+            }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+<div class="system-topbar">
+    <div class="top-left">
+        <a href="{% url 'dashboard_home' %}" class="top-pill active">✨ AsianCam Accounting Portal</a>
+
+        {% if request.session.selected_company_id %}
+            <a href="{% url 'company_list' %}" class="top-pill">
+                🏢 {{ request.session.selected_company_name }}
+            </a>
+        {% else %}
+            <a href="{% url 'company_list' %}" class="top-pill">
+                🏢 Select Company
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="top-right">
+        <div class="top-icon">🔍</div>
+        <div class="top-icon">⚡</div>
+        <div class="top-icon">🌐</div>
+    </div>
+</div>
+
+{% if not request.session.selected_company_id %}
+<div class="select-company-notice">
+    <div>
+        {% if request.user.is_superuser %}
+            <strong>👑 Welcome Admin — manage companies, staff, users, and permissions</strong>
+            <span>Select a company only when you want to enter the accounting workspace.</span>
+        {% else %}
+            <strong>👋 Welcome {{ request.user.get_full_name|default:request.user.username }} — select your company for today</strong>
+            <span>The accounting menu will appear after you choose one assigned company.</span>
+        {% endif %}
+    </div>
+
+    <a href="{% url 'company_list' %}" class="select-company-btn">Select Company</a>
+</div>
+{% endif %}
+
+{% if request.session.selected_company_id %}
+<nav class="main-navbar">
+
+    <a href="{% url 'dashboard_home' %}" class="brand">
+        <div class="brand-logo">AC</div>
+        <div class="brand-text">
+            <strong>Asi@nCam</strong>
+            <span>Accounting workspace for {{ request.session.selected_company_name }}</span>
+        </div>
+    </a>
+
+    <div class="nav-left">
+
+        <div class="nav-item">
+            <a href="{% url 'dashboard_home' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard_home' %}active{% endif %}">
+                <span class="mini-icon">📊</span>
+                Dashboard
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="{% url 'company_list' %}" class="nav-link {% if request.resolver_match.url_name == 'company_list' or request.resolver_match.url_name == 'company_create' or request.resolver_match.url_name == 'assign_staff' %}active{% endif %}">
+                <span class="mini-icon">🏢</span>
+                Companies
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'vendor_center' or request.resolver_match.url_name == 'vendor_create' or request.resolver_match.url_name == 'vendor_edit' or request.resolver_match.url_name == 'vendor_transaction_list' or request.resolver_match.url_name == 'vendor_transaction_create' or request.resolver_match.url_name == 'vendor_transaction_detail' or request.resolver_match.url_name == 'purchase_order_create' or request.resolver_match.url_name == 'cash_expense_create' or request.resolver_match.url_name == 'vendor_payment_create' %}active{% endif %}">
+                <span class="mini-icon">🏪</span>
+                Vendor ▾
+            </button>
+
+            <div class="dropdown-menu">
+                <a href="{% url 'vendor_center' %}" class="dropdown-item">Vendor Center</a>
+                <a href="{% url 'vendor_transaction_list' %}" class="dropdown-item">Vendor Transaction</a>
+                <a href="{% url 'purchase_order_create' %}" class="dropdown-item">Purchase Order</a>
+                <a href="{% url 'cash_expense_create' %}" class="dropdown-item">Cash Expense</a>
+                <a href="{% url 'vendor_payment_create' %}" class="dropdown-item">Vendor Payment</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'stock_item_list' or request.resolver_match.url_name == 'stock_item_create' or request.resolver_match.url_name == 'stock_item_group_list' or request.resolver_match.url_name == 'stock_item_brand_list' or request.resolver_match.url_name == 'stock_unit_set_list' or request.resolver_match.url_name == 'stock_issue_list' or request.resolver_match.url_name == 'stock_adjustment_list' or request.resolver_match.url_name == 'stock_assembly_list' or request.resolver_match.url_name == 'stock_transfer_list' %}active{% endif %}">
+                <span class="mini-icon">📦</span>
+                Item ▾
+            </button>
+
+            <div class="dropdown-menu">
+                <a href="{% url 'stock_item_list' %}" class="dropdown-item">Item</a>
+                <a href="{% url 'stock_item_group_list' %}" class="dropdown-item">Item Group</a>
+                <a href="{% url 'stock_item_brand_list' %}" class="dropdown-item">Item Brand</a>
+                <a href="{% url 'stock_unit_set_list' %}" class="dropdown-item">Unit Set</a>
+                <a href="{% url 'stock_issue_list' %}" class="dropdown-item">Stock Issue</a>
+                <a href="{% url 'stock_adjustment_list' %}" class="dropdown-item">Stock Adjustment</a>
+                <a href="{% url 'stock_assembly_list' %}" class="dropdown-item">Stock Assembly</a>
+                <a href="{% url 'stock_transfer_list' %}" class="dropdown-item">Stock Transfer</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'customer_center' or request.resolver_match.url_name == 'customer_transaction_list' or request.resolver_match.url_name == 'quotation_list' or request.resolver_match.url_name == 'sale_order_list' or request.resolver_match.url_name == 'customer_type_list' or request.resolver_match.url_name == 'salesperson_list' or request.resolver_match.url_name == 'price_level_list' or request.resolver_match.url_name == 'region_list' %}active{% endif %}">
+                <span class="mini-icon">👥</span>
+                Customer ▾
+            </button>
+
+            <div class="dropdown-menu">
+                <a href="{% url 'customer_center' %}" class="dropdown-item">Customer Center</a>
+                <a href="{% url 'customer_transaction_list' %}" class="dropdown-item">Customer Transaction</a>
+                <a href="{% url 'quotation_list' %}" class="dropdown-item">Quotation</a>
+                <a href="{% url 'sale_order_list' %}" class="dropdown-item">Sale Order</a>
+                <a href="{% url 'customer_type_list' %}" class="dropdown-item">Customer Type</a>
+                <a href="{% url 'salesperson_list' %}" class="dropdown-item">Salesperson</a>
+                <a href="{% url 'price_level_list' %}" class="dropdown-item">Price Level</a>
+                <a href="{% url 'region_list' %}" class="dropdown-item">Region</a>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'chart_of_accounts' or request.resolver_match.url_name == 'report_mapping' or request.resolver_match.url_name == 'journal_list' or request.resolver_match.url_name == 'journal_create' or request.resolver_match.url_name == 'journal_detail' or request.resolver_match.url_name == 'journal_edit' or request.resolver_match.url_name == 'accounting_import_excel' or request.resolver_match.url_name == 'banking_menu' or request.resolver_match.url_name == 'bank_deposit' or request.resolver_match.url_name == 'landed_cost_allocation' or request.resolver_match.url_name == 'find_transaction' or request.resolver_match.url_name == 'batch_transaction' or request.resolver_match.url_name == 'import_menu' or request.resolver_match.url_name == 'bulk_update_menu' or request.resolver_match.url_name == 'bulk_update_vendors' or request.resolver_match.url_name == 'bulk_update_items' or request.resolver_match.url_name == 'bulk_update_customers' or request.resolver_match.url_name == 'bulk_update_report' or request.resolver_match.url_name == 'ops_import_stock_balance' or request.resolver_match.url_name == 'ops_import_item' or request.resolver_match.url_name == 'ops_import_vendor' or request.resolver_match.url_name == 'ops_import_customer' or request.resolver_match.url_name == 'ops_import_coa' or request.resolver_match.url_name == 'ops_import_batch_transaction' or request.resolver_match.url_name == 'ops_import_trial_balance' or request.resolver_match.url_name == 'ops_import_journal_opening' or request.resolver_match.url_name == 'ops_import_outstanding_ap' or request.resolver_match.url_name == 'ops_import_outstanding_ar' %}active{% endif %}">
+                <span class="mini-icon">💼</span>
+                Accounting ▾
+            </button>
+
+            <div class="dropdown-menu">
+                <a href="{% url 'chart_of_accounts' %}" class="dropdown-item">Chart of Accounts</a>
+                <a href="{% url 'report_mapping' %}" class="dropdown-item">Report Mapping</a>
+
+                <div class="submenu-wrap">
+                    <div class="dropdown-item has-sub js-submenu-toggle">Banking</div>
+                    <div class="dropdown-menu submenu">
+                        <a href="{% url 'ops_bank_account_list' %}" class="dropdown-item">Bank Account</a>
+                        <a href="{% url 'ops_bank_deposit_list' %}" class="dropdown-item">Bank Deposit</a>
+                        <a href="{% url 'ops_bank_rule_list' %}" class="dropdown-item">Rule</a>
+                        <a href="{% url 'ops_bank_reconcile_list' %}" class="dropdown-item">Bank Reconcile</a>
+                    </div>
+                </div>
+
+                <a href="{% url 'journal_list' %}" class="dropdown-item">Journal Entry</a>
+                <a href="{% url 'ops_bank_deposit_list' %}" class="dropdown-item">Bank Deposit</a>
+                <a href="{% url 'ops_landed_cost_list' %}" class="dropdown-item">Landed Cost Allocation</a>
+                <a href="{% url 'ops_find_transaction' %}" class="dropdown-item">Find Transaction</a>
+                <a href="{% url 'ops_batch_transaction' %}" class="dropdown-item">Batch Transaction</a>
+
+                <div class="submenu-wrap import-center-wrap">
+                    <div class="dropdown-item has-sub js-submenu-toggle">Import Center</div>
+                    <div class="dropdown-menu submenu import-center-menu">
+                        <div class="dropdown-label">Master Data</div>
+                        <a href="{% url 'ops_import_coa' %}" class="dropdown-item">Chart of Account</a>
+                        <a href="{% url 'ops_import_item' %}" class="dropdown-item">Item</a>
+                        <a href="{% url 'ops_import_vendor' %}" class="dropdown-item">Vendor</a>
+                        <a href="{% url 'ops_import_customer' %}" class="dropdown-item">Customer</a>
+
+                        <div class="dropdown-divider"></div>
+
+                        <div class="dropdown-label">Opening Balance</div>
+                        <a href="{% url 'ops_import_trial_balance' %}" class="dropdown-item">Trial Balance Full</a>
+                        <a href="{% url 'ops_import_journal_opening' %}" class="dropdown-item">Journal Opening Balance</a>
+                        <a href="{% url 'ops_import_outstanding_ap' %}" class="dropdown-item">Outstanding AP</a>
+                        <a href="{% url 'ops_import_outstanding_ar' %}" class="dropdown-item">Outstanding AR</a>
+
+                        <div class="dropdown-divider"></div>
+
+                        <div class="dropdown-label">Stock / Transaction</div>
+                        <a href="{% url 'ops_import_stock_balance' %}" class="dropdown-item">Stock Balance</a>
+                        <a href="{% url 'ops_import_batch_transaction' %}" class="dropdown-item">Batch Transaction</a>
+                        <a href="{% url 'accounting_import_excel' %}" class="dropdown-item">Simple Journal Excel</a>
+                    </div>
+                </div>
+
+                <div class="submenu-wrap">
+                    <div class="dropdown-item has-sub js-submenu-toggle">Bulk Update</div>
+                    <div class="dropdown-menu submenu">
+                        <a href="{% url 'bulk_update_vendors' %}" class="dropdown-item {% if request.resolver_match.url_name == 'bulk_update_vendors' %}active{% endif %}">
+                            Update Vendors
+                        </a>
+                        <a href="{% url 'bulk_update_items' %}" class="dropdown-item {% if request.resolver_match.url_name == 'bulk_update_items' or request.resolver_match.url_name == 'bulk_update_menu' %}active{% endif %}">
+                            Update Items
+                        </a>
+                        <a href="{% url 'bulk_update_customers' %}" class="dropdown-item {% if request.resolver_match.url_name == 'bulk_update_customers' %}active{% endif %}">
+                            Update Customers
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-item">
+            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'accounting_reports' or request.resolver_match.url_name == 'report_profit_loss_by_month' or request.resolver_match.url_name == 'report_general_ledger' or request.resolver_match.url_name == 'report_ap_aging' or request.resolver_match.url_name == 'report_ar_aging' or request.resolver_match.url_name == 'report_balance_sheet' or request.resolver_match.url_name == 'report_profit_loss_standard' or request.resolver_match.url_name == 'report_journal_report' or request.resolver_match.url_name == 'report_trial_balance' or request.resolver_match.url_name == 'report_cash_flow' or request.resolver_match.url_name == 'report_ledger_detail' %}active{% endif %}">
+                <span class="mini-icon">📈</span>
+                Report ▾
+            </button>
+
+            <div class="dropdown-menu">
+                <a href="{% url 'accounting_reports' %}" class="dropdown-item {% if request.resolver_match.url_name == 'accounting_reports' %}active{% endif %}">
+                    All Reports
+                </a>
+
+                <div class="submenu-wrap">
+                    <div class="dropdown-item has-sub js-submenu-toggle">Company & Finance</div>
+                    <div class="dropdown-menu submenu">
+                        <a href="{% url 'report_profit_loss_standard' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_profit_loss_standard' %}active{% endif %}">
+                            Profit & Loss Statement
+                        </a>
+                        <a href="{% url 'report_balance_sheet' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_balance_sheet' %}active{% endif %}">
+                            Balance Sheet
+                        </a>
+                        <a href="{% url 'report_cash_flow' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_cash_flow' %}active{% endif %}">
+                            Cash Flow
+                        </a>
+                        <a href="{% url 'report_profit_loss_by_month' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_profit_loss_by_month' %}active{% endif %}">
+                            Profit/Loss by Month
+                        </a>
+                    </div>
+                </div>
+
+                <div class="submenu-wrap">
+                    <div class="dropdown-item has-sub js-submenu-toggle">Aging Reports</div>
+                    <div class="dropdown-menu submenu">
+                        <a href="{% url 'report_ap_aging' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_ap_aging' %}active{% endif %}">
+                            AP Aging Detail
+                        </a>
+                        <a href="{% url 'report_ar_aging' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_ar_aging' %}active{% endif %}">
+                            AR Aging Detail
+                        </a>
+                    </div>
+                </div>
+
+                <div class="submenu-wrap">
+                    <div class="dropdown-item has-sub js-submenu-toggle">Accounting Reports</div>
+                    <div class="dropdown-menu submenu">
+                        <a href="{% url 'report_trial_balance' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_trial_balance' %}active{% endif %}">
+                            Trial Balance
+                        </a>
+                        <a href="{% url 'report_general_ledger' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_general_ledger' %}active{% endif %}">
+                            General Ledger
+                        </a>
+                        <a href="{% url 'report_journal_report' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_journal_report' %}active{% endif %}">
+                            Journal Report
+                        </a>
+                        <a href="{% url 'accounting_reports' %}" class="dropdown-item">
+                            Excel / PDF Export
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-right">
+        <a href="{% url 'company_list' %}" class="right-chip">🏢 {{ request.session.selected_company_name }} ▾</a>
+        <div class="right-round">⚙️</div>
+        <div class="right-round">🔔</div>
+        <div class="right-round">🇰🇭</div>
+    </div>
+
+</nav>
+{% endif %}
+
+<div class="page-shell">
+    <main class="page-content">
+
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+
+    </main>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const menuButtons = document.querySelectorAll(".js-menu-toggle");
+        const submenuButtons = document.querySelectorAll(".js-submenu-toggle");
+
+        function closeAllMenus() {
+            document.querySelectorAll(".nav-item.open, .submenu-wrap.open").forEach(function (item) {
+                item.classList.remove("open");
+            });
+        }
+
+        menuButtons.forEach(function (btn) {
+            btn.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const navItem = btn.closest(".nav-item");
+                const isOpen = navItem.classList.contains("open");
+
+                closeAllMenus();
+
+                if (!isOpen) {
+                    navItem.classList.add("open");
+                }
+            });
+        });
+
+        submenuButtons.forEach(function (btn) {
+            btn.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const wrap = btn.closest(".submenu-wrap");
+                const parentMenu = btn.closest(".nav-item");
+                const isOpen = wrap.classList.contains("open");
+
+                if (parentMenu) {
+                    parentMenu.querySelectorAll(".submenu-wrap.open").forEach(function (item) {
+                        if (item !== wrap && !item.contains(wrap)) {
+                            item.classList.remove("open");
+                        }
+                    });
+                }
+
+                if (isOpen) {
+                    wrap.classList.remove("open");
+                } else {
+                    wrap.classList.add("open");
+                }
+            });
+        });
+
+        document.addEventListener("click", function () {
+            closeAllMenus();
+        });
+
+        document.querySelectorAll(".dropdown-menu").forEach(function (menu) {
+            menu.addEventListener("click", function (event) {
+                event.stopPropagation();
+            });
+        });
+    });
+</script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

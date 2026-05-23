@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}{{ workspace.display_title }}{% endblock %}
+
+{% block content %}
+
+<style>
+    .workspace-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .workspace-title h1 {
+        margin: 0;
+        color: var(--blue-deep);
+        font-size: 26px;
+    }
+
+    .workspace-title p {
+        margin: 6px 0 0;
+        color: var(--muted);
+    }
+
+    .workflow-box {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .workflow-step {
+        border: 1px solid var(--border);
+        background: #ffffff;
+        border-radius: 18px;
+        padding: 14px;
+    }
+
+    .workflow-step span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+
+    .workflow-step strong {
+        display: block;
+        color: var(--blue-deep);
+        font-size: 14px;
+    }
+
+    .action-panel {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .review-box {
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        background: #fbfdff;
+        border-radius: 18px;
+        padding: 16px;
+    }
+
+    .review-box textarea {
+        min-height: 90px;
+    }
+
+    .file-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 900px) {
+        .workflow-box {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 560px) {
+        .workflow-box {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="card">
+    <div class="workspace-header">
+        <div class="workspace-title">
+            <h1>{{ workspace.display_title }}</h1>
+            <p>
+                Client:
+                <a href="{% url 'client_detail' workspace.client.pk %}">
+                    {{ workspace.client.company_name }}
+                </a>
+                · Month: {{ workspace.year }}-{{ workspace.month|stringformat:"02d" }}
+            </p>
+        </div>
+
+        <div class="action-panel">
+            {% if can_edit %}
+                <a class="btn btn-light" href="{% url 'workspace_edit' workspace.pk %}">Edit Workspace</a>
+            {% endif %}
+
+            {% if can_upload %}
+                <a class="btn" href="{% url 'report_upload_workspace' workspace.pk %}">Upload File</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="workflow-box">
+        <div class="workflow-step">
+            <span>Status</span>
+            <strong>
+                {% if workspace.status == "approved" %}
+                    <span class="badge green">{{ workspace.get_status_display }}</span>
+                {% elif workspace.status == "completed" %}
+                    <span class="badge orange">{{ workspace.get_status_display }}</span>
+                {% elif workspace.status == "rejected" %}
+                    <span class="badge red">{{ workspace.get_status_display }}</span>
+                {% else %}
+                    <span class="badge">{{ workspace.get_status_display }}</span>
+                {% endif %}
+            </strong>
+        </div>
+
+        <div class="workflow-step">
+            <span>Assigned Staff</span>
+            <strong>
+                {% for s in workspace.assigned_staff.all %}
+                    {{ s.get_full_name|default:s.username }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    -
+                {% endfor %}
+            </strong>
+        </div>
+
+        <div class="workflow-step">
+            <span>Submitted</span>
+            <strong>
+                {% if workspace.submitted_at %}
+                    {{ workspace.submitted_at|date:"Y-m-d H:i" }}
+                {% else %}
+                    -
+                {% endif %}
+            </strong>
+        </div>
+
+        <div class="workflow-step">
+            <span>Approved</span>
+            <strong>
+                {% if workspace.approved_at %}
+                    {{ workspace.approved_at|date:"Y-m-d H:i" }}
+                {% else %}
+                    -
+                {% endif %}
+            </strong>
+        </div>
+    </div>
+
+    {% if workspace.note %}
+        <div class="review-box">
+            <strong>Workspace Note</strong>
+            <p>{{ workspace.note|linebreaksbr }}</p>
+        </div>
+    {% endif %}
+
+    {% if workspace.review_note %}
+        <div class="review-box">
+            <strong>Admin Review Note</strong>
+            <p>{{ workspace.review_note|linebreaksbr }}</p>
+        </div>
+    {% endif %}
+
+    <div class="form-actions">
+        {% if can_start %}
+            <form method="post" action="{% url 'workspace_start' workspace.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-light">Start Work</button>
+            </form>
+        {% endif %}
+
+        {% if can_submit %}
+            <form method="post" action="{% url 'workspace_submit' workspace.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn">Complete & Submit to Admin</button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if can_approve or can_reject %}
+        <div class="review-box">
+            <form method="post" action="{% url 'workspace_approve' workspace.pk %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Admin Review Note</label>
+                    <textarea name="review_note" placeholder="Optional note for approval...">{{ workspace.review_note }}</textarea>
+                </div>
+                <button type="submit" class="btn">Approve Workspace</button>
+            </form>
+
+            <form method="post" action="{% url 'workspace_reject' workspace.pk %}" style="margin-top:12px;">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Reason for Return to Staff</label>
+                    <textarea name="review_note" placeholder="Tell staff what to fix...">{{ workspace.review_note }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-danger">Reject / Return to Staff</button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Files / Reports</h2>
+            <p>Staff uploads working files and final reports. Client can only see approved final reports.</p>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Uploaded By</th>
+                    <th>Uploaded</th>
+                    <th>Customer View</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for r in reports %}
+                    <tr>
+                        <td>{{ r.title }}</td>
+                        <td>{{ r.get_file_type_display }}</td>
+                        <td>{{ r.uploaded_by.get_full_name|default:r.uploaded_by.username|default:"-" }}</td>
+                        <td>{{ r.uploaded_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            {% if r.visible_to_customer %}
+                                <span class="badge green">Yes</span>
+                            {% else %}
+                                <span class="badge gray">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.is_approved %}
+                                <span class="badge green">Approved</span>
+                            {% else %}
+                                <span class="badge orange">Waiting Approval</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="file-actions">
+                                <a class="btn btn-light" href="{% url 'report_download' r.pk %}">Download</a>
+
+                                {% if can_edit and not r.is_approved %}
+                                    <a class="btn" href="{% url 'report_approve' r.pk %}">Approve File</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="emoji">📁</div>
+                                No file yet.
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

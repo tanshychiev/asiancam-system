@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h1>Upload Report / File</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Upload</button>
+        {% if workspace %}
+            <a class="btn gray" href="{% url 'workspace_detail' workspace.pk %}">Cancel</a>
+        {% else %}
+            <a class="btn gray" href="{% url 'workspace_list' %}">Cancel</a>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>{{ page_title }}</h2>
+            <p>{{ company.name }}</p>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="message error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="form-grid">
+            {% for field in form %}
+            <div class="form-group">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {{ field.errors }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <button class="btn" type="submit">💾 {{ button_text }}</button>
+            <a href="{% url 'dashboard_home' %}" class="btn btn-light">Close</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

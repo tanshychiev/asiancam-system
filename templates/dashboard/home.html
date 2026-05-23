@@ -1,0 +1,670 @@
+{% extends "base.html" %}
+
+{% block title %}AsianCam Accounting Portal{% endblock %}
+
+{% block content %}
+
+<style>
+    .home-wrap {
+        max-width: 1220px;
+        margin: 0 auto;
+    }
+
+    .hero {
+        border-radius: 34px;
+        padding: 34px;
+        margin-bottom: 26px;
+        background:
+            radial-gradient(circle at 88% 8%, rgba(103,217,255,.42), transparent 30%),
+            radial-gradient(circle at 12% 92%, rgba(21,170,245,.18), transparent 35%),
+            linear-gradient(135deg, rgba(255,255,255,.96), rgba(232,248,255,.98));
+        border: 1px solid #d7efff;
+        box-shadow: 0 22px 55px rgba(0,128,200,.14);
+    }
+
+    .hero-grid {
+        display: grid;
+        grid-template-columns: 1.12fr .88fr;
+        gap: 28px;
+        align-items: center;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #dff6ff, #fff);
+        border: 1px solid #b9eaff;
+        color: #0579bd;
+        font-weight: 950;
+        font-size: 13px;
+        margin-bottom: 18px;
+        box-shadow: 0 10px 24px rgba(21,170,245,.12);
+    }
+
+    .hero h1 {
+        margin: 0;
+        color: #073763;
+        font-size: 38px;
+        line-height: 1.12;
+        letter-spacing: -1px;
+        font-weight: 950;
+    }
+
+    .hero h1 span {
+        color: #15aaf5;
+    }
+
+    .desc {
+        margin: 14px 0 0;
+        color: #50677d;
+        font-size: 15px;
+        line-height: 1.75;
+        max-width: 760px;
+    }
+
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .btn-home {
+        min-height: 44px;
+        padding: 0 20px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-weight: 950;
+        font-size: 13px;
+        text-decoration: none;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: .16s ease;
+    }
+
+    .btn-home:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-home.primary {
+        color: white;
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        box-shadow: 0 14px 28px rgba(21,170,245,.28);
+    }
+
+    .btn-home.secondary {
+        color: #0579bd;
+        background: #fff;
+        border-color: #cfeeff;
+        box-shadow: 0 10px 22px rgba(0,128,200,.08);
+    }
+
+    .btn-home.dark {
+        color: #fff;
+        background: linear-gradient(135deg, #073763, #0c5e99);
+        box-shadow: 0 14px 28px rgba(7,55,99,.18);
+    }
+
+    .task-card {
+        background: rgba(255,255,255,.88);
+        border: 1px solid #d7efff;
+        border-radius: 28px;
+        padding: 22px;
+        box-shadow: 0 18px 38px rgba(0,128,200,.12);
+    }
+
+    .task-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+    }
+
+    .task-head h3 {
+        margin: 0;
+        color: #073763;
+        font-size: 19px;
+        font-weight: 950;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #0f8a4a;
+        background: #e8fff4;
+        border: 1px solid #c3f7dc;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 950;
+    }
+
+    .status-pill.pending {
+        color: #b86b00;
+        background: #fff7e8;
+        border-color: #ffe2a8;
+    }
+
+    .task-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .task-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 13px 14px;
+        border-radius: 16px;
+        background: #f7fcff;
+        border: 1px solid #e3f5ff;
+    }
+
+    .task-row span {
+        color: #6b7c93;
+        font-size: 13px;
+        font-weight: 850;
+    }
+
+    .task-row strong {
+        color: #073763;
+        font-size: 13px;
+        font-weight: 950;
+        text-align: right;
+    }
+
+    .section {
+        margin-top: 26px;
+    }
+
+    .section-title {
+        margin-bottom: 16px;
+    }
+
+    .section-title h2 {
+        margin: 0;
+        color: #073763;
+        font-size: 24px;
+        font-weight: 950;
+    }
+
+    .section-title p {
+        margin: 5px 0 0;
+        color: #6b7c93;
+        font-size: 13px;
+    }
+
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+    }
+
+    .quick-card {
+        min-height: 150px;
+        padding: 22px;
+        border-radius: 28px;
+        background: rgba(255,255,255,.92);
+        border: 1px solid #d7efff;
+        box-shadow: 0 16px 34px rgba(0,128,200,.10);
+        transition: .16s ease;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .quick-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .quick-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        color: white;
+        font-size: 22px;
+        box-shadow: 0 14px 28px rgba(21,170,245,.24);
+        margin-bottom: 15px;
+    }
+
+    .quick-card span {
+        display: block;
+        color: #6b7c93;
+        font-size: 13px;
+        font-weight: 900;
+        margin-bottom: 8px;
+    }
+
+    .quick-card h3 {
+        margin: 0;
+        color: #073763;
+        font-size: 23px;
+        font-weight: 950;
+        letter-spacing: -.5px;
+    }
+
+    .workflow-card {
+        margin-top: 26px;
+        border-radius: 30px;
+        padding: 26px;
+        background: rgba(255,255,255,.9);
+        border: 1px solid #d7efff;
+        box-shadow: 0 16px 34px rgba(0,128,200,.10);
+    }
+
+    .workflow-card h2 {
+        margin: 0;
+        color: #073763;
+        font-size: 24px;
+        font-weight: 950;
+    }
+
+    .workflow-card p {
+        margin: 6px 0 20px;
+        color: #6b7c93;
+        font-size: 13px;
+    }
+
+    .workflow-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
+    }
+
+    .workflow-step {
+        padding: 18px;
+        border-radius: 22px;
+        background: #f7fcff;
+        border: 1px solid #e3f5ff;
+        text-align: center;
+    }
+
+    .workflow-no {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        color: white;
+        font-weight: 950;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+    }
+
+    .workflow-step h4 {
+        margin: 0 0 7px;
+        color: #073763;
+        font-size: 14px;
+        font-weight: 950;
+    }
+
+    .workflow-step span {
+        color: #6b7c93;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    @media (max-width: 1100px) {
+        .workflow-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 1000px) {
+        .hero-grid,
+        .quick-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 620px) {
+        .hero {
+            padding: 22px;
+            border-radius: 24px;
+        }
+
+        .hero-grid,
+        .quick-grid,
+        .workflow-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .hero h1 {
+            font-size: 28px;
+        }
+
+        .actions {
+            flex-direction: column;
+        }
+
+        .btn-home {
+            width: 100%;
+        }
+
+        .task-row {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<div class="home-wrap">
+
+    <section class="hero">
+        <div class="hero-grid">
+
+            <div>
+                {% if request.session.selected_company_id %}
+                    <div class="badge">🏢 Company Workspace Active</div>
+
+                    <h1>
+                        Work on
+                        <span>{{ request.session.selected_company_name }}</span>
+                    </h1>
+
+                    <p class="desc">
+                        You are now inside one company workspace. Input accounting data, import Excel files,
+                        check pending tasks, and generate reports for this selected company only.
+                    </p>
+
+                    <div class="actions">
+                        <a href="{% url 'journal_create' %}" class="btn-home primary">🧾 Input Accounting Data</a>
+                        <a href="{% url 'accounting_reports' %}" class="btn-home secondary">📊 View Reports</a>
+                        <a href="{% url 'company_list' %}" class="btn-home secondary">🏢 View Companies</a>
+                        <a href="/companies/clear/" class="btn-home dark">🔄 Change Company</a>
+                    </div>
+
+                {% elif request.user.is_superuser %}
+                    <div class="badge">👑 Admin Control Center</div>
+
+                    <h1>
+                        Welcome Admin,
+                        <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+                    </h1>
+
+                    <p class="desc">
+                        View companies, view users, create roles, create users, create companies,
+                        assign staff, and control what each role can see or do.
+                    </p>
+
+                    <div class="actions">
+                        <a href="{% url 'company_list' %}" class="btn-home primary">🏢 View Companies</a>
+                        <a href="/users/" class="btn-home secondary">👥 View Users</a>
+                        <a href="/roles/" class="btn-home secondary">🔐 View Roles</a>
+                        <a href="/companies/create/" class="btn-home secondary">➕ Create Company</a>
+                        <a href="/users/create/" class="btn-home secondary">👤 Create User</a>
+                        <a href="/companies/assign-staff/" class="btn-home dark">🔗 Assign Staff</a>
+                    </div>
+
+                {% else %}
+                    <div class="badge">👋 Staff Workspace</div>
+
+                    <h1>
+                        Welcome,
+                        <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+                    </h1>
+
+                    <p class="desc">
+                        Here are your tasks for today. First, select one assigned company.
+                        After you select a company, the accounting work menu will appear.
+                    </p>
+
+                    <div class="actions">
+                        <a href="{% url 'company_list' %}" class="btn-home primary">🏢 Select Company</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="task-card">
+                <div class="task-head">
+                    {% if request.session.selected_company_id %}
+                        <h3>Company Tasks</h3>
+                        <div class="status-pill">Working</div>
+                    {% elif request.user.is_superuser %}
+                        <h3>Admin Setup Tasks</h3>
+                        <div class="status-pill pending">Setup Menu</div>
+                    {% else %}
+                        <h3>Your Tasks Today</h3>
+                        <div class="status-pill pending">Pending</div>
+                    {% endif %}
+                </div>
+
+                <div class="task-list">
+                    {% if request.session.selected_company_id %}
+                        <div class="task-row">
+                            <span>Selected Company</span>
+                            <strong>{{ request.session.selected_company_name }}</strong>
+                        </div>
+                        <div class="task-row">
+                            <span>Data Input</span>
+                            <strong>Manual / Excel</strong>
+                        </div>
+                        <div class="task-row">
+                            <span>Reports</span>
+                            <strong>Auto Generate After Input</strong>
+                        </div>
+                        <div class="task-row">
+                            <span>Approval</span>
+                            <strong>Waiting Admin Review</strong>
+                        </div>
+                    {% elif request.user.is_superuser %}
+                        <div class="task-row">
+                            <span>View Companies</span>
+                            <strong>See all company/client records</strong>
+                        </div>
+                        <div class="task-row">
+                            <span>View Users</span>
+                            <strong>See staff users and client users</strong>
+                        </div>
+                        <div class="task-row">
+                            <span>Create / Assign</span>
+                            <strong>Company, user, role, staff access</strong>
+                        </div>
+                        <div class="task-row">
+                            <span>Permissions</span>
+                            <strong>Allow / block what users can do</strong>
+                        </div>
+                    {% else %}
+                        <div class="task-row">
+                            <span>Step 1</span>
+                            <strong>Select assigned company</strong>
+                        </div>
+                        <div class="task-row">
+                            <span>Step 2</span>
+                            <strong>Input accounting data</strong>
+                        </div>
+                        <div class="task-row">
+                            <span>Step 3</span>
+                            <strong>Check generated reports</strong>
+                        </div>
+                        <div class="task-row">
+                            <span>Status</span>
+                            <strong>Waiting company selection</strong>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    {% if request.session.selected_company_id %}
+        <section class="section">
+            <div class="section-title">
+                <h2>Accounting Work Menu</h2>
+                <p>Core functions available for {{ request.session.selected_company_name }}.</p>
+            </div>
+
+            <div class="quick-grid">
+                <a href="{% url 'chart_of_accounts' %}" class="quick-card">
+                    <div class="quick-icon">📒</div>
+                    <span>Setup</span>
+                    <h3>Chart of Accounts</h3>
+                </a>
+
+                <a href="{% url 'journal_create' %}" class="quick-card">
+                    <div class="quick-icon">🧾</div>
+                    <span>Manual Input</span>
+                    <h3>Accounting Data</h3>
+                </a>
+
+                <a href="{% url 'accounting_import_excel' %}" class="quick-card">
+                    <div class="quick-icon">📤</div>
+                    <span>Import Excel</span>
+                    <h3>Documents</h3>
+                </a>
+
+                <a href="{% url 'accounting_reports' %}" class="quick-card">
+                    <div class="quick-icon">📊</div>
+                    <span>Output</span>
+                    <h3>Reports</h3>
+                </a>
+            </div>
+        </section>
+
+    {% elif request.user.is_superuser %}
+        <section class="section">
+            <div class="section-title">
+                <h2>Admin Quick Actions</h2>
+                <p>View and manage companies, users, roles, and staff access from the front system.</p>
+            </div>
+
+            <div class="quick-grid">
+                <a href="{% url 'company_list' %}" class="quick-card">
+                    <div class="quick-icon">🏢</div>
+                    <span>View</span>
+                    <h3>Company List</h3>
+                </a>
+
+                <a href="/users/" class="quick-card">
+                    <div class="quick-icon">👥</div>
+                    <span>View</span>
+                    <h3>User List</h3>
+                </a>
+
+                <a href="/roles/" class="quick-card">
+                    <div class="quick-icon">🔐</div>
+                    <span>View</span>
+                    <h3>Role List</h3>
+                </a>
+
+                <a href="/companies/assign-staff/" class="quick-card">
+                    <div class="quick-icon">🔗</div>
+                    <span>Access Control</span>
+                    <h3>Assign Staff</h3>
+                </a>
+
+                <a href="/companies/create/" class="quick-card">
+                    <div class="quick-icon">➕</div>
+                    <span>Create</span>
+                    <h3>Create Company</h3>
+                </a>
+
+                <a href="/users/create/" class="quick-card">
+                    <div class="quick-icon">👤</div>
+                    <span>Create</span>
+                    <h3>Create User</h3>
+                </a>
+
+                <a href="/roles/create/" class="quick-card">
+                    <div class="quick-icon">🛡️</div>
+                    <span>Create</span>
+                    <h3>Create Role</h3>
+                </a>
+
+                <a href="{% url 'company_list' %}" class="quick-card">
+                    <div class="quick-icon">✅</div>
+                    <span>Work</span>
+                    <h3>Select Company</h3>
+                </a>
+            </div>
+        </section>
+
+        <section class="workflow-card">
+            <h2>Admin Setup Workflow</h2>
+            <p>Use this order to set up your AsianCam accounting portal.</p>
+
+            <div class="workflow-grid">
+                <div class="workflow-step">
+                    <div class="workflow-no">1</div>
+                    <h4>Create Role</h4>
+                    <span>Set what staff can see or do.</span>
+                </div>
+
+                <div class="workflow-step">
+                    <div class="workflow-no">2</div>
+                    <h4>Create Company</h4>
+                    <span>Add client/company workspace.</span>
+                </div>
+
+                <div class="workflow-step">
+                    <div class="workflow-no">3</div>
+                    <h4>Create User</h4>
+                    <span>Create staff user or client user.</span>
+                </div>
+
+                <div class="workflow-step">
+                    <div class="workflow-no">4</div>
+                    <h4>Assign Staff</h4>
+                    <span>Allow staff to work on selected companies.</span>
+                </div>
+
+                <div class="workflow-step">
+                    <div class="workflow-no">5</div>
+                    <h4>Work / Reports</h4>
+                    <span>Staff inputs data, client views approved reports.</span>
+                </div>
+            </div>
+        </section>
+
+    {% else %}
+        <section class="section">
+            <div class="section-title">
+                <h2>Staff Work Flow</h2>
+                <p>Select a company first. Then the accounting navbar will show.</p>
+            </div>
+
+            <div class="quick-grid">
+                <a href="{% url 'company_list' %}" class="quick-card">
+                    <div class="quick-icon">🏢</div>
+                    <span>Step 1</span>
+                    <h3>Select Company</h3>
+                </a>
+
+                <div class="quick-card">
+                    <div class="quick-icon">🧾</div>
+                    <span>Step 2</span>
+                    <h3>Input Data</h3>
+                </div>
+
+                <div class="quick-card">
+                    <div class="quick-icon">📊</div>
+                    <span>Step 3</span>
+                    <h3>Auto Reports</h3>
+                </div>
+
+                <div class="quick-card">
+                    <div class="quick-icon">✅</div>
+                    <span>Step 4</span>
+                    <h3>Approval</h3>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+</div>
+
+{% endblock %}

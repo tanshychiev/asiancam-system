@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>{{ page_title }}</h2>
+            <p>Input debit and credit lines for {{ company.name }}.</p>
+        </div>
+
+        <a href="{% url 'journal_list' %}" class="btn btn-light">← Back</a>
+    </div>
+
+    <form method="post" id="journalForm">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="message error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {{ formset.management_form }}
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Date</label>
+                {{ form.entry_date }}
+                {{ form.entry_date.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>Reference No</label>
+                {{ form.reference_no }}
+                {{ form.reference_no.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                {{ form.status }}
+                {{ form.status.errors }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Description</label>
+            {{ form.description }}
+            {{ form.description.errors }}
+        </div>
+
+        <div class="card" style="box-shadow:none;">
+            <div class="card-head">
+                <div>
+                    <h2>Journal Lines</h2>
+                    <p>Debit and Credit must be equal before saving.</p>
+                </div>
+
+                <button type="button" class="btn btn-light" onclick="addLine()">➕ Add Line</button>
+            </div>
+
+            <div class="table-wrap">
+                <table id="journalLinesTable">
+                    <thead>
+                        <tr>
+                            <th style="width:28%;">Account</th>
+                            <th>Description</th>
+                            <th style="width:14%;">Debit</th>
+                            <th style="width:14%;">Credit</th>
+                            <th style="width:8%;">Delete</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="journalLinesBody">
+                        {% for line_form in formset %}
+                            <tr class="journal-line">
+                                <td>
+                                    {{ line_form.id }}
+                                    {{ line_form.account }}
+                                    {{ line_form.account.errors }}
+                                </td>
+                                <td>
+                                    {{ line_form.description }}
+                                    {{ line_form.description.errors }}
+                                </td>
+                                <td>
+                                    {{ line_form.debit }}
+                                    {{ line_form.debit.errors }}
+                                </td>
+                                <td>
+                                    {{ line_form.credit }}
+                                    {{ line_form.credit.errors }}
+                                </td>
+                                <td style="text-align:center;">
+                                    {% if line_form.DELETE %}
+                                        {{ line_form.DELETE }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+
+                    <tfoot>
+                        <tr>
+                            <th colspan="2">Total</th>
+                            <th id="totalDebit">$0.00</th>
+                            <th id="totalCredit">$0.00</th>
+                            <th id="balanceStatus"><span class="badge red">Not Balanced</span></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">💾 {{ button_text }}</button>
+            <a href="{% url 'journal_list' %}" class="btn btn-light">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function parseMoney(value) {
+    const num = parseFloat(value || "0");
+    if (isNaN(num)) {
+        return 0;
+    }
+    return num;
+}
+
+function updateTotals() {
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    document.querySelectorAll(".debit-input").forEach(function(input) {
+        totalDebit += parseMoney(input.value);
+    });
+
+    document.querySelectorAll(".credit-input").forEach(function(input) {
+        totalCredit += parseMoney(input.value);
+    });
+
+    document.getElementById("totalDebit").innerText = "$" + totalDebit.toFixed(2);
+    document.getElementById("totalCredit").innerText = "$" + totalCredit.toFixed(2);
+
+    const status = document.getElementById("balanceStatus");
+
+    if (totalDebit > 0 && totalDebit.toFixed(2) === totalCredit.toFixed(2)) {
+        status.innerHTML = '<span class="badge green">Balanced</span>';
+    } else {
+        status.innerHTML = '<span class="badge red">Not Balanced</span>';
+    }
+}
+
+function lockOppositeInput() {
+    document.querySelectorAll(".journal-line").forEach(function(row) {
+        const debit = row.querySelector(".debit-input");
+        const credit = row.querySelector(".credit-input");
+
+        if (!debit || !credit) {
+            return;
+        }
+
+        debit.addEventListener("input", function() {
+            if (parseMoney(debit.value) > 0) {
+                credit.value = "0";
+            }
+            updateTotals();
+        });
+
+        credit.addEventListener("input", function() {
+            if (parseMoney(credit.value) > 0) {
+                debit.value = "0";
+            }
+            updateTotals();
+        });
+    });
+}
+
+function addLine() {
+    const totalForms = document.getElementById("id_lines-TOTAL_FORMS");
+    const currentIndex = parseInt(totalForms.value);
+    const firstRow = document.querySelector(".journal-line");
+    const newRow = firstRow.cloneNode(true);
+
+    newRow.innerHTML = newRow.innerHTML.replaceAll(`-${0}-`, `-${currentIndex}-`);
+    newRow.innerHTML = newRow.innerHTML.replaceAll(`_0_`, `_${currentIndex}_`);
+
+    newRow.querySelectorAll("input, select").forEach(function(input) {
+        if (input.type === "checkbox") {
+            input.checked = false;
+        } else if (input.type === "hidden") {
+            input.value = "";
+        } else if (input.tagName === "SELECT") {
+            input.selectedIndex = 0;
+        } else {
+            input.value = "";
+        }
+    });
+
+    document.getElementById("journalLinesBody").appendChild(newRow);
+    totalForms.value = currentIndex + 1;
+
+    lockOppositeInput();
+    updateTotals();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    lockOppositeInput();
+    updateTotals();
+
+    document.querySelectorAll(".debit-input, .credit-input").forEach(function(input) {
+        input.addEventListener("input", updateTotals);
+    });
+});
+</script>
+
+{% endblock %}

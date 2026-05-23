@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Import{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Import Center</h2>
+            <p>Import accounting and master data for {{ company.name }}.</p>
+        </div>
+    </div>
+
+    <div class="quick-grid">
+        <a href="{% url 'accounting_import_excel' %}" class="quick-card">
+            <div class="quick-icon">📥</div>
+            <span>Ready</span>
+            <h3>Import Journal Excel</h3>
+        </a>
+
+        <a href="{% url 'chart_of_accounts' %}" class="quick-card">
+            <div class="quick-icon">📒</div>
+            <span>Setup</span>
+            <h3>Chart of Accounts</h3>
+        </a>
+
+        <a href="{% url 'journal_list' %}" class="quick-card">
+            <div class="quick-icon">📘</div>
+            <span>View</span>
+            <h3>Journal Entries</h3>
+        </a>
+
+        <a href="{% url 'accounting_reports' %}" class="quick-card">
+            <div class="quick-icon">📊</div>
+            <span>Output</span>
+            <h3>Reports</h3>
+        </a>
+    </div>
+</div>
+
+{% endblock %}

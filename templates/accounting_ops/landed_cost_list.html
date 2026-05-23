@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Landed Cost Allocation{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Landed Cost Allocation</h2>
+            <p>Allocate freight/import cost and auto create journal.</p>
+        </div>
+
+        <a href="{% url 'ops_landed_cost_create' %}" class="btn">➕ Add</a>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Number</th>
+                    <th>Purchase Date</th>
+                    <th>Bill No.</th>
+                    <th>Vendor</th>
+                    <th>PO Number</th>
+                    <th>Method</th>
+                    <th>Amount</th>
+                    <th>Journal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.number|default:row.id }}</td>
+                    <td>{{ row.purchase_date|default:"-" }}</td>
+                    <td>{{ row.bill_no|default:"-" }}</td>
+                    <td>{{ row.vendor_name|default:"-" }}</td>
+                    <td>{{ row.po_number|default:"-" }}</td>
+                    <td>{{ row.get_allocation_method_display }}</td>
+                    <td>${{ row.amount }}</td>
+                    <td>
+                        {% if row.journal_entry %}
+                            <span class="badge green">Generated</span>
+                        {% else %}
+                            <span class="badge orange">No Journal</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="empty-state">No landed cost yet.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

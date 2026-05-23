@@ -1,0 +1,646 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .import-page {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+
+    .import-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+        padding: 28px;
+        margin-bottom: 24px;
+        background:
+            radial-gradient(circle at 88% 8%, rgba(104, 212, 245, 0.30), transparent 32%),
+            radial-gradient(circle at 12% 92%, rgba(21, 157, 224, 0.13), transparent 34%),
+            linear-gradient(135deg, rgba(255,255,255,0.98), rgba(237,249,255,0.98));
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-soft);
+    }
+
+    .import-hero-grid {
+        display: grid;
+        grid-template-columns: 1.25fr 0.75fr;
+        gap: 22px;
+        align-items: center;
+    }
+
+    .import-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        background: #e8f7ff;
+        border: 1px solid #c7ebff;
+        color: var(--blue-dark);
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 14px;
+    }
+
+    .import-title {
+        margin: 0;
+        color: var(--blue-deep);
+        font-size: 30px;
+        line-height: 1.18;
+        letter-spacing: -0.5px;
+        font-weight: 800;
+    }
+
+    .import-title span {
+        color: var(--blue);
+    }
+
+    .import-desc {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+        max-width: 760px;
+    }
+
+    .import-summary-card {
+        background: rgba(255,255,255,0.88);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 18px;
+    }
+
+    .summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #eef7ff;
+    }
+
+    .summary-row:last-child {
+        border-bottom: 0;
+    }
+
+    .summary-row span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .summary-row strong {
+        color: var(--blue-deep);
+        font-size: 13px;
+        font-weight: 800;
+        text-align: right;
+    }
+
+    .import-layout {
+        display: grid;
+        grid-template-columns: 0.82fr 1.18fr;
+        gap: 22px;
+        align-items: start;
+    }
+
+    .import-card {
+        background: rgba(255,255,255,0.94);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 22px;
+        box-shadow: var(--shadow-soft);
+    }
+
+    .import-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .import-card-head h2 {
+        margin: 0;
+        color: var(--blue-deep);
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .import-card-head p {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .import-warning {
+        padding: 14px 15px;
+        border-radius: 16px;
+        background: #fff7e8;
+        border: 1px solid #ffe1a6;
+        color: #9a5a00;
+        font-size: 13px;
+        line-height: 1.6;
+        margin-bottom: 16px;
+    }
+
+    .import-info {
+        padding: 14px 15px;
+        border-radius: 16px;
+        background: var(--blue-soft);
+        border: 1px solid var(--border);
+        color: var(--blue-dark);
+        font-size: 13px;
+        line-height: 1.6;
+        margin-bottom: 16px;
+    }
+
+    .upload-zone {
+        border: 2px dashed #bce7fb;
+        border-radius: 22px;
+        background: #f8fdff;
+        padding: 22px;
+        text-align: center;
+    }
+
+    .upload-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 12px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, var(--blue), var(--cyan));
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 12px 24px rgba(21,157,224,0.22);
+    }
+
+    .upload-zone label {
+        display: block;
+        color: var(--blue-deep);
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .upload-zone input[type="file"] {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 13px;
+    }
+
+    .upload-help {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .import-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .import-menu-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .import-menu-card {
+        display: block;
+        padding: 16px;
+        border-radius: 18px;
+        background: #fbfdff;
+        border: 1px solid #e2f3ff;
+        transition: 0.16s ease;
+        color: inherit;
+    }
+
+    .import-menu-card:hover {
+        transform: translateY(-2px);
+        border-color: #bce7fb;
+        box-shadow: 0 10px 22px rgba(21,157,224,0.10);
+    }
+
+    .import-menu-card.active {
+        background: linear-gradient(135deg, var(--blue), var(--cyan));
+        border-color: transparent;
+        color: #ffffff;
+        box-shadow: 0 12px 24px rgba(21,157,224,0.20);
+    }
+
+    .import-menu-card .icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(21,157,224,0.12);
+        color: var(--blue-dark);
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+
+    .import-menu-card.active .icon {
+        background: rgba(255,255,255,0.24);
+        color: #ffffff;
+    }
+
+    .import-menu-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 4px;
+    }
+
+    .import-menu-card.active span {
+        color: rgba(255,255,255,0.78);
+    }
+
+    .import-menu-card strong {
+        display: block;
+        color: var(--blue-deep);
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.35;
+    }
+
+    .import-menu-card.active strong {
+        color: #ffffff;
+    }
+
+    .section-mini-title {
+        margin: 18px 0 10px;
+        color: var(--blue-deep);
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.45px;
+    }
+
+    .history-note {
+        max-width: 430px;
+        white-space: pre-line;
+        font-size: 12px;
+        line-height: 1.55;
+    }
+
+    .history-success {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: #e8fff4;
+        color: #0f8a4a;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .import-flow {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .flow-step {
+        padding: 14px;
+        border-radius: 18px;
+        background: #f8fdff;
+        border: 1px solid #e2f3ff;
+        text-align: center;
+    }
+
+    .flow-no {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--blue), var(--cyan));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 8px;
+        font-weight: 800;
+        font-size: 12px;
+    }
+
+    .flow-step strong {
+        display: block;
+        color: var(--blue-deep);
+        font-size: 12px;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .flow-step span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    @media (max-width: 1000px) {
+        .import-hero-grid,
+        .import-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .import-flow {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 650px) {
+        .import-title {
+            font-size: 24px;
+        }
+
+        .import-menu-grid,
+        .import-flow {
+            grid-template-columns: 1fr;
+        }
+
+        .import-card-head {
+            flex-direction: column;
+        }
+
+        .import-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="import-page">
+
+    <section class="import-hero">
+        <div class="import-hero-grid">
+            <div>
+                <div class="import-badge">📤 Excel Import Center</div>
+                <h1 class="import-title">
+                    {{ page_title }} for <span>{{ company.name }}</span>
+                </h1>
+                <p class="import-desc">
+                    Upload client Excel files here. Master data imports create records, while opening balance,
+                    AP, AR, and journal imports create posted accounting entries so reports can generate automatically.
+                </p>
+            </div>
+
+            <div class="import-summary-card">
+                <div class="summary-row">
+                    <span>Selected Company</span>
+                    <strong>{{ company.name }}</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Import Type</span>
+                    <strong>{{ page_title }}</strong>
+                </div>
+                <div class="summary-row">
+                    <span>File Format</span>
+                    <strong>.xlsx only</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Result</span>
+                    <strong>Auto save + report data</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="import-layout">
+
+        <aside class="import-card">
+            <div class="import-card-head">
+                <div>
+                    <h2>Import Menu</h2>
+                    <p>Choose the correct place before uploading.</p>
+                </div>
+            </div>
+
+            <div class="section-mini-title">Master Data</div>
+            <div class="import-menu-grid">
+                <a href="{% url 'ops_import_coa' %}" class="import-menu-card {% if import_type == 'chart_of_account' %}active{% endif %}">
+                    <div class="icon">📒</div>
+                    <span>Setup</span>
+                    <strong>Chart of Account</strong>
+                </a>
+
+                <a href="{% url 'ops_import_item' %}" class="import-menu-card {% if import_type == 'item' %}active{% endif %}">
+                    <div class="icon">📦</div>
+                    <span>Master</span>
+                    <strong>Item</strong>
+                </a>
+
+                <a href="{% url 'ops_import_vendor' %}" class="import-menu-card {% if import_type == 'vendor' %}active{% endif %}">
+                    <div class="icon">🏪</div>
+                    <span>Master</span>
+                    <strong>Vendor</strong>
+                </a>
+
+                <a href="{% url 'ops_import_customer' %}" class="import-menu-card {% if import_type == 'customer' %}active{% endif %}">
+                    <div class="icon">👥</div>
+                    <span>Master</span>
+                    <strong>Customer</strong>
+                </a>
+            </div>
+
+            <div class="section-mini-title">Opening Balance</div>
+            <div class="import-menu-grid">
+                <a href="{% url 'ops_import_trial_balance' %}" class="import-menu-card {% if import_type == 'trial_balance' %}active{% endif %}">
+                    <div class="icon">⚖️</div>
+                    <span>Opening</span>
+                    <strong>Trial Balance Full</strong>
+                </a>
+
+                <a href="{% url 'ops_import_journal_opening' %}" class="import-menu-card {% if import_type == 'journal_opening' %}active{% endif %}">
+                    <div class="icon">🧾</div>
+                    <span>Opening</span>
+                    <strong>Journal Opening</strong>
+                </a>
+
+                <a href="{% url 'ops_import_outstanding_ap' %}" class="import-menu-card {% if import_type == 'outstanding_ap' %}active{% endif %}">
+                    <div class="icon">📉</div>
+                    <span>Payable</span>
+                    <strong>Outstanding AP</strong>
+                </a>
+
+                <a href="{% url 'ops_import_outstanding_ar' %}" class="import-menu-card {% if import_type == 'outstanding_ar' %}active{% endif %}">
+                    <div class="icon">📈</div>
+                    <span>Receivable</span>
+                    <strong>Outstanding AR</strong>
+                </a>
+            </div>
+
+            <div class="section-mini-title">Stock / Transaction</div>
+            <div class="import-menu-grid">
+                <a href="{% url 'ops_import_stock_balance' %}" class="import-menu-card {% if import_type == 'stock_balance' %}active{% endif %}">
+                    <div class="icon">🏬</div>
+                    <span>Inventory</span>
+                    <strong>Stock Balance</strong>
+                </a>
+
+                <a href="{% url 'ops_import_batch_transaction' %}" class="import-menu-card {% if import_type == 'batch_transaction' %}active{% endif %}">
+                    <div class="icon">🔁</div>
+                    <span>Journal</span>
+                    <strong>Batch Transaction</strong>
+                </a>
+            </div>
+        </aside>
+
+        <main>
+            <div class="import-card">
+                <div class="import-card-head">
+                    <div>
+                        <h2>Upload Excel File</h2>
+                        <p>Upload the correct template for {{ page_title }}.</p>
+                    </div>
+
+                    <a href="{% url 'ops_download_sample' import_type %}" class="btn btn-light">
+                        ⬇ Download Sample
+                    </a>
+                </div>
+
+                {% if import_type == 'trial_balance' or import_type == 'journal_opening' %}
+                    <div class="import-warning">
+                        <strong>Opening balance warning:</strong>
+                        Do not import Trial Balance Full and Journal Opening Balance together unless you want both entries.
+                        Usually you should choose only one opening balance method for one company.
+                    </div>
+                {% elif import_type == 'outstanding_ap' %}
+                    <div class="import-warning">
+                        <strong>Outstanding AP:</strong>
+                        This will create payable opening entries from vendor bills. Make sure Vendor and Chart of Account are imported first.
+                    </div>
+                {% elif import_type == 'outstanding_ar' %}
+                    <div class="import-warning">
+                        <strong>Outstanding AR:</strong>
+                        This will create receivable opening entries from customer invoices. Make sure Customer and Chart of Account are imported first.
+                    </div>
+                {% else %}
+                    <div class="import-info">
+                        Please use the correct Excel template. Required columns start with <strong>*</strong>.
+                        Wrong rows will show as alert and will not import.
+                    </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="upload-zone">
+                        <div class="upload-icon">⬆</div>
+                        <label>Choose Excel File (.xlsx)</label>
+                        {{ form.file }}
+                        {{ form.file.errors }}
+                        <div class="upload-help">
+                            Only .xlsx file is accepted. After import, check the history below for success rows and error rows.
+                        </div>
+                    </div>
+
+                    <div class="import-actions">
+                        <button class="btn" type="submit">⬆ Import Now</button>
+                        <a href="{% url 'ops_download_sample' import_type %}" class="btn btn-light">Download Sample</a>
+                        <a href="{% url 'dashboard_home' %}" class="btn btn-light">Close</a>
+                    </div>
+                </form>
+
+                <div class="import-flow">
+                    <div class="flow-step">
+                        <div class="flow-no">1</div>
+                        <strong>Choose Type</strong>
+                        <span>Select COA, Item, AP, AR, or opening balance.</span>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-no">2</div>
+                        <strong>Download Sample</strong>
+                        <span>Use the correct column format.</span>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-no">3</div>
+                        <strong>Upload Excel</strong>
+                        <span>System validates rows and accounts.</span>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-no">4</div>
+                        <strong>View Report</strong>
+                        <span>Reports update from posted journal data.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="import-card">
+                <div class="import-card-head">
+                    <div>
+                        <h2>Import History</h2>
+                        <p>Latest uploaded files and import result for this type.</p>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Total</th>
+                                <th>Success</th>
+                                <th>Error</th>
+                                <th>Status / Error Note</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for row in histories %}
+                            <tr>
+                                <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+                                <td>{{ row.get_import_type_display }}</td>
+                                <td>{{ row.total_rows }}</td>
+                                <td>
+                                    <span class="badge green">{{ row.success_rows }}</span>
+                                </td>
+                                <td>
+                                    {% if row.error_rows > 0 %}
+                                        <span class="badge red">{{ row.error_rows }}</span>
+                                    {% else %}
+                                        <span class="badge green">0</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if row.error_rows > 0 %}
+                                        <div class="message error history-note">{{ row.note }}</div>
+                                    {% else %}
+                                        <span class="history-success">✅ {{ row.note|default:"Success" }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <div class="emoji">📤</div>
+                                        No import history yet.
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+    </div>
+</div>
+
+{% endblock %}

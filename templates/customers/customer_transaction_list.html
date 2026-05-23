@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Customer Transaction{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Customer Transaction</h2>
+            <p>Invoice, receive payment, credit note, adjustment.</p>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'customer_invoice_create' %}" class="btn">🧾 Invoice</a>
+            <a href="{% url 'receive_payment_create' %}" class="btn btn-light">💵 Receive Payment</a>
+        </div>
+    </div>
+
+    <form method="get" class="card" style="box-shadow:none;">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Transaction Type</label>
+                <select name="type">
+                    <option value="">All</option>
+                    {% for value,label in type_choices %}
+                    <option value="{{ value }}" {% if tran_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" value="{{ query }}" placeholder="Press Enter to Search">
+            </div>
+
+            <div class="form-group">
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}">
+            </div>
+
+            <div class="form-group">
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn">🔍 Search</button>
+            <a href="{% url 'customer_transaction_list' %}" class="btn btn-light">Reset</a>
+        </div>
+    </form>
+
+    <div class="message">Total result amount: <strong>${{ total_amount }}</strong></div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Tran Type</th>
+                    <th>Tran Date</th>
+                    <th>Number</th>
+                    <th>SO Number</th>
+                    <th>Currency</th>
+                    <th>Amount</th>
+                    <th>Exchange Rate</th>
+                    <th>Journal</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for tran in transactions %}
+                <tr>
+                    <td>{{ tran.customer.name }}</td>
+                    <td>{{ tran.get_transaction_type_display }}</td>
+                    <td>{{ tran.transaction_date }}</td>
+                    <td>{{ tran.number|default:"-" }}</td>
+                    <td>{{ tran.so_number|default:"-" }}</td>
+                    <td>{{ tran.currency }}</td>
+                    <td>${{ tran.amount }}</td>
+                    <td>{{ tran.exchange_rate }}</td>
+                    <td>
+                        {% if tran.journal_entry %}
+                            <span class="badge green">Generated</span>
+                        {% else %}
+                            <span class="badge orange">No Journal</span>
+                        {% endif %}
+                    </td>
+                    <td><a href="{% url 'customer_transaction_detail' tran.id %}" class="btn btn-light">View</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="10"><div class="empty-state">No transactions yet.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

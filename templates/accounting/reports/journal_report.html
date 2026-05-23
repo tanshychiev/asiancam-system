@@ -1,0 +1,43 @@
+{% extends "accounting/reports/report_base.html" %}
+
+{% block report_summary %}
+<section class="kpi-grid">
+    <div class="kpi-card"><span>Rows Shown</span><strong>{{ journal_report_rows|length }}</strong></div>
+    <div class="kpi-card"><span>Date From</span><strong>{{ date_from }}</strong></div>
+    <div class="kpi-card"><span>Date To</span><strong>{{ date_to }}</strong></div>
+    <div class="kpi-card"><span>Click Row</span><strong>Journal Detail</strong></div>
+</section>
+{% endblock %}
+
+{% block report_content %}
+<div class="table-wrap">
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Journal No</th>
+                <th>Reference</th>
+                <th>Description</th>
+                <th>Account</th>
+                <th class="money">Debit</th>
+                <th class="money">Credit</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in journal_report_rows %}
+                <tr class="click-row" onclick="window.location='{% url 'journal_detail' line.journal_entry.id %}'">
+                    <td>{{ line.journal_entry.entry_date }}</td>
+                    <td>{{ line.journal_entry.entry_no }}</td>
+                    <td>{{ line.journal_entry.reference_no|default:"-" }}</td>
+                    <td>{{ line.journal_entry.description|default:"-" }}</td>
+                    <td><span class="code-pill">{{ line.account.code }}</span> {{ line.account.name }}</td>
+                    <td class="money">${{ line.debit }}</td>
+                    <td class="money">${{ line.credit }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="7"><div class="empty-state">No journal data.</div></td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

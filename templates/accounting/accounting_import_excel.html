@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Import Excel{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Import Excel</h2>
+            <p>Upload accounting journal entries for {{ company.name }}.</p>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'journal_list' %}" class="btn btn-light">← Accounting Data</a>
+            <a href="{% url 'download_journal_import_sample' %}" class="btn btn-light">⬇ Download Format</a>
+            <a href="{% url 'journal_create' %}" class="btn">➕ Manual Input</a>
+        </div>
+    </div>
+
+    <div class="message">
+        Please download the Excel format first, fill in your data, then upload the same file.
+        Debit and Credit must balance inside each journal group.
+    </div>
+
+    <div class="card" style="box-shadow:none;">
+        <div class="card-head">
+            <div>
+                <h2>Excel Format</h2>
+                <p>Use this format exactly. Same Date + Reference No + Entry Description will become one journal entry.</p>
+            </div>
+
+            <a href="{% url 'download_journal_import_sample' %}" class="btn btn-light">
+                ⬇ Download Format
+            </a>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                        <th>D</th>
+                        <th>E</th>
+                        <th>F</th>
+                        <th>G</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr class="format-row">
+                        <td>Date</td>
+                        <td>Reference No</td>
+                        <td>Account Code</td>
+                        <td>Line Description</td>
+                        <td>Debit</td>
+                        <td>Credit</td>
+                        <td>Entry Description</td>
+                    </tr>
+
+                    <tr>
+                        <td>2026-05-16</td>
+                        <td>INV-001</td>
+                        <td>111500</td>
+                        <td>Cash received</td>
+                        <td>100</td>
+                        <td>0</td>
+                        <td>Sale income</td>
+                    </tr>
+
+                    <tr>
+                        <td>2026-05-16</td>
+                        <td>INV-001</td>
+                        <td>410000</td>
+                        <td>Sale revenue</td>
+                        <td>0</td>
+                        <td>100</td>
+                        <td>Sale income</td>
+                    </tr>
+
+                    <tr>
+                        <td>2026-05-16</td>
+                        <td>EXP-001</td>
+                        <td>650100</td>
+                        <td>Rental expense</td>
+                        <td>50</td>
+                        <td>0</td>
+                        <td>Office rent</td>
+                    </tr>
+
+                    <tr>
+                        <td>2026-05-16</td>
+                        <td>EXP-001</td>
+                        <td>111500</td>
+                        <td>Cash payment</td>
+                        <td>0</td>
+                        <td>50</td>
+                        <td>Office rent</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label>Choose Excel File (.xlsx only)</label>
+            <input type="file" name="file" accept=".xlsx" required>
+        </div>
+
+        <div class="message">
+            ✅ Debit and Credit must balance inside each journal group.
+            <br>
+            ✅ Account Code must already exist in Chart of Accounts.
+            <br>
+            ✅ Same Date + Reference No + Entry Description = one journal entry.
+            <br>
+            ✅ Different Reference No = different journal entry.
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">📥 Import Excel</button>
+            <a href="{% url 'download_journal_import_sample' %}" class="btn btn-light">⬇ Download Format</a>
+            <a href="{% url 'journal_list' %}" class="btn btn-light">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .format-row td {
+        background: #eaf7ff;
+        font-weight: 800;
+        color: #003b66;
+    }
+
+    input[type="file"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #bfe7ff;
+        border-radius: 14px;
+        background: #f8fdff;
+    }
+</style>
+
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Customer Transaction Detail{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Customer Transaction Detail</h2>
+            <p>{{ company.name }}</p>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'customer_transaction_list' %}" class="btn btn-light">← Back</a>
+            <a href="{% url 'accounting_reports' %}" class="btn">📊 View Reports</a>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <div class="detail-box"><span>Customer</span><strong>{{ transaction.customer.name }}</strong></div>
+        <div class="detail-box"><span>Type</span><strong>{{ transaction.get_transaction_type_display }}</strong></div>
+        <div class="detail-box"><span>Date</span><strong>{{ transaction.transaction_date }}</strong></div>
+        <div class="detail-box"><span>Amount</span><strong>${{ transaction.amount }}</strong></div>
+        <div class="detail-box"><span>Debit Account</span><strong>{{ transaction.debit_account }}</strong></div>
+        <div class="detail-box"><span>Credit Account</span><strong>{{ transaction.credit_account }}</strong></div>
+        <div class="detail-box">
+            <span>Journal Entry</span>
+            {% if transaction.journal_entry %}
+                <strong><a href="{% url 'journal_detail' transaction.journal_entry.id %}">{{ transaction.journal_entry.entry_no|default:transaction.journal_entry.id }}</a></strong>
+            {% else %}
+                <strong>No Journal</strong>
+            {% endif %}
+        </div>
+        <div class="detail-box"><span>Status</span><strong>{{ transaction.get_status_display }}</strong></div>
+    </div>
+</div>
+
+{% endblock %}

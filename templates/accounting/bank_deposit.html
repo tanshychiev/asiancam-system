@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Bank Deposit{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Bank Deposit</h2>
+            <p>Record bank deposit by creating a journal entry.</p>
+        </div>
+
+        <a href="{% url 'journal_create' %}" class="btn">➕ New Deposit Journal</a>
+    </div>
+
+    <div class="message">
+        To record bank deposit, create a journal entry:
+        <br>
+        Debit Bank Account, Credit Cash / Receivable / Revenue depending on the transaction.
+    </div>
+
+    <div class="form-actions">
+        <a href="{% url 'journal_create' %}" class="btn">Create Journal Entry</a>
+        <a href="{% url 'journal_list' %}" class="btn btn-light">View Journal Entries</a>
+    </div>
+</div>
+
+{% endblock %}

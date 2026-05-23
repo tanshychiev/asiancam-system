@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Setup Sample COA{% endblock %}
+
+{% block content %}
+
+<style>
+    .setup-page {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .setup-card {
+        border-radius: 32px;
+        padding: 34px;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(103,217,255,.38), transparent 28%),
+            linear-gradient(135deg, rgba(255,255,255,.96), rgba(234,248,255,.98));
+        border: 1px solid #d7efff;
+        box-shadow: 0 18px 45px rgba(0,113,188,.13);
+    }
+
+    .setup-card h1 {
+        margin: 0;
+        color: #073763;
+        font-size: 32px;
+        font-weight: 950;
+    }
+
+    .setup-card p {
+        color: #6b7c93;
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+    .warning-box {
+        margin: 22px 0;
+        padding: 18px;
+        border-radius: 20px;
+        background: #fff7e8;
+        border: 1px solid #ffe2a8;
+        color: #805100;
+        font-weight: 850;
+        line-height: 1.6;
+    }
+
+    .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .save-btn,
+    .cancel-btn {
+        min-height: 46px;
+        padding: 0 22px;
+        border-radius: 999px;
+        font-weight: 950;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .save-btn {
+        border: none;
+        color: white;
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        box-shadow: 0 14px 28px rgba(21,170,245,.28);
+    }
+
+    .cancel-btn {
+        background: white;
+        border: 1px solid #cfeeff;
+        color: #0579bd;
+    }
+
+    @media (max-width: 760px) {
+        .save-btn,
+        .cancel-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="setup-page">
+    <form method="post" class="setup-card">
+        {% csrf_token %}
+
+        <h1>📒 Setup Sample Chart of Accounts</h1>
+
+        <p>
+            Company: <strong>{{ company.name }}</strong>
+        </p>
+
+        <div class="warning-box">
+            This will create professional sample accounts for this company:
+            Assets, Liabilities, Equity, Revenue, Cost of Goods Sold, Expenses,
+            Other Income, and Other Expense.
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="save-btn">✅ Create Sample COA</button>
+            <a href="{% url 'chart_of_accounts' %}" class="cancel-btn">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

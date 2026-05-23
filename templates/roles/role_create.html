@@ -1,0 +1,641 @@
+{% extends "base.html" %}
+
+{% block title %}Create Role{% endblock %}
+
+{% block content %}
+
+<style>
+    .role-page {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+
+    .role-hero {
+        border-radius: 32px;
+        padding: 30px;
+        margin-bottom: 24px;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(103,217,255,.38), transparent 28%),
+            linear-gradient(135deg, rgba(255,255,255,.96), rgba(234,248,255,.98));
+        border: 1px solid #d7efff;
+        box-shadow: 0 18px 45px rgba(0,113,188,.13);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .role-hero h1 {
+        margin: 0;
+        color: #073763;
+        font-size: 32px;
+        font-weight: 950;
+    }
+
+    .role-hero p {
+        margin: 8px 0 0;
+        color: #6b7c93;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .back-btn {
+        min-height: 44px;
+        padding: 0 20px;
+        border-radius: 999px;
+        background: white;
+        border: 1px solid #cfeeff;
+        color: #0579bd;
+        font-weight: 950;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .role-card {
+        background: rgba(255,255,255,.94);
+        border: 1px solid #d7efff;
+        border-radius: 30px;
+        padding: 28px;
+        box-shadow: 0 16px 38px rgba(0,113,188,.12);
+    }
+
+    .role-top {
+        display: grid;
+        grid-template-columns: 1fr 260px;
+        gap: 18px;
+        margin-bottom: 22px;
+    }
+
+    .field-box label {
+        display: block;
+        margin-bottom: 8px;
+        color: #073763;
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .field-box input {
+        width: 100%;
+        min-height: 50px;
+        border: 1px solid #d7efff;
+        background: #fbfdff;
+        border-radius: 16px;
+        padding: 0 14px;
+        color: #073763;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .field-box input:focus {
+        border-color: #15aaf5;
+        box-shadow: 0 0 0 4px rgba(21,170,245,.12);
+    }
+
+    .summary-box {
+        border-radius: 20px;
+        background: #f7fcff;
+        border: 1px solid #e3f5ff;
+        padding: 16px;
+    }
+
+    .summary-box span {
+        display: block;
+        color: #6b7c93;
+        font-size: 12px;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .summary-box strong {
+        color: #073763;
+        font-size: 24px;
+        font-weight: 950;
+    }
+
+    .error-box {
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: #fff0f0;
+        border: 1px solid #ffd5d5;
+        color: #d11f1f;
+        margin-bottom: 18px;
+        font-weight: 800;
+    }
+
+    .field-error {
+        color: #d11f1f;
+        font-size: 12px;
+        font-weight: 800;
+        margin-top: 6px;
+    }
+
+    .permission-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 22px;
+        background: #f7fcff;
+        border: 1px solid #e3f5ff;
+        margin-bottom: 18px;
+    }
+
+    .tool-btn {
+        border: none;
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 999px;
+        font-weight: 950;
+        cursor: pointer;
+        background: white;
+        color: #0579bd;
+        border: 1px solid #cfeeff;
+    }
+
+    .tool-btn.primary {
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        color: white;
+        border-color: transparent;
+    }
+
+    .module-wrap {
+        display: grid;
+        gap: 18px;
+    }
+
+    .module-card {
+        overflow: hidden;
+        border-radius: 24px;
+        background: white;
+        border: 1px solid #d7efff;
+        box-shadow: 0 10px 24px rgba(0,113,188,.08);
+    }
+
+    .module-head {
+        padding: 18px 20px;
+        background: linear-gradient(135deg, #eff9ff, #ffffff);
+        border-bottom: 1px solid #e3f5ff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .module-head h3 {
+        margin: 0;
+        color: #073763;
+        font-size: 18px;
+        font-weight: 950;
+    }
+
+    .module-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .mini-btn {
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid #cfeeff;
+        background: white;
+        color: #0579bd;
+        font-size: 12px;
+        font-weight: 950;
+        cursor: pointer;
+    }
+
+    .permission-type-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
+        padding: 18px;
+    }
+
+    .type-box {
+        border-radius: 20px;
+        background: #f7fcff;
+        border: 1px solid #e3f5ff;
+        padding: 14px;
+        min-height: 170px;
+    }
+
+    .type-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 12px;
+        color: #073763;
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .type-title span {
+        color: #6b7c93;
+        font-size: 11px;
+        font-weight: 900;
+    }
+
+    .permission-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .perm-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 9px 10px;
+        border-radius: 14px;
+        background: white;
+        border: 1px solid #d7efff;
+        color: #073763;
+        font-size: 12px;
+        font-weight: 850;
+        cursor: pointer;
+        line-height: 1.35;
+    }
+
+    .perm-item input {
+        width: 16px;
+        height: 16px;
+        accent-color: #15aaf5;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+
+    .perm-item small {
+        display: block;
+        color: #6b7c93;
+        font-size: 10px;
+        margin-top: 2px;
+        font-weight: 800;
+    }
+
+    .empty-type {
+        color: #9aaabd;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 8px 0;
+    }
+
+    .bottom-actions {
+        position: sticky;
+        bottom: 0;
+        margin-top: 22px;
+        padding: 16px;
+        border-radius: 24px;
+        background: rgba(255,255,255,.92);
+        border: 1px solid #d7efff;
+        box-shadow: 0 -10px 30px rgba(0,113,188,.10);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        backdrop-filter: blur(12px);
+    }
+
+    .save-btn {
+        min-height: 46px;
+        padding: 0 24px;
+        border: none;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        color: white;
+        font-weight: 950;
+        cursor: pointer;
+        box-shadow: 0 14px 28px rgba(21,170,245,.28);
+    }
+
+    .cancel-btn {
+        min-height: 46px;
+        padding: 0 22px;
+        border-radius: 999px;
+        background: white;
+        border: 1px solid #cfeeff;
+        color: #0579bd;
+        font-weight: 950;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .selected-text {
+        color: #073763;
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    @media (max-width: 1100px) {
+        .permission-type-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 760px) {
+        .role-hero,
+        .bottom-actions {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .role-top,
+        .permission-type-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .back-btn,
+        .save-btn,
+        .cancel-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="role-page">
+
+    <section class="role-hero">
+        <div>
+            <h1>🔐 Create Role</h1>
+            <p>
+                Create a role and choose permissions by type.
+                Checked means allowed. Unchecked means not allowed.
+            </p>
+        </div>
+
+        <a href="/roles/" class="back-btn">← Role List</a>
+    </section>
+
+    <form method="post" class="role-card" id="roleForm">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="error-box">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="role-top">
+            <div class="field-box">
+                <label>Role Name</label>
+                {{ form.name }}
+                {% for error in form.name.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="summary-box">
+                <span>Selected Permissions</span>
+                <strong id="selectedCount">0</strong>
+                <span>Total: {{ total_permissions }}</span>
+            </div>
+        </div>
+
+        <div class="permission-toolbar">
+            <button type="button" class="tool-btn primary" onclick="checkAll()">Select All</button>
+            <button type="button" class="tool-btn" onclick="uncheckAll()">Clear All</button>
+            <button type="button" class="tool-btn" onclick="checkByAction('view')">Only View</button>
+            <button type="button" class="tool-btn" onclick="checkByAction('add')">Only Add</button>
+            <button type="button" class="tool-btn" onclick="checkByAction('change')">Only Change</button>
+            <button type="button" class="tool-btn" onclick="checkByAction('delete')">Only Delete</button>
+        </div>
+
+        <div class="module-wrap">
+            {% for app_label, module in permission_modules.items %}
+                <div class="module-card" data-module="{{ app_label }}">
+                    <div class="module-head">
+                        <h3>📁 {{ module.title }}</h3>
+
+                        <div class="module-actions">
+                            <button type="button" class="mini-btn" onclick="checkModule('{{ app_label }}')">Select Module</button>
+                            <button type="button" class="mini-btn" onclick="uncheckModule('{{ app_label }}')">Clear Module</button>
+                        </div>
+                    </div>
+
+                    <div class="permission-type-grid">
+
+                        <div class="type-box">
+                            <div class="type-title">
+                                👁️ View
+                                <span>{{ module.view|length }}</span>
+                            </div>
+
+                            <div class="permission-list">
+                                {% for perm in module.view %}
+                                    <label class="perm-item">
+                                        <input
+                                            type="checkbox"
+                                            name="permissions"
+                                            value="{{ perm.id }}"
+                                            data-action="view"
+                                            data-module="{{ app_label }}"
+                                            {% if perm.id|stringformat:"s" in selected_permission_ids %}checked{% endif %}
+                                        >
+                                        <div>
+                                            {{ perm.name }}
+                                            <small>{{ perm.codename }}</small>
+                                        </div>
+                                    </label>
+                                {% empty %}
+                                    <div class="empty-type">No view permissions</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="type-box">
+                            <div class="type-title">
+                                ➕ Add
+                                <span>{{ module.add|length }}</span>
+                            </div>
+
+                            <div class="permission-list">
+                                {% for perm in module.add %}
+                                    <label class="perm-item">
+                                        <input
+                                            type="checkbox"
+                                            name="permissions"
+                                            value="{{ perm.id }}"
+                                            data-action="add"
+                                            data-module="{{ app_label }}"
+                                            {% if perm.id|stringformat:"s" in selected_permission_ids %}checked{% endif %}
+                                        >
+                                        <div>
+                                            {{ perm.name }}
+                                            <small>{{ perm.codename }}</small>
+                                        </div>
+                                    </label>
+                                {% empty %}
+                                    <div class="empty-type">No add permissions</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="type-box">
+                            <div class="type-title">
+                                ✏️ Change
+                                <span>{{ module.change|length }}</span>
+                            </div>
+
+                            <div class="permission-list">
+                                {% for perm in module.change %}
+                                    <label class="perm-item">
+                                        <input
+                                            type="checkbox"
+                                            name="permissions"
+                                            value="{{ perm.id }}"
+                                            data-action="change"
+                                            data-module="{{ app_label }}"
+                                            {% if perm.id|stringformat:"s" in selected_permission_ids %}checked{% endif %}
+                                        >
+                                        <div>
+                                            {{ perm.name }}
+                                            <small>{{ perm.codename }}</small>
+                                        </div>
+                                    </label>
+                                {% empty %}
+                                    <div class="empty-type">No change permissions</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="type-box">
+                            <div class="type-title">
+                                🗑️ Delete
+                                <span>{{ module.delete|length }}</span>
+                            </div>
+
+                            <div class="permission-list">
+                                {% for perm in module.delete %}
+                                    <label class="perm-item">
+                                        <input
+                                            type="checkbox"
+                                            name="permissions"
+                                            value="{{ perm.id }}"
+                                            data-action="delete"
+                                            data-module="{{ app_label }}"
+                                            {% if perm.id|stringformat:"s" in selected_permission_ids %}checked{% endif %}
+                                        >
+                                        <div>
+                                            {{ perm.name }}
+                                            <small>{{ perm.codename }}</small>
+                                        </div>
+                                    </label>
+                                {% empty %}
+                                    <div class="empty-type">No delete permissions</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="type-box">
+                            <div class="type-title">
+                                ⚙️ Other
+                                <span>{{ module.other|length }}</span>
+                            </div>
+
+                            <div class="permission-list">
+                                {% for perm in module.other %}
+                                    <label class="perm-item">
+                                        <input
+                                            type="checkbox"
+                                            name="permissions"
+                                            value="{{ perm.id }}"
+                                            data-action="other"
+                                            data-module="{{ app_label }}"
+                                            {% if perm.id|stringformat:"s" in selected_permission_ids %}checked{% endif %}
+                                        >
+                                        <div>
+                                            {{ perm.name }}
+                                            <small>{{ perm.codename }}</small>
+                                        </div>
+                                    </label>
+                                {% empty %}
+                                    <div class="empty-type">No other permissions</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% for error in form.permissions.errors %}
+            <div class="field-error">{{ error }}</div>
+        {% endfor %}
+
+        <div class="bottom-actions">
+            <div class="selected-text">
+                Selected: <span id="selectedCountBottom">0</span> / {{ total_permissions }}
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <a href="/roles/" class="cancel-btn">Cancel</a>
+                <button type="submit" class="save-btn">✅ Create Role</button>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+<script>
+    function allPermissionInputs() {
+        return Array.from(document.querySelectorAll('input[name="permissions"]'));
+    }
+
+    function updateSelectedCount() {
+        const checked = allPermissionInputs().filter(input => input.checked).length;
+
+        const topCount = document.getElementById("selectedCount");
+        const bottomCount = document.getElementById("selectedCountBottom");
+
+        if (topCount) topCount.textContent = checked;
+        if (bottomCount) bottomCount.textContent = checked;
+    }
+
+    function checkAll() {
+        allPermissionInputs().forEach(input => input.checked = true);
+        updateSelectedCount();
+    }
+
+    function uncheckAll() {
+        allPermissionInputs().forEach(input => input.checked = false);
+        updateSelectedCount();
+    }
+
+    function checkByAction(action) {
+        allPermissionInputs().forEach(input => {
+            input.checked = input.dataset.action === action;
+        });
+        updateSelectedCount();
+    }
+
+    function checkModule(moduleName) {
+        allPermissionInputs().forEach(input => {
+            if (input.dataset.module === moduleName) {
+                input.checked = true;
+            }
+        });
+        updateSelectedCount();
+    }
+
+    function uncheckModule(moduleName) {
+        allPermissionInputs().forEach(input => {
+            if (input.dataset.module === moduleName) {
+                input.checked = false;
+            }
+        });
+        updateSelectedCount();
+    }
+
+    document.addEventListener("change", function(event) {
+        if (event.target && event.target.name === "permissions") {
+            updateSelectedCount();
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", updateSelectedCount);
+</script>
+
+{% endblock %}

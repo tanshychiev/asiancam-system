@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report_title|default:"Reports" }}{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --qb-green: #2ca01c;
+        --qb-green-dark: #188000;
+        --qb-card: #ffffff;
+        --qb-text: #1f2933;
+        --qb-muted: #667085;
+        --qb-border: #d9dde3;
+        --qb-soft-border: #eef1f4;
+        --qb-red: #dc2626;
+        --qb-shadow: 0 1px 3px rgba(16, 24, 40, 0.08);
+    }
+
+    .report-page {
+        max-width: 1240px;
+        margin: 0 auto;
+        color: var(--qb-text);
+    }
+
+    .report-header,
+    .qb-panel,
+    .report-card {
+        background: var(--qb-card);
+        border: 1px solid var(--qb-border);
+        border-radius: 12px;
+        box-shadow: var(--qb-shadow);
+    }
+
+    .report-header {
+        padding: 22px 24px;
+        margin-bottom: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .report-header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--qb-text);
+    }
+
+    .report-header p {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: var(--qb-muted);
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .qb-btn {
+        min-height: 36px;
+        padding: 0 14px;
+        border-radius: 8px;
+        border: 1px solid var(--qb-border);
+        background: white;
+        color: var(--qb-text);
+        font-size: 13px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .qb-btn:hover {
+        background: #f7f9fb;
+    }
+
+    .qb-btn.primary {
+        background: var(--qb-green);
+        border-color: var(--qb-green);
+        color: white;
+    }
+
+    .qb-btn.primary:hover {
+        background: var(--qb-green-dark);
+    }
+
+    .qb-btn.pdf {
+        color: var(--qb-red);
+        border-color: #f3b8b8;
+    }
+
+    .qb-panel {
+        padding: 18px;
+        margin-bottom: 16px;
+    }
+
+    .panel-title {
+        margin-bottom: 14px;
+    }
+
+    .panel-title h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--qb-text);
+    }
+
+    .panel-title p {
+        margin: 5px 0 0;
+        font-size: 12.5px;
+        color: var(--qb-muted);
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto auto;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .form-field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--qb-text);
+    }
+
+    .form-field input {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--qb-border);
+        border-radius: 8px;
+        background: white;
+        color: var(--qb-text);
+        padding: 0 12px;
+        outline: none;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .form-field input:focus {
+        border-color: var(--qb-green);
+        box-shadow: 0 0 0 3px rgba(44, 160, 28, 0.12);
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .kpi-card {
+        background: white;
+        border: 1px solid var(--qb-border);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: var(--qb-shadow);
+    }
+
+    .kpi-card span {
+        display: block;
+        color: var(--qb-muted);
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 7px;
+    }
+
+    .kpi-card strong {
+        display: block;
+        color: var(--qb-text);
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .report-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .report-link-card {
+        background: white;
+        border: 1px solid var(--qb-soft-border);
+        border-radius: 10px;
+        padding: 14px;
+        display: block;
+        color: inherit;
+    }
+
+    .report-link-card:hover,
+    .report-link-card.active {
+        border-color: var(--qb-green);
+        background: #fbfffb;
+    }
+
+    .report-link-card h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .report-link-card p {
+        margin: 5px 0 0;
+        font-size: 12px;
+        color: var(--qb-muted);
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+        background: white;
+        border: 1px solid var(--qb-border);
+        border-radius: 12px;
+        box-shadow: var(--qb-shadow);
+    }
+
+    .report-table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: collapse;
+    }
+
+    .report-table.wide {
+        min-width: 1260px;
+    }
+
+    .report-table th {
+        background: #f7f9fb;
+        color: #344054;
+        padding: 11px 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+        text-align: left;
+        border-bottom: 1px solid var(--qb-border);
+        font-weight: 800;
+    }
+
+    .report-table td {
+        padding: 11px 12px;
+        border-top: 1px solid var(--qb-soft-border);
+        color: var(--qb-text);
+        font-size: 12.5px;
+        vertical-align: middle;
+    }
+
+    .click-row {
+        cursor: pointer;
+    }
+
+    .click-row:hover td {
+        background: #effbea !important;
+    }
+
+    .money {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .code-pill,
+    .type-pill,
+    .small-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .code-pill {
+        background: #eef2f7;
+        color: #344054;
+    }
+
+    .type-pill {
+        background: #e8f5e6;
+        color: var(--qb-green-dark);
+    }
+
+    .small-pill {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 34px 20px;
+        color: var(--qb-muted);
+        font-size: 13px;
+    }
+
+    .tfoot-total th,
+    .tfoot-total td {
+        background: #f7f9fb;
+        font-weight: 800;
+        color: var(--qb-text);
+        border-top: 1px solid var(--qb-border);
+    }
+
+    @media (max-width: 1000px) {
+        .report-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .kpi-grid,
+        .report-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 760px) {
+        .filter-form,
+        .kpi-grid,
+        .report-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .qb-btn {
+            width: 100%;
+        }
+
+        .header-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .report-header,
+        .qb-panel {
+            padding: 16px;
+        }
+    }
+</style>
+
+<div class="report-page">
+
+    <section class="report-header">
+        <div>
+            <h1>{{ report_title|default:"Reports" }}</h1>
+            <p>{{ company.name }} · {{ date_from }} to {{ date_to }}</p>
+        </div>
+
+        <div class="header-actions">
+            <a href="{% url 'accounting_reports' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="qb-btn">All Reports</a>
+            {% if export_slug %}
+                <a href="{% url 'accounting_report_export' export_slug %}?date_from={{ date_from }}&date_to={{ date_to }}" class="qb-btn primary">Excel</a>
+                <a href="{% url 'accounting_report_export' export_slug %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf" class="qb-btn pdf">PDF</a>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="qb-panel">
+        <div class="panel-title">
+            <h2>Report period</h2>
+            <p>Choose date range, then click Generate.</p>
+        </div>
+
+        <form method="get" class="filter-form">
+            <div class="form-field">
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}">
+            </div>
+
+            <div class="form-field">
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}">
+            </div>
+
+            <button type="submit" class="qb-btn primary">Generate</button>
+            <a href="{{ request.path }}" class="qb-btn">Reset</a>
+        </form>
+    </section>
+
+    {% block report_summary %}{% endblock %}
+    {% block report_content %}{% endblock %}
+
+</div>
+
+{% endblock %}

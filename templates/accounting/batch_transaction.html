@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Transaction{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Batch Transaction</h2>
+            <p>View recent journal transactions in batch mode.</p>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'journal_create' %}" class="btn">➕ New Journal</a>
+            <a href="{% url 'accounting_import_excel' %}" class="btn btn-light">📥 Import Excel</a>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Entry No</th>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for entry in entries %}
+                    <tr>
+                        <td>{{ entry.entry_no|default:entry.id }}</td>
+                        <td>{{ entry.entry_date }}</td>
+                        <td>{{ entry.reference_no|default:"-" }}</td>
+                        <td>{{ entry.description|default:"-" }}</td>
+                        <td>
+                            {% if entry.status == "posted" %}
+                                <span class="badge green">Posted</span>
+                            {% else %}
+                                <span class="badge orange">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ entry.total_debit }}</td>
+                        <td>${{ entry.total_credit }}</td>
+                        <td>
+                            <a href="{% url 'journal_detail' entry.id %}" class="btn btn-light">View</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <div class="emoji">📘</div>
+                                No batch transactions yet.
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

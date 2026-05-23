@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>{{ page_title }}</h2>
+            <p>Save vendor transaction and auto generate journal entry for reports.</p>
+        </div>
+
+        <a href="{% url 'vendor_transaction_list' %}" class="btn btn-light">← Back</a>
+    </div>
+
+    <div class="message">
+        This will automatically create journal entry:
+        <br>
+        <strong>Debit selected debit account</strong> and <strong>Credit selected credit account</strong>.
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="message error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Vendor</label>
+                {{ form.vendor }}
+                {{ form.vendor.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>Transaction Type</label>
+                {{ form.transaction_type }}
+                {{ form.transaction_type.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>Date</label>
+                {{ form.transaction_date }}
+                {{ form.transaction_date.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>Number</label>
+                {{ form.number }}
+                {{ form.number.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>PO Number</label>
+                {{ form.po_number }}
+                {{ form.po_number.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>Amount</label>
+                {{ form.amount }}
+                {{ form.amount.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>Debit Account</label>
+                {{ form.debit_account }}
+                {{ form.debit_account.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>Credit Account</label>
+                {{ form.credit_account }}
+                {{ form.credit_account.errors }}
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                {{ form.status }}
+                {{ form.status.errors }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Memo</label>
+            {{ form.memo }}
+            {{ form.memo.errors }}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">💾 {{ button_text }}</button>
+            <a href="{% url 'vendor_transaction_list' %}" class="btn btn-light">Cancel</a>
+            <a href="{% url 'accounting_reports' %}" class="btn btn-light">📊 View Reports</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

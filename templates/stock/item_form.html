@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>{{ page_title }}</h2>
+            <p>Create item master and connect item to accounting accounts.</p>
+        </div>
+
+        <a href="{% url 'stock_item_list' %}" class="btn btn-light">← Back</a>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-grid">
+            {% for field in form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="message">
+            For reporting: Inventory Account, COGS Account, and Revenue Account help connect stock/sales to reports.
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">💾 {{ button_text }}</button>
+            <a href="{% url 'stock_item_list' %}" class="btn btn-light">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

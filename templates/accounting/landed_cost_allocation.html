@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Landed Cost Allocation{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Landed Cost Allocation</h2>
+            <p>Allocate shipping, duty, and extra purchase costs.</p>
+        </div>
+
+        <a href="{% url 'journal_create' %}" class="btn">➕ Create Journal</a>
+    </div>
+
+    <div class="message">
+        This page is ready for Phase 2 purchase/inventory costing.
+        For now, landed cost can be recorded through Journal Entry.
+    </div>
+
+    <div class="form-actions">
+        <a href="{% url 'journal_create' %}" class="btn">Record Landed Cost</a>
+        <a href="{% url 'accounting_reports' %}" class="btn btn-light">View Reports</a>
+    </div>
+</div>
+
+{% endblock %}

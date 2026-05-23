@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Unit Set{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div><h2>Unit Set</h2><p>Unit set master list for {{ company.name }}.</p></div>
+        <a href="{% url 'stock_unit_set_create' %}" class="btn">➕ Add</a>
+    </div>
+
+    <form method="get" class="form-actions">
+        <input type="text" name="q" value="{{ query }}" placeholder="Press Enter to Search">
+        <button class="btn">Search</button>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Name</th><th>Base Unit</th><th>Default Purchase</th><th>Default Sale</th><th>Memo</th></tr></thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.base_unit }}</td>
+                    <td>{{ row.default_purchase }}</td>
+                    <td>{{ row.default_sale }}</td>
+                    <td>{{ row.memo|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5"><div class="empty-state">No data yet.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

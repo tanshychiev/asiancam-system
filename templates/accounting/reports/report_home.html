@@ -1,0 +1,44 @@
+{% extends "accounting/reports/report_base.html" %}
+
+{% block report_summary %}
+<section class="kpi-grid">
+    <div class="kpi-card">
+        <span>Total Debit</span>
+        <strong>${{ total_debit }}</strong>
+    </div>
+
+    <div class="kpi-card">
+        <span>Total Credit</span>
+        <strong>${{ total_credit }}</strong>
+    </div>
+
+    <div class="kpi-card">
+        <span>Net Profit / Loss</span>
+        <strong>${{ net_profit }}</strong>
+    </div>
+
+    <div class="kpi-card">
+        <span>Cash Change</span>
+        <strong>${{ total_cash_change }}</strong>
+    </div>
+</section>
+{% endblock %}
+
+{% block report_content %}
+<section class="qb-panel">
+    <div class="panel-title">
+        <h2>Choose a report</h2>
+        <p>Each report now has its own page. No more showing all reports together.</p>
+    </div>
+
+    <div class="report-grid">
+        {% for item in reports %}
+            <a href="{% url item.url_name %}?date_from={{ date_from }}&date_to={{ date_to }}"
+               class="report-link-card {% if active_report == item.export_slug %}active{% endif %}">
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.description }}</p>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>{{ page_title }}</h2>
+            <p>Master setup for {{ company.name }}.</p>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-grid">
+            {% for field in form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">💾 {{ button_text }}</button>
+            <a href="{% url 'stock_item_list' %}" class="btn btn-light">Back to Item</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Journal Detail{% endblock %}
+
+{% block content %}
+
+<style>
+    .journal-page {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .journal-hero {
+        border-radius: 32px;
+        padding: 30px;
+        margin-bottom: 24px;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(103,217,255,.38), transparent 28%),
+            linear-gradient(135deg, rgba(255,255,255,.96), rgba(234,248,255,.98));
+        border: 1px solid #d7efff;
+        box-shadow: 0 18px 45px rgba(0,113,188,.13);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .journal-hero h1 {
+        margin: 0;
+        color: #073763;
+        font-size: 32px;
+        font-weight: 950;
+    }
+
+    .journal-hero p {
+        margin: 8px 0 0;
+        color: #6b7c93;
+        font-size: 14px;
+    }
+
+    .back-btn {
+        min-height: 44px;
+        padding: 0 20px;
+        border-radius: 999px;
+        background: white;
+        border: 1px solid #cfeeff;
+        color: #0579bd;
+        font-weight: 950;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .detail-card {
+        background: white;
+        border: 1px solid #d7efff;
+        border-radius: 28px;
+        padding: 24px;
+        box-shadow: 0 16px 34px rgba(0,128,200,.10);
+        margin-bottom: 20px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+    }
+
+    .info-box {
+        border-radius: 18px;
+        background: #f7fcff;
+        border: 1px solid #e3f5ff;
+        padding: 16px;
+    }
+
+    .info-box span {
+        display: block;
+        color: #6b7c93;
+        font-size: 12px;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .info-box strong {
+        color: #073763;
+        font-size: 16px;
+        font-weight: 950;
+    }
+
+    .line-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 850px;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+        border-radius: 22px;
+        border: 1px solid #d7efff;
+    }
+
+    .line-table th {
+        background: #eff9ff;
+        color: #073763;
+        padding: 14px;
+        text-align: left;
+        font-size: 12px;
+        text-transform: uppercase;
+        border-bottom: 1px solid #d7efff;
+    }
+
+    .line-table td {
+        padding: 14px;
+        border-top: 1px solid #edf7ff;
+        color: #12324a;
+        font-size: 14px;
+    }
+
+    .total-row td {
+        background: #f7fcff;
+        font-weight: 950;
+        color: #073763;
+    }
+
+    .balanced {
+        color: #0f8a4a;
+        font-weight: 950;
+    }
+
+    .not-balanced {
+        color: #d11f1f;
+        font-weight: 950;
+    }
+
+    @media (max-width: 900px) {
+        .journal-hero {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .back-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="journal-page">
+
+    <section class="journal-hero">
+        <div>
+            <h1>🧾 {{ entry.entry_no }}</h1>
+            <p>Company: <strong>{{ company.name }}</strong></p>
+        </div>
+
+        <a href="{% url 'journal_list' %}" class="back-btn">← Journal Entries</a>
+    </section>
+
+    <div class="detail-card">
+        <div class="info-grid">
+            <div class="info-box">
+                <span>Date</span>
+                <strong>{{ entry.entry_date|date:"d M Y" }}</strong>
+            </div>
+
+            <div class="info-box">
+                <span>Reference</span>
+                <strong>{{ entry.reference_no|default:"-" }}</strong>
+            </div>
+
+            <div class="info-box">
+                <span>Status</span>
+                <strong>{{ entry.get_status_display }}</strong>
+            </div>
+
+            <div class="info-box">
+                <span>Balance Check</span>
+                {% if entry.is_balanced %}
+                    <strong class="balanced">Balanced</strong>
+                {% else %}
+                    <strong class="not-balanced">Not Balanced</strong>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if entry.description %}
+            <div style="margin-top:18px; color:#6b7c93; font-weight:800;">
+                {{ entry.description }}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="detail-card">
+        <div class="table-wrap">
+            <table class="line-table">
+                <thead>
+                    <tr>
+                        <th>Account</th>
+                        <th>Description</th>
+                        <th>Debit</th>
+                        <th>Credit</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for line in entry.lines.all %}
+                        <tr>
+                            <td>
+                                <strong>{{ line.account.code }} - {{ line.account.name }}</strong>
+                            </td>
+                            <td>{{ line.description|default:"-" }}</td>
+                            <td>${{ line.debit|floatformat:2 }}</td>
+                            <td>${{ line.credit|floatformat:2 }}</td>
+                        </tr>
+                    {% endfor %}
+
+                    <tr class="total-row">
+                        <td colspan="2">Total</td>
+                        <td>${{ entry.total_debit|floatformat:2 }}</td>
+                        <td>${{ entry.total_credit|floatformat:2 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

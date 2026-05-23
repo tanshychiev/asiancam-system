@@ -1,0 +1,661 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+    --bulk-main: #15aaf5;
+    --bulk-main-dark: #0579bd;
+    --bulk-soft: #eaf8ff;
+    --bulk-border: #b9eaff;
+    --bulk-text: #073763;
+}
+
+    .bulk-wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 22px;
+    }
+
+    .bulk-hero {
+        background:
+            radial-gradient(circle at 90% 10%, rgba(255,255,255,0.32), transparent 26%),
+            linear-gradient(135deg, var(--bulk-main-dark), var(--bulk-main));
+        color: white;
+        border-radius: 28px;
+        padding: 30px;
+        box-shadow: 0 20px 48px rgba(15, 23, 42, 0.16);
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 22px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .bulk-hero:before {
+        content: "";
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        border-radius: 999px;
+        right: -50px;
+        bottom: -70px;
+        background: rgba(255,255,255,0.16);
+    }
+
+    .bulk-hero-left {
+        position: relative;
+        z-index: 2;
+    }
+
+    .bulk-page-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255,255,255,0.16);
+        border: 1px solid rgba(255,255,255,0.24);
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 900;
+        margin-bottom: 14px;
+    }
+
+    .bulk-hero h1 {
+        margin: 0;
+        font-size: 32px;
+        font-weight: 950;
+        letter-spacing: -0.8px;
+    }
+
+    .bulk-hero p {
+        margin: 10px 0 0;
+        opacity: 0.95;
+        font-size: 14px;
+        max-width: 720px;
+        line-height: 1.55;
+        font-weight: 700;
+    }
+
+    .bulk-badge {
+        position: relative;
+        z-index: 2;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 22px;
+        padding: 16px 20px;
+        white-space: nowrap;
+        text-align: right;
+        min-width: 150px;
+    }
+
+    .bulk-badge small {
+        display: block;
+        opacity: 0.86;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .bulk-badge strong {
+        display: block;
+        font-size: 24px;
+        font-weight: 950;
+        margin-top: 4px;
+    }
+
+    .bulk-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .bulk-tab {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 10px 24px rgba(15,23,42,0.05);
+        color: #334155;
+        transition: 0.16s ease;
+    }
+
+    .bulk-tab:hover {
+        transform: translateY(-1px);
+    }
+
+    .bulk-tab.active {
+        border-color: var(--bulk-border);
+        background: var(--bulk-soft);
+        color: var(--bulk-text);
+        box-shadow: 0 14px 30px rgba(15,23,42,0.08);
+    }
+
+    .bulk-tab-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        font-size: 20px;
+    }
+
+    .bulk-tab.active .bulk-tab-icon {
+        background: white;
+    }
+
+    .bulk-tab-title {
+        font-weight: 950;
+        font-size: 15px;
+    }
+
+    .bulk-tab-sub {
+        margin-top: 3px;
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    .stat-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .stat-box {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .stat-box.highlight {
+        border-color: var(--bulk-border);
+        background: var(--bulk-soft);
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 13px;
+        margin-bottom: 7px;
+        font-weight: 750;
+    }
+
+    .stat-value {
+        font-size: 26px;
+        font-weight: 950;
+        color: #0f172a;
+    }
+
+    .stat-box.highlight .stat-value {
+        color: var(--bulk-main-dark);
+    }
+
+    .bulk-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-bottom: 18px;
+    }
+
+    .bulk-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .bulk-card.active-card {
+        border-color: var(--bulk-border);
+        background:
+            linear-gradient(180deg, var(--bulk-soft), white 70%);
+    }
+
+    .bulk-card h2 {
+        margin: 0 0 8px;
+        font-size: 21px;
+        font-weight: 950;
+        color: var(--bulk-text);
+    }
+
+    .bulk-card p {
+        margin: 0 0 18px;
+        color: #64748b;
+        font-size: 14px;
+        line-height: 1.55;
+        font-weight: 650;
+    }
+
+    .bulk-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .bulk-btn {
+        border: 0;
+        border-radius: 15px;
+        padding: 13px 17px;
+        font-weight: 950;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: 0.16s ease;
+    }
+
+    .bulk-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .bulk-btn-main {
+        background: var(--bulk-main);
+        color: white;
+        box-shadow: 0 12px 24px rgba(15,23,42,0.14);
+    }
+
+    .bulk-btn-green {
+        background: #16a34a;
+        color: white;
+    }
+
+    .bulk-btn-light {
+        background: #eef2ff;
+        color: #1e40af;
+    }
+
+    .bulk-btn-disabled,
+    .bulk-btn:disabled {
+        background: #cbd5e1;
+        color: #64748b;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    .upload-box {
+        border: 2px dashed var(--bulk-border);
+        background: white;
+        border-radius: 20px;
+        padding: 18px;
+    }
+
+    .file-input {
+        width: 100%;
+        border: 1px solid var(--bulk-border);
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .warning-box {
+        border-radius: 18px;
+        padding: 16px;
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        color: #9a3412;
+        font-weight: 800;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+
+    .bulk-table-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .table-head {
+        padding: 18px 22px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bulk-soft);
+    }
+
+    .table-head h2 {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 950;
+        color: var(--bulk-text);
+    }
+
+    .bulk-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .bulk-table th {
+        background: #f8fafc;
+        color: #475569;
+        font-size: 12px;
+        text-transform: uppercase;
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .bulk-table td {
+        padding: 13px 12px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 14px;
+        color: #334155;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 950;
+    }
+
+    .status-success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-failed {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .alert-box {
+        border-radius: 16px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+        font-weight: 800;
+    }
+
+    .alert-success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .alert-error,
+    .alert-danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .alert-warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .empty-state {
+        padding: 34px;
+        text-align: center;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+        .bulk-wrap {
+            padding: 14px;
+        }
+
+        .bulk-hero {
+            display: block;
+        }
+
+        .bulk-badge {
+            margin-top: 16px;
+            text-align: left;
+        }
+
+        .bulk-tabs,
+        .bulk-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stat-row {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .bulk-table {
+            min-width: 860px;
+        }
+
+        .bulk-table-card {
+            overflow-x: auto;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .stat-row {
+            grid-template-columns: 1fr;
+        }
+
+        .bulk-btn {
+            width: 100%;
+        }
+
+        .bulk-hero h1 {
+            font-size: 26px;
+        }
+    }
+</style>
+
+<div class="bulk-wrap">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert-box alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="bulk-tabs">
+        <a href="{% url 'bulk_update_vendors' %}" class="bulk-tab {% if bulk_type == 'vendors' %}active{% endif %}">
+            <div class="bulk-tab-icon">🏪</div>
+            <div>
+                <div class="bulk-tab-title">Update Vendors</div>
+                <div class="bulk-tab-sub">Supplier master data</div>
+            </div>
+        </a>
+
+        <a href="{% url 'bulk_update_items' %}" class="bulk-tab {% if bulk_type == 'items' %}active{% endif %}">
+            <div class="bulk-tab-icon">📦</div>
+            <div>
+                <div class="bulk-tab-title">Update Items</div>
+                <div class="bulk-tab-sub">Product and stock items</div>
+            </div>
+        </a>
+
+        <a href="{% url 'bulk_update_customers' %}" class="bulk-tab {% if bulk_type == 'customers' %}active{% endif %}">
+            <div class="bulk-tab-icon">👥</div>
+            <div>
+                <div class="bulk-tab-title">Update Customers</div>
+                <div class="bulk-tab-sub">Customer master data</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="bulk-hero">
+        <div class="bulk-hero-left">
+            <div class="bulk-page-label">
+                {{ page_icon }} {{ page_title }}
+            </div>
+
+            <h1>{{ page_icon }} {{ page_title }}</h1>
+
+            <p>
+                {{ page_note }}
+                <br>
+                Company: <strong>{{ company.name }}</strong>
+            </p>
+        </div>
+
+        <div class="bulk-badge">
+            <small>Current Company</small>
+            <strong>{{ company.name }}</strong>
+        </div>
+    </div>
+
+    <div class="stat-row">
+        <div class="stat-box {% if bulk_type == 'items' %}highlight{% endif %}">
+            <div class="stat-label">Imported Items</div>
+            <div class="stat-value">{{ total_items }}</div>
+        </div>
+
+        <div class="stat-box {% if bulk_type == 'customers' %}highlight{% endif %}">
+            <div class="stat-label">Imported Customers</div>
+            <div class="stat-value">{{ total_customers }}</div>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-label">Last Reports</div>
+            <div class="stat-value">{{ logs|length }}</div>
+        </div>
+
+        <div class="stat-box {% if bulk_type == 'vendors' %}highlight{% endif %}">
+            <div class="stat-label">Current Mode</div>
+            <div class="stat-value">
+                {% if bulk_type == "vendors" %}
+                    Vendor
+                {% elif bulk_type == "customers" %}
+                    Customer
+                {% else %}
+                    Item
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="bulk-grid">
+        <div class="bulk-card active-card">
+            <h2>📥 {{ download_label }}</h2>
+
+            {% if bulk_type == "vendors" %}
+                <p>
+                    Download vendor Excel sample. Vendor upload will be connected after vendor model fields are ready.
+                </p>
+            {% elif bulk_type == "customers" %}
+                <p>
+                    Download customer Excel sample. The file contains customer columns only.
+                    Do not rename any column.
+                </p>
+            {% else %}
+                <p>
+                    Download item Excel sample. The file contains item columns only.
+                    Do not rename any column.
+                </p>
+            {% endif %}
+
+            <div class="bulk-actions">
+                <a href="{% url 'download_bulk_update_sample' %}?type={{ bulk_type }}" class="bulk-btn bulk-btn-main">
+                    {{ download_label }}
+                </a>
+            </div>
+        </div>
+
+        <div class="bulk-card active-card">
+            <h2>📤 {{ upload_label }}</h2>
+
+            {% if upload_enabled %}
+                <p>
+                    Upload completed Excel. System will validate sheet name and column names before saving.
+                </p>
+
+                <form method="post" action="{% url 'upload_bulk_update' %}" enctype="multipart/form-data" class="upload-box">
+                    {% csrf_token %}
+                    <input type="hidden" name="bulk_type" value="{{ bulk_type }}">
+                    <input type="file" name="excel_file" accept=".xlsx" class="file-input" required>
+                    <button type="submit" class="bulk-btn bulk-btn-green">
+                        {{ upload_label }}
+                    </button>
+                </form>
+            {% else %}
+                <div class="warning-box">
+                    ⚠️ Vendor upload is not connected yet.
+                    The page is ready, but we need to add Vendor model fields before saving vendor Excel data.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="bulk-table-card">
+        <div class="table-head">
+            <h2>🧾 Last Upload Reports</h2>
+            <a href="{% url 'download_bulk_update_sample' %}?type={{ bulk_type }}" class="bulk-btn bulk-btn-light">
+                Sample
+            </a>
+        </div>
+
+        {% if logs %}
+            <table class="bulk-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>File</th>
+                        <th>Uploaded By</th>
+                        <th>Status</th>
+                        <th>Item Created</th>
+                        <th>Item Updated</th>
+                        <th>Customer Created</th>
+                        <th>Customer Updated</th>
+                        <th>Error</th>
+                        <th>Report</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                        <tr>
+                            <td>{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>{{ log.file_name }}</td>
+                            <td>
+                                {% if log.uploaded_by %}
+                                    {{ log.uploaded_by.get_full_name|default:log.uploaded_by.username }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.status == "success" %}
+                                    <span class="status-pill status-success">Success</span>
+                                {% else %}
+                                    <span class="status-pill status-failed">Failed</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.item_created }}</td>
+                            <td>{{ log.item_updated }}</td>
+                            <td>{{ log.customer_created }}</td>
+                            <td>{{ log.customer_updated }}</td>
+                            <td>{{ log.error_count }}</td>
+                            <td>
+                                <a href="{% url 'bulk_update_report' log.id %}" class="bulk-btn bulk-btn-light">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty-state">
+                No upload report yet. Download sample and upload your first Excel file.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

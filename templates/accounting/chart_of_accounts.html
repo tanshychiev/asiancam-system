@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}Chart of Accounts{% endblock %}
+
+{% block content %}
+
+<style>
+    .coa-page {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
+
+    .coa-hero {
+        border-radius: 32px;
+        padding: 30px;
+        margin-bottom: 20px;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(103,217,255,.38), transparent 28%),
+            linear-gradient(135deg, rgba(255,255,255,.96), rgba(234,248,255,.98));
+        border: 1px solid #d7efff;
+        box-shadow: 0 18px 45px rgba(0,113,188,.13);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .coa-hero h1 {
+        margin: 0;
+        color: #073763;
+        font-size: 32px;
+        font-weight: 950;
+    }
+
+    .coa-hero p {
+        margin: 8px 0 0;
+        color: #6b7c93;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .hero-btn {
+        min-height: 44px;
+        padding: 0 20px;
+        border-radius: 999px;
+        font-weight: 950;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .hero-btn.primary {
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        color: white;
+        box-shadow: 0 14px 28px rgba(21,170,245,.28);
+    }
+
+    .hero-btn.secondary {
+        background: white;
+        color: #0579bd;
+        border: 1px solid #cfeeff;
+    }
+
+    .setup-box {
+        margin-bottom: 20px;
+        padding: 22px;
+        border-radius: 26px;
+        background: linear-gradient(135deg, #fff7e8, #ffffff);
+        border: 1px solid #ffe2a8;
+        box-shadow: 0 12px 28px rgba(245,158,11,.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .setup-box h3 {
+        margin: 0;
+        color: #805100;
+        font-size: 20px;
+        font-weight: 950;
+    }
+
+    .setup-box p {
+        margin: 6px 0 0;
+        color: #9a6a13;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .setup-btn {
+        min-height: 44px;
+        padding: 0 20px;
+        border-radius: 999px;
+        border: none;
+        color: white;
+        background: linear-gradient(135deg, #f59e0b, #facc15);
+        font-weight: 950;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .stat-card {
+        background: rgba(255,255,255,.94);
+        border: 1px solid #d7efff;
+        border-radius: 22px;
+        padding: 18px;
+        box-shadow: 0 12px 28px rgba(0,128,200,.08);
+    }
+
+    .stat-card span {
+        display: block;
+        color: #6b7c93;
+        font-size: 12px;
+        font-weight: 900;
+        margin-bottom: 6px;
+    }
+
+    .stat-card strong {
+        color: #073763;
+        font-size: 28px;
+        font-weight: 950;
+    }
+
+    .filter-card {
+        background: rgba(255,255,255,.94);
+        border: 1px solid #d7efff;
+        border-radius: 24px;
+        padding: 18px;
+        box-shadow: 0 12px 28px rgba(0,128,200,.08);
+        margin-bottom: 20px;
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: 1fr 210px 210px auto auto;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .filter-form input,
+    .filter-form select {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid #d7efff;
+        border-radius: 999px;
+        padding: 0 16px;
+        outline: none;
+        background: #fbfdff;
+        color: #073763;
+        font-weight: 800;
+    }
+
+    .search-btn,
+    .clear-btn {
+        min-height: 44px;
+        padding: 0 18px;
+        border-radius: 999px;
+        border: none;
+        font-weight: 950;
+        cursor: pointer;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .search-btn {
+        color: white;
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        box-shadow: 0 12px 24px rgba(21,170,245,.22);
+    }
+
+    .clear-btn {
+        color: #0579bd;
+        background: white;
+        border: 1px solid #cfeeff;
+    }
+
+    .coa-card {
+        background: white;
+        border: 1px solid #d7efff;
+        border-radius: 28px;
+        padding: 20px;
+        box-shadow: 0 16px 34px rgba(0,128,200,.10);
+        overflow-x: auto;
+    }
+
+    .coa-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1120px;
+    }
+
+    .coa-table th {
+        background: #eff9ff;
+        color: #073763;
+        padding: 14px;
+        text-align: left;
+        font-size: 12px;
+        text-transform: uppercase;
+        border-bottom: 1px solid #d7efff;
+    }
+
+    .coa-table td {
+        padding: 14px;
+        border-top: 1px solid #edf7ff;
+        color: #12324a;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+
+    .group-row td {
+        background: #f7fcff;
+        font-weight: 950;
+    }
+
+    .code-pill,
+    .type-pill,
+    .report-pill,
+    .status-pill {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .code-pill {
+        background: #f0edff;
+        color: #6b4fd8;
+    }
+
+    .type-pill {
+        background: #eaf8ff;
+        color: #0579bd;
+    }
+
+    .report-pill {
+        background: #fff7e8;
+        color: #b86b00;
+    }
+
+    .status-pill.active {
+        background: #e8fff4;
+        color: #0f8a4a;
+    }
+
+    .status-pill.inactive {
+        background: #fff0f0;
+        color: #d11f1f;
+    }
+
+    .action-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .small-btn {
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 950;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .small-btn.edit {
+        background: #fff7e8;
+        color: #b86b00;
+        border: 1px solid #ffe2a8;
+    }
+
+    .small-btn.toggle {
+        background: #eaf8ff;
+        color: #0579bd;
+        border: 1px solid #cfeeff;
+    }
+
+    .muted-small {
+        margin-top: 4px;
+        color: #6b7c93;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    @media (max-width: 1000px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-form {
+            grid-template-columns: 1fr;
+        }
+
+        .coa-hero,
+        .setup-box {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .hero-btn,
+        .setup-btn,
+        .search-btn,
+        .clear-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="coa-page">
+
+    <section class="coa-hero">
+        <div>
+            <h1>📒 Chart of Accounts</h1>
+            <p>
+                Company: <strong>{{ company.name }}</strong>.
+                Accounts are mapped to Balance Sheet, Profit & Loss, Cash Flow, and Trial Balance.
+            </p>
+        </div>
+
+        <div class="hero-actions">
+            <a href="{% url 'account_create' %}" class="hero-btn primary">➕ Create Account</a>
+            <a href="/companies/" class="hero-btn secondary">🏢 Change Company</a>
+        </div>
+    </section>
+
+    {% if not has_accounts %}
+        <form method="post" action="{% url 'setup_sample_coa' %}" class="setup-box">
+            {% csrf_token %}
+            <div>
+                <h3>⚠️ Accounting Setup Required</h3>
+                <p>
+                    This company has no Chart of Accounts yet.
+                    Use sample COA to create professional accounts automatically.
+                </p>
+            </div>
+
+            <button type="submit" class="setup-btn">Use Sample COA</button>
+        </form>
+    {% endif %}
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span>Total Accounts</span>
+            <strong>{{ total_accounts }}</strong>
+        </div>
+
+        <div class="stat-card">
+            <span>Active Accounts</span>
+            <strong>{{ active_accounts }}</strong>
+        </div>
+
+        <div class="stat-card">
+            <span>Group Accounts</span>
+            <strong>{{ group_accounts }}</strong>
+        </div>
+    </div>
+
+    <div class="filter-card">
+        <form method="get" class="filter-form">
+            <input
+                type="text"
+                name="q"
+                value="{{ query }}"
+                placeholder="Search code, account name, local name..."
+            >
+
+            <select name="account_type">
+                <option value="">All Account Types</option>
+                {% for value, label in account_type_choices %}
+                    <option value="{{ value }}" {% if account_type == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <select name="report_type">
+                <option value="">All Reports</option>
+                {% for value, label in report_type_choices %}
+                    <option value="{{ value }}" {% if report_type == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="search-btn">🔍 Search</button>
+
+            {% if query or account_type or report_type %}
+                <a href="{% url 'chart_of_accounts' %}" class="clear-btn">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="coa-card">
+        <table class="coa-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Account Name</th>
+                    <th>Type</th>
+                    <th>Report Mapping</th>
+                    <th>Normal</th>
+                    <th>Parent</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for account in accounts %}
+                    <tr class="{% if account.is_group %}group-row{% endif %}">
+                        <td><span class="code-pill">{{ account.code }}</span></td>
+
+                        <td>
+                            <strong>
+                                {% if account.is_group %}▸{% endif %}
+                                {{ account.name }}
+                            </strong>
+
+                            {% if account.local_name %}
+                                <div class="muted-small">{{ account.local_name }}</div>
+                            {% endif %}
+
+                            {% if account.description %}
+                                <div class="muted-small">{{ account.description|truncatechars:80 }}</div>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <span class="type-pill">{{ account.get_account_type_display }}</span>
+                        </td>
+
+                        <td>
+                            <span class="report-pill">{{ account.get_report_type_display }}</span>
+                            {% if account.report_section %}
+                                <div class="muted-small">{{ account.report_section }}</div>
+                            {% endif %}
+                        </td>
+
+                        <td>{{ account.get_normal_balance_display }}</td>
+
+                        <td>
+                            {% if account.parent %}
+                                {{ account.parent.code }} - {{ account.parent.name }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if account.is_active %}
+                                <span class="status-pill active">Active</span>
+                            {% else %}
+                                <span class="status-pill inactive">Inactive</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="action-row">
+                                <a href="{% url 'account_edit' account.id %}" class="small-btn edit">Edit</a>
+                                <a href="{% url 'account_toggle_active' account.id %}" class="small-btn toggle">
+                                    {% if account.is_active %}Deactivate{% else %}Activate{% endif %}
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" style="text-align:center; padding:34px; color:#6b7c93;">
+                            No accounts found.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

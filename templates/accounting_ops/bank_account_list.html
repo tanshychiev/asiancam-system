@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Bank Account{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Bank Account</h2>
+            <p>Bank/cash accounts linked to Chart of Accounts.</p>
+        </div>
+
+        <a href="{% url 'ops_bank_account_create' %}" class="btn">➕ Add</a>
+    </div>
+
+    <form method="get" class="form-actions">
+        <input type="text" name="q" value="{{ query }}" placeholder="Press Enter to Search">
+        <button class="btn">Search</button>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Account Name</th>
+                    <th>Bank</th>
+                    <th>Account Number</th>
+                    <th>Currency</th>
+                    <th>COA Account</th>
+                    <th>Opening Balance</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><strong>{{ row.name }}</strong></td>
+                    <td>{{ row.bank_name|default:"-" }}</td>
+                    <td>{{ row.account_number|default:"-" }}</td>
+                    <td>{{ row.currency }}</td>
+                    <td>{{ row.chart_account.code }} - {{ row.chart_account.name }}</td>
+                    <td>${{ row.opening_balance }}</td>
+                    <td>
+                        {% if row.is_active %}
+                            <span class="badge green">Active</span>
+                        {% else %}
+                            <span class="badge gray">Inactive</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7"><div class="empty-state">No bank account yet.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

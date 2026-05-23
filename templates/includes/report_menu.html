@@ -1,0 +1,39 @@
+<div class="nav-item">
+    <button type="button"
+            class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'accounting_reports' or request.resolver_match.url_name == 'report_ledger_detail' or request.resolver_match.url_name == 'report_profit_loss_by_month' or request.resolver_match.url_name == 'report_general_ledger' or request.resolver_match.url_name == 'report_ap_aging' or request.resolver_match.url_name == 'report_ar_aging' or request.resolver_match.url_name == 'report_balance_sheet' or request.resolver_match.url_name == 'report_profit_loss_standard' or request.resolver_match.url_name == 'report_journal_report' or request.resolver_match.url_name == 'report_trial_balance' or request.resolver_match.url_name == 'report_cash_flow' %}active{% endif %}">
+        <span class="mini-icon">📈</span>
+        Report ▾
+    </button>
+
+    <div class="dropdown-menu">
+        <a href="{% url 'accounting_reports' %}" class="dropdown-item">All Reports</a>
+
+        <div class="submenu-wrap">
+            <div class="dropdown-item has-sub js-submenu-toggle">Company & Finance</div>
+            <div class="dropdown-menu submenu">
+                <a href="{% url 'report_profit_loss_standard' %}" class="dropdown-item">Profit & Loss Statement</a>
+                <a href="{% url 'report_balance_sheet' %}" class="dropdown-item">Balance Sheet</a>
+                <a href="{% url 'report_cash_flow' %}" class="dropdown-item">Cash Flow</a>
+                <a href="{% url 'report_profit_loss_by_month' %}" class="dropdown-item">Profit/Loss by Month</a>
+            </div>
+        </div>
+
+        <div class="submenu-wrap">
+            <div class="dropdown-item has-sub js-submenu-toggle">Aging Reports</div>
+            <div class="dropdown-menu submenu">
+                <a href="{% url 'report_ap_aging' %}" class="dropdown-item">AP Aging Detail</a>
+                <a href="{% url 'report_ar_aging' %}" class="dropdown-item">AR Aging Detail</a>
+            </div>
+        </div>
+
+        <div class="submenu-wrap">
+            <div class="dropdown-item has-sub js-submenu-toggle">Accounting Reports</div>
+            <div class="dropdown-menu submenu">
+                <a href="{% url 'report_trial_balance' %}" class="dropdown-item">Trial Balance</a>
+                <a href="{% url 'report_general_ledger' %}" class="dropdown-item">General Ledger</a>
+                <a href="{% url 'report_journal_report' %}" class="dropdown-item">Journal Report</a>
+                <a href="{% url 'accounting_reports' %}" class="dropdown-item">Excel / PDF Export</a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Ledger Detail{% endblock %}
+
+{% block content %}
+
+<style>
+    .ledger-page {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
+
+    .ledger-hero {
+        border-radius: 28px;
+        padding: 26px;
+        margin-bottom: 22px;
+        background: linear-gradient(135deg, #ffffff, #eef8ff);
+        border: 1px solid #d7efff;
+        box-shadow: 0 14px 32px rgba(0,128,200,.10);
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: center;
+    }
+
+    .ledger-hero h1 {
+        margin: 0;
+        color: #073763;
+        font-size: 28px;
+        font-weight: 800;
+    }
+
+    .ledger-hero p {
+        margin: 6px 0 0;
+        color: #6b7c93;
+        font-size: 13px;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn-pill {
+        min-height: 42px;
+        padding: 0 18px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 13px;
+        border: 1px solid #cfeeff;
+        background: white;
+        color: #0579bd;
+    }
+
+    .btn-pill.primary {
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        color: white;
+        border-color: transparent;
+    }
+
+    .filter-panel {
+        background: white;
+        border: 1px solid #d7efff;
+        border-radius: 22px;
+        padding: 18px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 24px rgba(0,128,200,.07);
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .filter-group label {
+        display: block;
+        margin-bottom: 7px;
+        color: #073763;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .filter-group input {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid #d7efff;
+        border-radius: 14px;
+        padding: 0 14px;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .summary-card {
+        background: white;
+        border: 1px solid #d7efff;
+        border-radius: 22px;
+        padding: 18px;
+        box-shadow: 0 10px 24px rgba(0,128,200,.07);
+    }
+
+    .summary-card span {
+        display: block;
+        color: #6b7c93;
+        font-size: 13px;
+        margin-bottom: 6px;
+        font-weight: 700;
+    }
+
+    .summary-card strong {
+        color: #073763;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .table-card {
+        background: white;
+        border: 1px solid #d7efff;
+        border-radius: 24px;
+        padding: 20px;
+        box-shadow: 0 14px 32px rgba(0,128,200,.08);
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+        border: 1px solid #d7efff;
+        border-radius: 18px;
+    }
+
+    table {
+        width: 100%;
+        min-width: 920px;
+        border-collapse: collapse;
+    }
+
+    th {
+        background: #eff9ff;
+        color: #073763;
+        padding: 13px;
+        text-align: left;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+
+    td {
+        padding: 13px;
+        border-top: 1px solid #edf7ff;
+        font-size: 13px;
+    }
+
+    tr.click-row {
+        cursor: pointer;
+    }
+
+    tr.click-row:hover td {
+        background: #f6fbff;
+    }
+
+    .money {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 800px) {
+        .ledger-hero,
+        .filter-form {
+            grid-template-columns: 1fr;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .btn-pill {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="ledger-page">
+
+    <section class="ledger-hero">
+        <div>
+            <h1>📒 Ledger Detail</h1>
+            <p>
+                {{ account.code }} - {{ account.name }} |
+                {{ date_from }} to {{ date_to }}
+            </p>
+        </div>
+
+        <div class="hero-actions">
+            <a href="{% url 'accounting_reports' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="btn-pill">
+                ← Back to Reports
+            </a>
+            <a href="{% url 'accounting_report_export' 'general-ledger' %}?date_from={{ date_from }}&date_to={{ date_to }}" class="btn-pill primary">
+                Export General Ledger
+            </a>
+        </div>
+    </section>
+
+    <section class="filter-panel">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}">
+            </div>
+
+            <div class="filter-group">
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}">
+            </div>
+
+            <button type="submit" class="btn-pill primary">Generate</button>
+        </form>
+    </section>
+
+    <section class="summary-grid">
+        <div class="summary-card">
+            <span>Total Debit</span>
+            <strong>${{ total_debit }}</strong>
+        </div>
+
+        <div class="summary-card">
+            <span>Total Credit</span>
+            <strong>${{ total_credit }}</strong>
+        </div>
+
+        <div class="summary-card">
+            <span>Ending Balance</span>
+            <strong>${{ running_balance }}</strong>
+        </div>
+    </section>
+
+    <section class="table-card">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Journal No</th>
+                        <th>Reference</th>
+                        <th>Description</th>
+                        <th class="money">Debit</th>
+                        <th class="money">Credit</th>
+                        <th class="money">Balance</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in ledger_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'journal_detail' row.entry.id %}'">
+                            <td>{{ row.date }}</td>
+                            <td>{{ row.entry_no }}</td>
+                            <td>{{ row.reference_no|default:"-" }}</td>
+                            <td>{{ row.description|default:"-" }}</td>
+                            <td class="money">${{ row.debit }}</td>
+                            <td class="money">${{ row.credit }}</td>
+                            <td class="money">${{ row.balance }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding:35px; color:#6b7c93;">
+                                No ledger movement for this account.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+
+{% endblock %}

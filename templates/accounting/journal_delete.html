@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Journal Entry{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Delete Journal Entry</h2>
+            <p>Please confirm before deleting this accounting record.</p>
+        </div>
+
+        <a href="{% url 'journal_list' %}" class="btn btn-light">← Back</a>
+    </div>
+
+    <div class="message error">
+        Are you sure you want to delete journal entry
+        <strong>{{ entry.entry_no|default:entry.id }}</strong>?
+        This action cannot be undone.
+    </div>
+
+    <div class="detail-grid">
+        <div class="detail-box">
+            <span>Date</span>
+            <strong>{{ entry.entry_date }}</strong>
+        </div>
+
+        <div class="detail-box">
+            <span>Reference</span>
+            <strong>{{ entry.reference_no|default:"-" }}</strong>
+        </div>
+
+        <div class="detail-box">
+            <span>Total Debit</span>
+            <strong>${{ entry.total_debit }}</strong>
+        </div>
+
+        <div class="detail-box">
+            <span>Total Credit</span>
+            <strong>${{ entry.total_credit }}</strong>
+        </div>
+    </div>
+
+    <form method="post" style="margin-top:20px;">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn-danger">🗑️ Yes, Delete</button>
+            <a href="{% url 'journal_detail' entry.id %}" class="btn btn-light">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

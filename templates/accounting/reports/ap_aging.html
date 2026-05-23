@@ -1,0 +1,47 @@
+{% extends "accounting/reports/report_base.html" %}
+
+{% block report_summary %}
+<section class="kpi-grid">
+    <div class="kpi-card"><span>Rows Shown</span><strong>{{ ap_aging_rows|length }}</strong></div>
+    <div class="kpi-card"><span>As Of</span><strong>{{ date_to }}</strong></div>
+    <div class="kpi-card"><span>Source</span><strong>Vendor Transactions</strong></div>
+    <div class="kpi-card"><span>Click Row</span><strong>Vendor Detail</strong></div>
+</section>
+{% endblock %}
+
+{% block report_content %}
+<div class="table-wrap">
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>Vendor</th>
+                <th>Date</th>
+                <th>Number</th>
+                <th>Type</th>
+                <th class="money">Current</th>
+                <th class="money">1-30</th>
+                <th class="money">31-60</th>
+                <th class="money">61-90</th>
+                <th class="money">Over 90</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in ap_aging_rows %}
+                <tr class="click-row" onclick="window.location='{% url 'vendor_transaction_detail' row.id %}'">
+                    <td>{{ row.vendor }}</td>
+                    <td>{{ row.date }}</td>
+                    <td>{{ row.number|default:"-" }}</td>
+                    <td><span class="small-pill">{{ row.type }}</span></td>
+                    <td class="money">${{ row.current }}</td>
+                    <td class="money">${{ row.days_1_30 }}</td>
+                    <td class="money">${{ row.days_31_60 }}</td>
+                    <td class="money">${{ row.days_61_90 }}</td>
+                    <td class="money">${{ row.over_90 }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="9"><div class="empty-state">No AP aging data.</div></td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+
+<style>
+    .front-page {
+        max-width: 980px;
+        margin: 0 auto;
+    }
+
+    .front-hero {
+        border-radius: 32px;
+        padding: 30px;
+        margin-bottom: 24px;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(103,217,255,.38), transparent 28%),
+            linear-gradient(135deg, rgba(255,255,255,.96), rgba(234,248,255,.98));
+        border: 1px solid #d7efff;
+        box-shadow: 0 18px 45px rgba(0,113,188,.13);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .front-hero h1 {
+        margin: 0;
+        color: #073763;
+        font-size: 32px;
+        font-weight: 950;
+    }
+
+    .front-hero p {
+        margin: 8px 0 0;
+        color: #6b7c93;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .front-card {
+        background: rgba(255,255,255,.94);
+        border: 1px solid #d7efff;
+        border-radius: 30px;
+        padding: 28px;
+        box-shadow: 0 16px 38px rgba(0,113,188,.12);
+    }
+
+    .form-title {
+        margin: 0 0 20px;
+        color: #073763;
+        font-size: 22px;
+        font-weight: 950;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
+
+    .field-box {
+        margin-bottom: 18px;
+    }
+
+    .field-box.full {
+        grid-column: 1 / -1;
+    }
+
+    .field-box label {
+        display: block;
+        margin-bottom: 8px;
+        color: #073763;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .field-box input,
+    .field-box select,
+    .field-box textarea {
+        width: 100%;
+        border: 1px solid #d7efff;
+        background: #fbfdff;
+        border-radius: 16px;
+        padding: 13px 14px;
+        color: #073763;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .field-box input,
+    .field-box select {
+        min-height: 48px;
+    }
+
+    .field-box input:focus,
+    .field-box select:focus,
+    .field-box textarea:focus {
+        border-color: #15aaf5;
+        box-shadow: 0 0 0 4px rgba(21,170,245,.12);
+    }
+
+    .check-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .check-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: #f7fcff;
+        border: 1px solid #e3f5ff;
+    }
+
+    .check-row input {
+        width: 18px;
+        height: 18px;
+        accent-color: #15aaf5;
+    }
+
+    .error-box {
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: #fff0f0;
+        border: 1px solid #ffd5d5;
+        color: #d11f1f;
+        margin-bottom: 18px;
+        font-weight: 800;
+    }
+
+    .field-error {
+        color: #d11f1f;
+        font-size: 12px;
+        font-weight: 800;
+        margin-top: 6px;
+    }
+
+    .hint-box {
+        padding: 16px;
+        border-radius: 20px;
+        background: #f7fcff;
+        border: 1px solid #e3f5ff;
+        margin-bottom: 18px;
+        color: #6b7c93;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
+    .save-btn,
+    .back-btn,
+    .cancel-btn {
+        min-height: 46px;
+        padding: 0 22px;
+        border-radius: 999px;
+        font-weight: 950;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .save-btn {
+        border: none;
+        color: white;
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        box-shadow: 0 14px 28px rgba(21,170,245,.28);
+    }
+
+    .back-btn,
+    .cancel-btn {
+        background: white;
+        border: 1px solid #cfeeff;
+        color: #0579bd;
+    }
+
+    @media (max-width: 760px) {
+        .front-hero {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .form-grid,
+        .check-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .field-box.full {
+            grid-column: auto;
+        }
+
+        .save-btn,
+        .back-btn,
+        .cancel-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="front-page">
+
+    <section class="front-hero">
+        <div>
+            <h1>📒 {{ page_title }}</h1>
+            <p>Company: <strong>{{ company.name }}</strong>. Link account to correct report mapping.</p>
+        </div>
+
+        <a href="{% url 'chart_of_accounts' %}" class="back-btn">← Chart of Accounts</a>
+    </section>
+
+    <form method="post" class="front-card">
+        {% csrf_token %}
+
+        <h2 class="form-title">Account Information</h2>
+
+        {% if form.non_field_errors %}
+            <div class="error-box">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="hint-box">
+            Professional rule:
+            Asset, Liability, and Equity accounts go to Balance Sheet.
+            Revenue and Expense accounts go to Profit & Loss.
+        </div>
+
+        <div class="form-grid">
+            <div class="field-box">
+                <label>Account Code</label>
+                {{ form.code }}
+                {% for error in form.code.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field-box">
+                <label>Account Name</label>
+                {{ form.name }}
+                {% for error in form.name.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field-box">
+                <label>Local Name</label>
+                {{ form.local_name }}
+                {% for error in form.local_name.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field-box">
+                <label>Parent Account</label>
+                {{ form.parent }}
+                {% for error in form.parent.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field-box">
+                <label>Account Type</label>
+                {{ form.account_type }}
+                {% for error in form.account_type.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field-box">
+                <label>Normal Balance</label>
+                {{ form.normal_balance }}
+                {% for error in form.normal_balance.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field-box">
+                <label>Report Type</label>
+                {{ form.report_type }}
+                {% for error in form.report_type.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field-box">
+                <label>Report Section</label>
+                {{ form.report_section }}
+                {% for error in form.report_section.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field-box full">
+                <label>Description</label>
+                {{ form.description }}
+                {% for error in form.description.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="check-grid">
+            <div class="check-row">
+                {{ form.is_group }}
+                <label>Group account</label>
+            </div>
+
+            <div class="check-row">
+                {{ form.is_active }}
+                <label>Active account</label>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="save-btn">✅ {{ button_text }}</button>
+            <a href="{% url 'chart_of_accounts' %}" class="cancel-btn">Cancel</a>
+        </div>
+    </form>
+
+</div>
+
+{% endblock %}

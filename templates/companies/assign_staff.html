@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Assign Staff{% endblock %}
+
+{% block content %}
+
+<style>
+    .front-page {
+        max-width: 980px;
+        margin: 0 auto;
+    }
+
+    .front-hero {
+        border-radius: 32px;
+        padding: 30px;
+        margin-bottom: 24px;
+        background:
+            radial-gradient(circle at 88% 10%, rgba(103,217,255,.38), transparent 28%),
+            linear-gradient(135deg, rgba(255,255,255,.96), rgba(234,248,255,.98));
+        border: 1px solid #d7efff;
+        box-shadow: 0 18px 45px rgba(0,113,188,.13);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .front-hero h1 {
+        margin: 0;
+        color: #073763;
+        font-size: 32px;
+        font-weight: 950;
+    }
+
+    .front-hero p {
+        margin: 8px 0 0;
+        color: #6b7c93;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .front-card {
+        background: rgba(255,255,255,.94);
+        border: 1px solid #d7efff;
+        border-radius: 30px;
+        padding: 28px;
+        box-shadow: 0 16px 38px rgba(0,113,188,.12);
+    }
+
+    .form-title {
+        margin: 0 0 20px;
+        color: #073763;
+        font-size: 22px;
+        font-weight: 950;
+    }
+
+    .field-box {
+        margin-bottom: 20px;
+    }
+
+    .field-box label {
+        display: block;
+        margin-bottom: 8px;
+        color: #073763;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .field-box select {
+        width: 100%;
+        min-height: 48px;
+        border: 1px solid #d7efff;
+        background: #fbfdff;
+        border-radius: 16px;
+        padding: 0 14px;
+        color: #073763;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .staff-box {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 16px;
+        border-radius: 20px;
+        background: #f7fcff;
+        border: 1px solid #e3f5ff;
+    }
+
+    .staff-box label {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 13px 14px;
+        border-radius: 16px;
+        background: #fff;
+        border: 1px solid #d7efff;
+        color: #073763;
+        font-size: 13px;
+        font-weight: 900;
+        margin: 0;
+    }
+
+    .staff-box input {
+        width: 18px;
+        height: 18px;
+        accent-color: #15aaf5;
+    }
+
+    .hint {
+        margin-top: 8px;
+        color: #6b7c93;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+
+    .save-btn,
+    .back-btn,
+    .cancel-btn {
+        min-height: 46px;
+        padding: 0 22px;
+        border-radius: 999px;
+        font-weight: 950;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .save-btn {
+        border: none;
+        color: #fff;
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        box-shadow: 0 14px 28px rgba(21,170,245,.28);
+    }
+
+    .back-btn,
+    .cancel-btn {
+        background: #fff;
+        border: 1px solid #cfeeff;
+        color: #0579bd;
+    }
+
+    @media (max-width: 760px) {
+        .front-hero {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .staff-box {
+            grid-template-columns: 1fr;
+        }
+
+        .save-btn,
+        .back-btn,
+        .cancel-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="front-page">
+
+    <section class="front-hero">
+        <div>
+            <h1>🔗 Assign Staff</h1>
+            <p>Choose which staff can access each company. Staff only sees assigned companies.</p>
+        </div>
+
+        <a href="/companies/" class="back-btn">← Company List</a>
+    </section>
+
+    <form method="post" class="front-card">
+        {% csrf_token %}
+
+        <h2 class="form-title">Company Access Permission</h2>
+
+        <div class="field-box">
+            <label>Company</label>
+            {{ form.company }}
+            <div class="hint">Select the company you want to assign staff to.</div>
+        </div>
+
+        <div class="field-box">
+            <label>Allowed Staff</label>
+            <div class="staff-box">
+                {{ form.staff }}
+            </div>
+            <div class="hint">
+                Checked staff can see and work on this company. Unchecked staff cannot access it.
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="save-btn">✅ Save Assignment</button>
+            <a href="/companies/" class="cancel-btn">Cancel</a>
+        </div>
+    </form>
+
+</div>
+
+{% endblock %}

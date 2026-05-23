@@ -1,0 +1,1215 @@
+{% extends "base.html" %}
+
+{% block title %}Accounting Reports{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --qb-green: #2ca01c;
+        --qb-green-dark: #188000;
+        --qb-bg: #f4f5f8;
+        --qb-card: #ffffff;
+        --qb-text: #1f2933;
+        --qb-muted: #667085;
+        --qb-border: #d9dde3;
+        --qb-soft-border: #eef1f4;
+        --qb-red: #dc2626;
+        --qb-shadow: 0 1px 3px rgba(16, 24, 40, 0.08);
+    }
+
+    .report-page {
+        max-width: 1240px;
+        margin: 0 auto;
+        color: var(--qb-text);
+    }
+
+    .report-header {
+        background: var(--qb-card);
+        border: 1px solid var(--qb-border);
+        border-radius: 12px;
+        padding: 22px 24px;
+        margin-bottom: 16px;
+        box-shadow: var(--qb-shadow);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .report-header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--qb-text);
+        letter-spacing: -0.3px;
+    }
+
+    .report-header p {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: var(--qb-muted);
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .qb-btn {
+        min-height: 36px;
+        padding: 0 14px;
+        border-radius: 8px;
+        border: 1px solid var(--qb-border);
+        background: white;
+        color: var(--qb-text);
+        font-size: 13px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .qb-btn:hover {
+        background: #f7f9fb;
+    }
+
+    .qb-btn.primary {
+        background: var(--qb-green);
+        border-color: var(--qb-green);
+        color: white;
+    }
+
+    .qb-btn.primary:hover {
+        background: var(--qb-green-dark);
+    }
+
+    .qb-btn.pdf {
+        color: var(--qb-red);
+        border-color: #f3b8b8;
+    }
+
+    .qb-panel {
+        background: var(--qb-card);
+        border: 1px solid var(--qb-border);
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 16px;
+        box-shadow: var(--qb-shadow);
+    }
+
+    .panel-title {
+        margin-bottom: 14px;
+    }
+
+    .panel-title h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--qb-text);
+    }
+
+    .panel-title p {
+        margin: 5px 0 0;
+        font-size: 12.5px;
+        color: var(--qb-muted);
+    }
+
+    .filter-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto auto;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .form-field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--qb-text);
+    }
+
+    .form-field input {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--qb-border);
+        border-radius: 8px;
+        background: white;
+        color: var(--qb-text);
+        padding: 0 12px;
+        outline: none;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .form-field input:focus {
+        border-color: var(--qb-green);
+        box-shadow: 0 0 0 3px rgba(44, 160, 28, 0.12);
+    }
+
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .kpi-card {
+        background: white;
+        border: 1px solid var(--qb-border);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: var(--qb-shadow);
+    }
+
+    .kpi-card span {
+        display: block;
+        color: var(--qb-muted);
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 7px;
+    }
+
+    .kpi-card strong {
+        display: block;
+        color: var(--qb-text);
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .report-download-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .download-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 14px;
+        align-items: center;
+        border: 1px solid var(--qb-soft-border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        background: #fff;
+    }
+
+    .download-row:hover {
+        border-color: var(--qb-green);
+        background: #fbfffb;
+    }
+
+    .download-row h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--qb-text);
+    }
+
+    .download-row p {
+        margin: 3px 0 0;
+        font-size: 12px;
+        color: var(--qb-muted);
+    }
+
+    .download-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .report-picker {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .report-picker-btn {
+        min-height: 42px;
+        border-radius: 8px;
+        border: 1px solid var(--qb-border);
+        background: white;
+        color: var(--qb-text);
+        font-size: 13px;
+        font-weight: 750;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0 14px;
+        cursor: pointer;
+        text-align: left;
+    }
+
+    .report-picker-btn:hover,
+    .report-picker-btn.active {
+        background: #e8f5e6;
+        border-color: var(--qb-green);
+        color: var(--qb-green-dark);
+    }
+
+    .report-empty-select {
+        background: white;
+        border: 1px dashed var(--qb-border);
+        border-radius: 12px;
+        padding: 34px 20px;
+        text-align: center;
+        color: var(--qb-muted);
+        margin-bottom: 16px;
+    }
+
+    .report-empty-select strong {
+        display: block;
+        color: var(--qb-text);
+        font-size: 18px;
+        margin-bottom: 6px;
+    }
+
+    .report-section {
+        display: none;
+        border: 1px solid var(--qb-border);
+        border-radius: 12px;
+        background: white;
+        margin-bottom: 12px;
+        box-shadow: var(--qb-shadow);
+        overflow: hidden;
+    }
+
+    .report-section.active {
+        display: block;
+    }
+
+    .report-section summary {
+        list-style: none;
+        padding: 15px 18px;
+        cursor: default;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        border-bottom: 1px solid var(--qb-soft-border);
+    }
+
+    .report-section summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .report-section summary h2 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--qb-text);
+    }
+
+    .report-section summary p {
+        margin: 4px 0 0;
+        color: var(--qb-muted);
+        font-size: 12px;
+    }
+
+    .summary-arrow {
+        color: var(--qb-green);
+        font-weight: 800;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+        background: white;
+    }
+
+    .report-table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: collapse;
+    }
+
+    .report-table.wide {
+        min-width: 1260px;
+    }
+
+    .report-table th {
+        background: #f7f9fb;
+        color: #344054;
+        padding: 11px 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+        text-align: left;
+        border-bottom: 1px solid var(--qb-border);
+        font-weight: 800;
+    }
+
+    .report-table td {
+        padding: 11px 12px;
+        border-top: 1px solid var(--qb-soft-border);
+        color: var(--qb-text);
+        font-size: 12.5px;
+        vertical-align: middle;
+    }
+
+    .report-table tr:hover td {
+        background: #f8fafc;
+    }
+
+    .click-row {
+        cursor: pointer;
+    }
+
+    .click-row:hover td {
+        background: #effbea !important;
+    }
+
+    .money {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .code-pill,
+    .type-pill,
+    .small-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .code-pill {
+        background: #eef2f7;
+        color: #344054;
+    }
+
+    .type-pill {
+        background: #e8f5e6;
+        color: var(--qb-green-dark);
+    }
+
+    .small-pill {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 34px 20px;
+        color: var(--qb-muted);
+        font-size: 13px;
+    }
+
+    .tfoot-total th,
+    .tfoot-total td {
+        background: #f7f9fb;
+        font-weight: 800;
+        color: var(--qb-text);
+        border-top: 1px solid var(--qb-border);
+    }
+
+    @media (max-width: 1000px) {
+        .report-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .kpi-grid,
+        .report-picker {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .download-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .filter-form,
+        .kpi-grid,
+        .report-picker {
+            grid-template-columns: 1fr;
+        }
+
+        .qb-btn {
+            width: 100%;
+        }
+
+        .download-actions,
+        .header-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .report-header,
+        .qb-panel {
+            padding: 16px;
+        }
+    }
+</style>
+
+<div class="report-page">
+
+    <section class="report-header">
+        <div>
+            <h1>Reports</h1>
+            <p>{{ company.name }} · Generate, preview, drill down, and download accounting reports.</p>
+        </div>
+
+        <div class="header-actions">
+            <a href="{% url 'journal_list' %}" class="qb-btn">Accounting Data</a>
+            <a href="{% url 'journal_create' %}" class="qb-btn primary">New Journal</a>
+            <a href="{% url 'accounting_import_excel' %}" class="qb-btn">Import Excel</a>
+        </div>
+    </section>
+
+    <section class="qb-panel">
+        <div class="panel-title">
+            <h2>Report period</h2>
+            <p>Choose date range, then click Generate. Click any report row to open its detail.</p>
+        </div>
+
+        <form method="get" class="filter-form">
+            <div class="form-field">
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}">
+            </div>
+
+            <div class="form-field">
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}">
+            </div>
+
+            <button type="submit" class="qb-btn primary">Generate</button>
+            <a href="{% url 'accounting_reports' %}" class="qb-btn">Reset</a>
+        </form>
+    </section>
+
+    <section class="kpi-grid">
+        <div class="kpi-card">
+            <span>Total Debit</span>
+            <strong>${{ total_debit }}</strong>
+        </div>
+
+        <div class="kpi-card">
+            <span>Total Credit</span>
+            <strong>${{ total_credit }}</strong>
+        </div>
+
+        <div class="kpi-card">
+            <span>Net Profit / Loss</span>
+            <strong>${{ net_profit }}</strong>
+        </div>
+
+        <div class="kpi-card">
+            <span>Cash Change</span>
+            <strong>${{ total_cash_change }}</strong>
+        </div>
+    </section>
+
+    <section class="qb-panel">
+        <div class="panel-title">
+            <h2>Download reports</h2>
+            <p>Download client-ready Excel or PDF files.</p>
+        </div>
+
+        <div class="report-download-list">
+
+            <div class="download-row report-download-row" data-report="profit-loss-month">
+                <div>
+                    <h3>ProfitLoss by Month</h3>
+                    <p>Monthly revenue, cost, expense, and net profit.</p>
+                </div>
+                <div class="download-actions">
+                    <a class="qb-btn primary" href="{% url 'accounting_report_export' 'profit-loss-by-month' %}?date_from={{ date_from }}&date_to={{ date_to }}">Excel</a>
+                    <a class="qb-btn pdf" href="{% url 'accounting_report_export' 'profit-loss-by-month' %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf">PDF</a>
+                </div>
+            </div>
+
+            <div class="download-row report-download-row" data-report="general-ledger">
+                <div>
+                    <h3>General Ledger</h3>
+                    <p>Account-by-account debit, credit, and running balance.</p>
+                </div>
+                <div class="download-actions">
+                    <a class="qb-btn primary" href="{% url 'accounting_report_export' 'general-ledger' %}?date_from={{ date_from }}&date_to={{ date_to }}">Excel</a>
+                    <a class="qb-btn pdf" href="{% url 'accounting_report_export' 'general-ledger' %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf">PDF</a>
+                </div>
+            </div>
+
+            <div class="download-row report-download-row" data-report="ap-aging">
+                <div>
+                    <h3>AP Aging Summary Detail</h3>
+                    <p>Vendor unpaid purchase / adjustment aging by date.</p>
+                </div>
+                <div class="download-actions">
+                    <a class="qb-btn primary" href="{% url 'accounting_report_export' 'ap-aging' %}?date_from={{ date_from }}&date_to={{ date_to }}">Excel</a>
+                    <a class="qb-btn pdf" href="{% url 'accounting_report_export' 'ap-aging' %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf">PDF</a>
+                </div>
+            </div>
+
+            <div class="download-row report-download-row" data-report="ar-aging">
+                <div>
+                    <h3>AR Aging Summary Detail</h3>
+                    <p>Customer invoice / adjustment aging by date.</p>
+                </div>
+                <div class="download-actions">
+                    <a class="qb-btn primary" href="{% url 'accounting_report_export' 'ar-aging' %}?date_from={{ date_from }}&date_to={{ date_to }}">Excel</a>
+                    <a class="qb-btn pdf" href="{% url 'accounting_report_export' 'ar-aging' %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf">PDF</a>
+                </div>
+            </div>
+
+            <div class="download-row report-download-row" data-report="balance-sheet">
+                <div>
+                    <h3>Balance Sheet</h3>
+                    <p>Assets, liabilities, equity, and balance check.</p>
+                </div>
+                <div class="download-actions">
+                    <a class="qb-btn primary" href="{% url 'accounting_report_export' 'balance-sheet' %}?date_from={{ date_from }}&date_to={{ date_to }}">Excel</a>
+                    <a class="qb-btn pdf" href="{% url 'accounting_report_export' 'balance-sheet' %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf">PDF</a>
+                </div>
+            </div>
+
+            <div class="download-row report-download-row" data-report="profit-loss-standard">
+                <div>
+                    <h3>ProfitLoss Standard</h3>
+                    <p>Standard P&L by account and section.</p>
+                </div>
+                <div class="download-actions">
+                    <a class="qb-btn primary" href="{% url 'accounting_report_export' 'profit-loss-standard' %}?date_from={{ date_from }}&date_to={{ date_to }}">Excel</a>
+                    <a class="qb-btn pdf" href="{% url 'accounting_report_export' 'profit-loss-standard' %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf">PDF</a>
+                </div>
+            </div>
+
+            <div class="download-row report-download-row" data-report="journal-report">
+                <div>
+                    <h3>Journal Report</h3>
+                    <p>All posted journal entries and journal lines.</p>
+                </div>
+                <div class="download-actions">
+                    <a class="qb-btn primary" href="{% url 'accounting_report_export' 'journal-report' %}?date_from={{ date_from }}&date_to={{ date_to }}">Excel</a>
+                    <a class="qb-btn pdf" href="{% url 'accounting_report_export' 'journal-report' %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf">PDF</a>
+                </div>
+            </div>
+
+            <div class="download-row report-download-row" data-report="trial-balance">
+                <div>
+                    <h3>Trial Balance</h3>
+                    <p>Debit and credit totals by chart of account.</p>
+                </div>
+                <div class="download-actions">
+                    <a class="qb-btn primary" href="{% url 'accounting_report_export' 'trial-balance' %}?date_from={{ date_from }}&date_to={{ date_to }}">Excel</a>
+                    <a class="qb-btn pdf" href="{% url 'accounting_report_export' 'trial-balance' %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf">PDF</a>
+                </div>
+            </div>
+
+            <div class="download-row report-download-row" data-report="cash-flow">
+                <div>
+                    <h3>Cash Flow</h3>
+                    <p>Cash account movement based on posted journals.</p>
+                </div>
+                <div class="download-actions">
+                    <a class="qb-btn primary" href="{% url 'accounting_report_export' 'cash-flow' %}?date_from={{ date_from }}&date_to={{ date_to }}">Excel</a>
+                    <a class="qb-btn pdf" href="{% url 'accounting_report_export' 'cash-flow' %}?date_from={{ date_from }}&date_to={{ date_to }}&format=pdf">PDF</a>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="qb-panel">
+        <div class="panel-title">
+            <h2>View report in system</h2>
+            <p>Select one report below. Only the selected report will show.</p>
+        </div>
+
+        <div class="report-picker">
+            <button type="button" class="report-picker-btn" data-report="profit-loss-month">Profit/Loss by Month</button>
+            <button type="button" class="report-picker-btn" data-report="general-ledger">General Ledger</button>
+            <button type="button" class="report-picker-btn" data-report="ap-aging">AP Aging</button>
+            <button type="button" class="report-picker-btn" data-report="ar-aging">AR Aging</button>
+            <button type="button" class="report-picker-btn" data-report="balance-sheet">Balance Sheet</button>
+            <button type="button" class="report-picker-btn" data-report="profit-loss-standard">Profit/Loss Standard</button>
+            <button type="button" class="report-picker-btn" data-report="journal-report">Journal Report</button>
+            <button type="button" class="report-picker-btn" data-report="trial-balance">Trial Balance</button>
+            <button type="button" class="report-picker-btn" data-report="cash-flow">Cash Flow</button>
+        </div>
+    </section>
+
+    <div class="report-empty-select" id="report-empty-select">
+        <strong>Select a report to preview</strong>
+        Choose one report above to show its result in the system.
+    </div>
+
+    <details class="report-section" id="profit-loss-month">
+        <summary>
+            <div>
+                <h2>Profit/Loss by Month</h2>
+                <p>Year {{ report_year }}. Click an account to view ledger detail.</p>
+            </div>
+            <span class="summary-arrow">Preview</span>
+        </summary>
+
+        <div class="table-wrap">
+            <table class="report-table wide">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Account</th>
+                        <th class="money">Jan</th>
+                        <th class="money">Feb</th>
+                        <th class="money">Mar</th>
+                        <th class="money">Apr</th>
+                        <th class="money">May</th>
+                        <th class="money">Jun</th>
+                        <th class="money">Jul</th>
+                        <th class="money">Aug</th>
+                        <th class="money">Sep</th>
+                        <th class="money">Oct</th>
+                        <th class="money">Nov</th>
+                        <th class="money">Dec</th>
+                        <th class="money">Total</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in pl_month_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                            <td><span class="code-pill">{{ row.code }}</span></td>
+                            <td>{{ row.name }}</td>
+                            {% for amount in row.months %}
+                                <td class="money">${{ amount }}</td>
+                            {% endfor %}
+                            <td class="money"><strong>${{ row.total }}</strong></td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="15">
+                                <div class="empty-state">No monthly Profit/Loss data.</div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details class="report-section" id="general-ledger">
+        <summary>
+            <div>
+                <h2>General Ledger</h2>
+                <p>Latest 300 journal lines. Click row to open journal detail.</p>
+            </div>
+            <span class="summary-arrow">Preview</span>
+        </summary>
+
+        <div class="table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Journal</th>
+                        <th>Reference</th>
+                        <th>Account</th>
+                        <th>Description</th>
+                        <th class="money">Debit</th>
+                        <th class="money">Credit</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for line in general_ledger_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'journal_detail' line.journal_entry.id %}'">
+                            <td>{{ line.journal_entry.entry_date }}</td>
+                            <td>{{ line.journal_entry.entry_no }}</td>
+                            <td>{{ line.journal_entry.reference_no|default:"-" }}</td>
+                            <td><span class="code-pill">{{ line.account.code }}</span> {{ line.account.name }}</td>
+                            <td>{{ line.description|default:line.journal_entry.description|default:"-" }}</td>
+                            <td class="money">${{ line.debit }}</td>
+                            <td class="money">${{ line.credit }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7"><div class="empty-state">No general ledger data.</div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details class="report-section" id="ap-aging">
+        <summary>
+            <div>
+                <h2>AP Aging Summary Detail</h2>
+                <p>Click row to open vendor transaction detail.</p>
+            </div>
+            <span class="summary-arrow">Preview</span>
+        </summary>
+
+        <div class="table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Vendor</th>
+                        <th>Date</th>
+                        <th>Number</th>
+                        <th>Type</th>
+                        <th class="money">Current</th>
+                        <th class="money">1-30</th>
+                        <th class="money">31-60</th>
+                        <th class="money">61-90</th>
+                        <th class="money">Over 90</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in ap_aging_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'vendor_transaction_detail' row.id %}'">
+                            <td>{{ row.vendor }}</td>
+                            <td>{{ row.date }}</td>
+                            <td>{{ row.number|default:"-" }}</td>
+                            <td><span class="small-pill">{{ row.type }}</span></td>
+                            <td class="money">${{ row.current }}</td>
+                            <td class="money">${{ row.days_1_30 }}</td>
+                            <td class="money">${{ row.days_31_60 }}</td>
+                            <td class="money">${{ row.days_61_90 }}</td>
+                            <td class="money">${{ row.over_90 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9"><div class="empty-state">No AP aging data.</div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details class="report-section" id="ar-aging">
+        <summary>
+            <div>
+                <h2>AR Aging Summary Detail</h2>
+                <p>Click row to open customer transaction detail.</p>
+            </div>
+            <span class="summary-arrow">Preview</span>
+        </summary>
+
+        <div class="table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Number</th>
+                        <th>Type</th>
+                        <th class="money">Current</th>
+                        <th class="money">1-30</th>
+                        <th class="money">31-60</th>
+                        <th class="money">61-90</th>
+                        <th class="money">Over 90</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in ar_aging_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'customer_transaction_detail' row.id %}'">
+                            <td>{{ row.customer }}</td>
+                            <td>{{ row.date }}</td>
+                            <td>{{ row.number|default:"-" }}</td>
+                            <td><span class="small-pill">{{ row.type }}</span></td>
+                            <td class="money">${{ row.current }}</td>
+                            <td class="money">${{ row.days_1_30 }}</td>
+                            <td class="money">${{ row.days_31_60 }}</td>
+                            <td class="money">${{ row.days_61_90 }}</td>
+                            <td class="money">${{ row.over_90 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9"><div class="empty-state">No AR aging data.</div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details class="report-section" id="balance-sheet">
+        <summary>
+            <div>
+                <h2>Balance Sheet</h2>
+                <p>Click account row to open ledger detail.</p>
+            </div>
+            <span class="summary-arrow">Preview</span>
+        </summary>
+
+        <div class="table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Section</th>
+                        <th class="money">Balance</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in balance_sheet_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                            <td><span class="code-pill">{{ row.code }}</span></td>
+                            <td>{{ row.name }}</td>
+                            <td><span class="type-pill">{{ row.account_type }}</span></td>
+                            <td>{{ row.report_section|default:"-" }}</td>
+                            <td class="money">${{ row.balance }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5"><div class="empty-state">No Balance Sheet data.</div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+                <tfoot>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Total Assets</th>
+                        <th class="money">${{ total_assets }}</th>
+                    </tr>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Total Liabilities</th>
+                        <th class="money">${{ total_liabilities }}</th>
+                    </tr>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Total Equity</th>
+                        <th class="money">${{ total_equity }}</th>
+                    </tr>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Balance Check</th>
+                        <th class="money">${{ balance_check }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </details>
+
+    <details class="report-section" id="profit-loss-standard">
+        <summary>
+            <div>
+                <h2>Profit/Loss Standard</h2>
+                <p>Click account row to open ledger detail.</p>
+            </div>
+            <span class="summary-arrow">Preview</span>
+        </summary>
+
+        <div class="table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Section</th>
+                        <th class="money">Balance</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in profit_loss_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                            <td><span class="code-pill">{{ row.code }}</span></td>
+                            <td>{{ row.name }}</td>
+                            <td><span class="type-pill">{{ row.account_type }}</span></td>
+                            <td>{{ row.report_section|default:"-" }}</td>
+                            <td class="money">${{ row.balance }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5"><div class="empty-state">No Profit/Loss data.</div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+                <tfoot>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Total Revenue</th>
+                        <th class="money">${{ total_revenue }}</th>
+                    </tr>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Total COGS</th>
+                        <th class="money">${{ total_cogs }}</th>
+                    </tr>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Gross Profit</th>
+                        <th class="money">${{ gross_profit }}</th>
+                    </tr>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Total Expense</th>
+                        <th class="money">${{ total_expense }}</th>
+                    </tr>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Other Income</th>
+                        <th class="money">${{ total_other_income }}</th>
+                    </tr>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Other Expense</th>
+                        <th class="money">${{ total_other_expense }}</th>
+                    </tr>
+                    <tr class="tfoot-total">
+                        <th colspan="4">Net Profit / Loss</th>
+                        <th class="money">${{ net_profit }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </details>
+
+    <details class="report-section" id="journal-report">
+        <summary>
+            <div>
+                <h2>Journal Report</h2>
+                <p>Latest 300 journal lines. Click row to open journal detail.</p>
+            </div>
+            <span class="summary-arrow">Preview</span>
+        </summary>
+
+        <div class="table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Journal No</th>
+                        <th>Reference</th>
+                        <th>Description</th>
+                        <th>Account</th>
+                        <th class="money">Debit</th>
+                        <th class="money">Credit</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for line in journal_report_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'journal_detail' line.journal_entry.id %}'">
+                            <td>{{ line.journal_entry.entry_date }}</td>
+                            <td>{{ line.journal_entry.entry_no }}</td>
+                            <td>{{ line.journal_entry.reference_no|default:"-" }}</td>
+                            <td>{{ line.journal_entry.description|default:"-" }}</td>
+                            <td><span class="code-pill">{{ line.account.code }}</span> {{ line.account.name }}</td>
+                            <td class="money">${{ line.debit }}</td>
+                            <td class="money">${{ line.credit }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7"><div class="empty-state">No journal data.</div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details class="report-section" id="trial-balance">
+        <summary>
+            <div>
+                <h2>Trial Balance</h2>
+                <p>Click account row to open ledger detail.</p>
+            </div>
+            <span class="summary-arrow">Preview</span>
+        </summary>
+
+        <div class="table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th class="money">Debit</th>
+                        <th class="money">Credit</th>
+                        <th class="money">Balance</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in trial_balance_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                            <td><span class="code-pill">{{ row.code }}</span></td>
+                            <td>{{ row.name }}</td>
+                            <td><span class="type-pill">{{ row.account_type }}</span></td>
+                            <td class="money">${{ row.debit }}</td>
+                            <td class="money">${{ row.credit }}</td>
+                            <td class="money">${{ row.balance }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6"><div class="empty-state">No Trial Balance data.</div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+                <tfoot>
+                    <tr class="tfoot-total">
+                        <th colspan="3">Total</th>
+                        <th class="money">${{ total_debit }}</th>
+                        <th class="money">${{ total_credit }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </details>
+
+    <details class="report-section" id="cash-flow">
+        <summary>
+            <div>
+                <h2>Cash Flow</h2>
+                <p>Cash account movement. Click account row to open ledger detail.</p>
+            </div>
+            <span class="summary-arrow">Preview</span>
+        </summary>
+
+        <div class="table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Account</th>
+                        <th>Section</th>
+                        <th class="money">Cash Movement</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in cash_flow_rows %}
+                        <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                            <td><span class="code-pill">{{ row.code }}</span></td>
+                            <td>{{ row.name }}</td>
+                            <td>{{ row.section|default:"-" }}</td>
+                            <td class="money">${{ row.amount }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4"><div class="empty-state">No Cash Flow data.</div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+                <tfoot>
+                    <tr class="tfoot-total">
+                        <th colspan="3">Net Cash Increase / Decrease</th>
+                        <th class="money">${{ total_cash_change }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </details>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const buttons = document.querySelectorAll(".report-picker-btn");
+        const sections = document.querySelectorAll(".report-section");
+        const emptyBox = document.getElementById("report-empty-select");
+        const downloadRows = document.querySelectorAll(".report-download-row");
+
+        function hideAllReportSections() {
+            sections.forEach(function (section) {
+                section.classList.remove("active");
+                section.removeAttribute("open");
+            });
+
+            buttons.forEach(function (button) {
+                button.classList.remove("active");
+            });
+        }
+
+        function showAllDownloads() {
+            downloadRows.forEach(function (row) {
+                row.style.display = "grid";
+            });
+        }
+
+        function showOnlySelectedDownload(reportId) {
+            downloadRows.forEach(function (row) {
+                if (row.dataset.report === reportId) {
+                    row.style.display = "grid";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        function showReport(reportId, updateHash = true) {
+            let found = false;
+
+            sections.forEach(function (section) {
+                if (section.id === reportId) {
+                    section.classList.add("active");
+                    section.setAttribute("open", "open");
+                    found = true;
+                } else {
+                    section.classList.remove("active");
+                    section.removeAttribute("open");
+                }
+            });
+
+            buttons.forEach(function (button) {
+                if (button.dataset.report === reportId) {
+                    button.classList.add("active");
+                } else {
+                    button.classList.remove("active");
+                }
+            });
+
+            if (found) {
+                showOnlySelectedDownload(reportId);
+            } else {
+                showAllDownloads();
+            }
+
+            if (emptyBox) {
+                emptyBox.style.display = found ? "none" : "block";
+            }
+
+            if (found && updateHash) {
+                history.replaceState(null, "", "#" + reportId);
+            }
+        }
+
+        function showAllReportsLanding() {
+            hideAllReportSections();
+            showAllDownloads();
+
+            if (emptyBox) {
+                emptyBox.style.display = "block";
+            }
+        }
+
+        function openFromHash() {
+            const hashReport = window.location.hash.replace("#", "").trim();
+
+            if (hashReport) {
+                showReport(hashReport, false);
+            } else {
+                showAllReportsLanding();
+            }
+        }
+
+        buttons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                showReport(button.dataset.report, true);
+            });
+        });
+
+        window.addEventListener("hashchange", openFromHash);
+
+        openFromHash();
+    });
+</script>
+
+{% endblock %}

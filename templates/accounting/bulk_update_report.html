@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Update Report{% endblock %}
+
+{% block content %}
+<style>
+    .report-wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 22px;
+    }
+
+    .report-header {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        margin-bottom: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+    }
+
+    .report-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 900;
+        color: #0f172a;
+    }
+
+    .report-header p {
+        margin: 8px 0 0;
+        color: #64748b;
+        line-height: 1.5;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .status-success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-failed {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .summary-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .summary-label {
+        color: #64748b;
+        font-size: 13px;
+        margin-bottom: 7px;
+    }
+
+    .summary-value {
+        font-size: 26px;
+        font-weight: 900;
+        color: #0f172a;
+    }
+
+    .info-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 22px;
+        padding: 20px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        margin-bottom: 18px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .info-line {
+        background: #f8fafc;
+        border-radius: 14px;
+        padding: 12px 14px;
+    }
+
+    .info-label {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 4px;
+    }
+
+    .info-value {
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .error-card {
+        background: white;
+        border: 1px solid #fecaca;
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 12px 30px rgba(153, 27, 27, 0.08);
+    }
+
+    .error-head {
+        padding: 18px 22px;
+        background: #fee2e2;
+        color: #991b1b;
+        font-weight: 900;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .error-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .error-table th {
+        background: #fff1f2;
+        color: #991b1b;
+        text-align: left;
+        padding: 12px;
+        border-bottom: 1px solid #fecaca;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+
+    .error-table td {
+        padding: 13px 12px;
+        border-bottom: 1px solid #fee2e2;
+        color: #334155;
+        font-size: 14px;
+    }
+
+    .success-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+        border-radius: 22px;
+        padding: 22px;
+        font-weight: 900;
+        box-shadow: 0 12px 30px rgba(22, 101, 52, 0.08);
+    }
+
+    .btn-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+
+    .btn-soft {
+        text-decoration: none;
+        border-radius: 14px;
+        padding: 12px 16px;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-blue {
+        background: #2563eb;
+        color: white;
+    }
+
+    .btn-light {
+        background: #eef2ff;
+        color: #1e40af;
+    }
+
+    @media print {
+        .btn-row {
+            display: none;
+        }
+
+        .report-wrap {
+            padding: 0;
+        }
+
+        body {
+            background: white;
+        }
+    }
+
+    @media (max-width: 900px) {
+        .report-header {
+            display: block;
+        }
+
+        .status-pill {
+            margin-top: 14px;
+        }
+
+        .summary-grid,
+        .info-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .error-card {
+            overflow-x: auto;
+        }
+
+        .error-table {
+            min-width: 760px;
+        }
+    }
+</style>
+
+<div class="report-wrap">
+    <div class="report-header">
+        <div>
+            <h1>🧾 Bulk Upload Report</h1>
+            <p>
+                Company: <strong>{{ company.name }}</strong><br>
+                File: <strong>{{ log.file_name }}</strong>
+            </p>
+        </div>
+
+        {% if log.status == "success" %}
+            <span class="status-pill status-success">Success</span>
+        {% else %}
+            <span class="status-pill status-failed">Failed / Has Error</span>
+        {% endif %}
+    </div>
+
+    <div class="info-card">
+        <div class="info-grid">
+            <div class="info-line">
+                <div class="info-label">Uploaded By</div>
+                <div class="info-value">
+                    {% if log.uploaded_by %}
+                        {{ log.uploaded_by.get_full_name|default:log.uploaded_by.username }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="info-line">
+                <div class="info-label">Upload Date</div>
+                <div class="info-value">{{ log.created_at|date:"Y-m-d H:i" }}</div>
+            </div>
+
+            <div class="info-line">
+                <div class="info-label">Company</div>
+                <div class="info-value">{{ company.name }}</div>
+            </div>
+
+            <div class="info-line">
+                <div class="info-label">Status</div>
+                <div class="info-value">{{ log.get_status_display }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-label">Item Created</div>
+            <div class="summary-value">{{ log.item_created }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Item Updated</div>
+            <div class="summary-value">{{ log.item_updated }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Customer Created</div>
+            <div class="summary-value">{{ log.customer_created }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Customer Updated</div>
+            <div class="summary-value">{{ log.customer_updated }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Errors</div>
+            <div class="summary-value">{{ log.error_count }}</div>
+        </div>
+    </div>
+
+    {% if errors %}
+        <div class="error-card">
+            <div class="error-head">
+                <span>🚨 Error Details</span>
+                <span>{{ errors|length }} error(s)</span>
+            </div>
+
+            <table class="error-table">
+                <thead>
+                    <tr>
+                        <th>Row</th>
+                        <th>Type</th>
+                        <th>Code</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for err in errors %}
+                        <tr>
+                            <td>{{ err.row }}</td>
+                            <td>{{ err.type }}</td>
+                            <td>{{ err.code }}</td>
+                            <td>{{ err.error }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="success-box">
+            ✅ This upload has no errors. Imported data is ready for report generation.
+        </div>
+    {% endif %}
+
+    <div class="btn-row">
+        <a href="{% url 'bulk_update_menu' %}" class="btn-soft btn-blue">Back to Bulk Update</a>
+        <a href="{% url 'download_bulk_update_sample' %}" class="btn-soft btn-light">Download Sample</a>
+        <a href="#" onclick="window.print(); return false;" class="btn-soft btn-light">Print Report</a>
+    </div>
+</div>
+{% endblock %}

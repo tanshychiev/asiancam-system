@@ -1,0 +1,48 @@
+{% extends "accounting/reports/report_base.html" %}
+
+{% block report_summary %}
+<section class="kpi-grid">
+    <div class="kpi-card"><span>Total Revenue</span><strong>${{ total_revenue }}</strong></div>
+    <div class="kpi-card"><span>Gross Profit</span><strong>${{ gross_profit }}</strong></div>
+    <div class="kpi-card"><span>Total Expense</span><strong>${{ total_expense }}</strong></div>
+    <div class="kpi-card"><span>Net Profit / Loss</span><strong>${{ net_profit }}</strong></div>
+</section>
+{% endblock %}
+
+{% block report_content %}
+<div class="table-wrap">
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Account</th>
+                <th>Type</th>
+                <th>Section</th>
+                <th class="money">Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in profit_loss_rows %}
+                <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                    <td><span class="code-pill">{{ row.code }}</span></td>
+                    <td>{{ row.name }}</td>
+                    <td><span class="type-pill">{{ row.account_type }}</span></td>
+                    <td>{{ row.report_section|default:"-" }}</td>
+                    <td class="money">${{ row.balance }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5"><div class="empty-state">No Profit/Loss data.</div></td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="tfoot-total"><th colspan="4">Total Revenue</th><th class="money">${{ total_revenue }}</th></tr>
+            <tr class="tfoot-total"><th colspan="4">Total COGS</th><th class="money">${{ total_cogs }}</th></tr>
+            <tr class="tfoot-total"><th colspan="4">Gross Profit</th><th class="money">${{ gross_profit }}</th></tr>
+            <tr class="tfoot-total"><th colspan="4">Total Expense</th><th class="money">${{ total_expense }}</th></tr>
+            <tr class="tfoot-total"><th colspan="4">Other Income</th><th class="money">${{ total_other_income }}</th></tr>
+            <tr class="tfoot-total"><th colspan="4">Other Expense</th><th class="money">${{ total_other_expense }}</th></tr>
+            <tr class="tfoot-total"><th colspan="4">Net Profit / Loss</th><th class="money">${{ net_profit }}</th></tr>
+        </tfoot>
+    </table>
+</div>
+{% endblock %}

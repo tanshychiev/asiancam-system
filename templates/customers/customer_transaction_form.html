@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>{{ page_title }}</h2>
+            <p>This transaction will auto generate journal entry for accounting reports.</p>
+        </div>
+
+        <a href="{% url 'customer_transaction_list' %}" class="btn btn-light">← Back</a>
+    </div>
+
+    <div class="message">
+        Invoice example: Debit Account Receivable, Credit Sales Revenue.
+        <br>
+        Receive Payment example: Debit Cash/Bank, Credit Account Receivable.
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-grid">
+            {% for field in form %}
+            <div class="form-group">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {{ field.errors }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <button class="btn" type="submit">💾 {{ button_text }}</button>
+            <a href="{% url 'customer_transaction_list' %}" class="btn btn-light">Cancel</a>
+            <a href="{% url 'accounting_reports' %}" class="btn btn-light">📊 View Reports</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

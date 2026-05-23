@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Customer Center{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Customer Center</h2>
+            <p>Manage customer records and A/R balance for {{ company.name }}.</p>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'customer_create' %}" class="btn">➕ Add Customer</a>
+            <a href="{% url 'customer_invoice_create' %}" class="btn btn-light">🧾 Invoice</a>
+            <a href="{% url 'receive_payment_create' %}" class="btn btn-light">💵 Receive Payment</a>
+        </div>
+    </div>
+
+    <div class="quick-grid">
+        <div class="quick-card">
+            <div class="quick-icon">👥</div>
+            <span>Total Customers</span>
+            <h3>{{ total_customers }}</h3>
+        </div>
+
+        <div class="quick-card">
+            <div class="quick-icon">🧾</div>
+            <span>Total Invoice</span>
+            <h3>${{ total_invoice }}</h3>
+        </div>
+
+        <div class="quick-card">
+            <div class="quick-icon">💵</div>
+            <span>Total Payment</span>
+            <h3>${{ total_payment }}</h3>
+        </div>
+
+        <div class="quick-card">
+            <div class="quick-icon">💳</div>
+            <span>A/R Balance</span>
+            <h3>${{ ar_balance }}</h3>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Customer List</h2>
+            <p>Search customer profile.</p>
+        </div>
+    </div>
+
+    <form method="get" class="form-actions">
+        <input type="text" name="q" value="{{ query }}" placeholder="Press Enter to Search">
+        <button class="btn">🔍 Search</button>
+        <a href="{% url 'customer_center' %}" class="btn btn-light">Reset</a>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Code</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Salesperson</th>
+                    <th>Region</th>
+                    <th>A/R Balance</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td><strong>{{ customer.name }}</strong></td>
+                    <td>{{ customer.code|default:"-" }}</td>
+                    <td>{{ customer.phone|default:"-" }}</td>
+                    <td>{{ customer.email|default:"-" }}</td>
+                    <td>{{ customer.salesperson.name|default:"-" }}</td>
+                    <td>{{ customer.region.name|default:"-" }}</td>
+                    <td>${{ customer.ar_balance }}</td>
+                    <td><a href="{% url 'customer_edit' customer.id %}" class="btn btn-light">Edit</a></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8">
+                        <div class="empty-state">
+                            <div class="emoji">👥</div>
+                            No customers yet.
+                            <br><br>
+                            <a href="{% url 'customer_create' %}" class="btn">Create First Customer</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

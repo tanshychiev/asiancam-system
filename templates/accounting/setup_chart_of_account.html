@@ -1,0 +1,321 @@
+<!-- templates/accounting/setup_chart_of_account.html -->
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+    body {
+        background: #f4f7fb;
+    }
+
+    .coa-page {
+        width: 100%;
+        padding: 18px 22px;
+    }
+
+    .coa-card {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .coa-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 20px;
+        background: #f8fbff;
+        border-bottom: 1px solid #e5e9f0;
+    }
+
+    .brand {
+        font-size: 20px;
+        font-weight: 800;
+        color: #18b957;
+    }
+
+    .business-name {
+        font-size: 14px;
+        color: #333;
+        font-weight: 700;
+    }
+
+    .coa-title {
+        text-align: center;
+        padding: 18px 10px 10px;
+    }
+
+    .coa-title h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+        color: #17324d;
+        text-transform: uppercase;
+    }
+
+    .coa-title p {
+        margin-top: 6px;
+        color: #1684d8;
+        font-size: 13px;
+    }
+
+    .coa-options {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        padding: 10px 22px;
+    }
+
+    .coa-options label {
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .coa-actions {
+        display: flex;
+        justify-content: flex-end;
+        padding: 8px 12px;
+    }
+
+    .finish-btn {
+        border: none;
+        background: #19b84f;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 800;
+        padding: 8px 18px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .finish-btn:hover {
+        background: #129d40;
+    }
+
+    .coa-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        max-height: 72vh;
+        overflow-y: auto;
+        border-top: 1px solid #e3e8ef;
+    }
+
+    table.coa-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        min-width: 1200px;
+    }
+
+    .coa-table thead th {
+        background: #18b84f;
+        color: white;
+        padding: 8px 10px;
+        text-align: left;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+    }
+
+    .coa-table td {
+        padding: 7px 10px;
+        border-bottom: 1px solid #e3e8ef;
+        color: #102a43;
+        vertical-align: middle;
+    }
+
+    .coa-table tbody tr:hover {
+        background: #f1fff6;
+    }
+
+    .coa-check {
+        width: 42px;
+        text-align: center;
+    }
+
+    .coa-code {
+        width: 220px;
+        font-weight: 700;
+        color: #23395d;
+    }
+
+    .coa-name {
+        width: 280px;
+        font-weight: 700;
+    }
+
+    .coa-local {
+        width: 280px;
+        font-family: "Khmer OS Battambang", "Noto Sans Khmer", Arial, sans-serif;
+    }
+
+    .coa-type {
+        width: 220px;
+        font-weight: 700;
+        color: #34495e;
+    }
+
+    .coa-desc {
+        color: #465a69;
+    }
+
+    .parent-row {
+        background: #f6f8fb;
+    }
+
+    .child-code {
+        padding-left: 24px;
+    }
+
+    .arrow {
+        color: #1aa84c;
+        font-weight: 900;
+        margin-right: 4px;
+    }
+
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #18b84f;
+        cursor: pointer;
+    }
+
+    .select-all-box {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 800;
+    }
+
+    @media (max-width: 768px) {
+        .coa-page {
+            padding: 10px;
+        }
+
+        .coa-title h2 {
+            font-size: 17px;
+        }
+
+        .coa-options {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .finish-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+        }
+
+        .coa-actions {
+            padding: 10px;
+        }
+    }
+</style>
+
+<div class="coa-page">
+    <form method="post" class="coa-card">
+        {% csrf_token %}
+
+        <div class="coa-top">
+            <div class="brand">⚡ LocalizeBook</div>
+            <div class="business-name">📗 {{ business.name }}</div>
+        </div>
+
+        <div class="coa-title">
+            <h2>Set Up Chart of Account for This Business</h2>
+            <p>
+                Click Finish button to set up or import COA later or choose sample COA below to get started.
+            </p>
+        </div>
+
+        <div class="coa-options">
+            <label>
+                <input type="radio" name="setup_type" value="sample" checked>
+                Sample COA
+            </label>
+
+            <label>
+                <input type="radio" name="setup_type" value="simple">
+                I am not Accountant
+            </label>
+        </div>
+
+        <div class="coa-actions">
+            <button type="submit" class="finish-btn">✅ Finish</button>
+        </div>
+
+        <div class="coa-table-wrap">
+            <table class="coa-table">
+                <thead>
+                    <tr>
+                        <th class="coa-check">
+                            <input type="checkbox" id="checkAll" checked>
+                        </th>
+                        <th>Account Code</th>
+                        <th>Account Name</th>
+                        <th>Local Account</th>
+                        <th>Account Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for account in sample_coa %}
+                        <tr class="{% if not account.parent %}parent-row{% endif %}">
+                            <td class="coa-check">
+                                <input
+                                    type="checkbox"
+                                    name="accounts"
+                                    value="{{ account.code }}"
+                                    class="account-check"
+                                    checked
+                                >
+                            </td>
+
+                            <td class="coa-code {% if account.parent %}child-code{% endif %}">
+                                {% if account.parent %}
+                                    &nbsp;&nbsp;&nbsp;&nbsp;{{ account.code }}
+                                {% else %}
+                                    <span class="arrow">›</span> {{ account.code }}
+                                {% endif %}
+                            </td>
+
+                            <td class="coa-name">{{ account.name }}</td>
+                            <td class="coa-local">{{ account.local_name }}</td>
+                            <td class="coa-type">{{ account.account_type }}</td>
+                            <td class="coa-desc">{{ account.description }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    const checkAll = document.getElementById("checkAll");
+    const accountChecks = document.querySelectorAll(".account-check");
+
+    checkAll.addEventListener("change", function () {
+        accountChecks.forEach(function (box) {
+            box.checked = checkAll.checked;
+        });
+    });
+
+    accountChecks.forEach(function (box) {
+        box.addEventListener("change", function () {
+            const checkedCount = document.querySelectorAll(".account-check:checked").length;
+            checkAll.checked = checkedCount === accountChecks.length;
+        });
+    });
+</script>
+
+{% endblock %}

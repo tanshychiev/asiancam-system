@@ -1,0 +1,50 @@
+{% extends "accounting/reports/report_base.html" %}
+
+{% block report_summary %}
+<section class="kpi-grid">
+    <div class="kpi-card"><span>Year</span><strong>{{ report_year }}</strong></div>
+    <div class="kpi-card"><span>Accounts</span><strong>{{ pl_month_rows|length }}</strong></div>
+    <div class="kpi-card"><span>Date From</span><strong>{{ date_from }}</strong></div>
+    <div class="kpi-card"><span>Date To</span><strong>{{ date_to }}</strong></div>
+</section>
+{% endblock %}
+
+{% block report_content %}
+<div class="table-wrap">
+    <table class="report-table wide">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Account</th>
+                <th class="money">Jan</th>
+                <th class="money">Feb</th>
+                <th class="money">Mar</th>
+                <th class="money">Apr</th>
+                <th class="money">May</th>
+                <th class="money">Jun</th>
+                <th class="money">Jul</th>
+                <th class="money">Aug</th>
+                <th class="money">Sep</th>
+                <th class="money">Oct</th>
+                <th class="money">Nov</th>
+                <th class="money">Dec</th>
+                <th class="money">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in pl_month_rows %}
+                <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                    <td><span class="code-pill">{{ row.code }}</span></td>
+                    <td>{{ row.name }}</td>
+                    {% for amount in row.months %}
+                        <td class="money">${{ amount }}</td>
+                    {% endfor %}
+                    <td class="money"><strong>${{ row.total }}</strong></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="15"><div class="empty-state">No monthly Profit/Loss data.</div></td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

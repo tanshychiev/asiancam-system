@@ -1,0 +1,181 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login | AsianCam Accounting Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        :root {
+            --blue: #15aaf5;
+            --blue-dark: #0579bd;
+            --blue-deep: #073763;
+            --cyan: #67d9ff;
+            --border: #d7efff;
+            --muted: #6b7c93;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(21, 170, 245, 0.22), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(103, 217, 255, 0.28), transparent 32%),
+                linear-gradient(135deg, #f3fbff 0%, #ffffff 48%, #eaf8ff 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #12324a;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 430px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            box-shadow: 0 24px 60px rgba(0, 113, 188, 0.18);
+            padding: 34px;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 950;
+            font-size: 25px;
+            margin-bottom: 18px;
+            box-shadow: 0 16px 34px rgba(21, 170, 245, 0.32);
+        }
+
+        h1 {
+            margin: 0;
+            color: var(--blue-deep);
+            font-size: 28px;
+            line-height: 1.15;
+        }
+
+        .subtitle {
+            margin: 8px 0 24px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+            font-weight: 700;
+        }
+
+        .error-box {
+            background: #fff0f0;
+            color: #d11f1f;
+            border: 1px solid #ffd5d5;
+            padding: 12px 14px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--blue-deep);
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        input {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: #fbfdff;
+            border-radius: 16px;
+            padding: 14px 15px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 4px rgba(21, 170, 245, 0.12);
+        }
+
+        button {
+            width: 100%;
+            min-height: 48px;
+            border: 0;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            color: white;
+            font-size: 15px;
+            font-weight: 950;
+            cursor: pointer;
+            box-shadow: 0 16px 32px rgba(21, 170, 245, 0.28);
+            margin-top: 8px;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, var(--blue-dark), var(--blue));
+        }
+
+        .footer-text {
+            margin-top: 20px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="logo">AC</div>
+
+    <h1>Welcome Back</h1>
+    <div class="subtitle">
+        Login to AsianCam Accounting Portal to manage companies, accounting data, and reports.
+    </div>
+
+    {% if form.errors %}
+        <div class="error-box">
+            Username or password is incorrect. Please try again.
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_username">Username</label>
+            {{ form.username }}
+        </div>
+
+        <div class="form-group">
+            <label for="id_password">Password</label>
+            {{ form.password }}
+        </div>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <div class="footer-text">
+        AsianCam Accounting Portal
+    </div>
+</div>
+
+</body>
+</html>

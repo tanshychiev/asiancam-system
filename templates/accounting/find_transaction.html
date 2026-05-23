@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Find Transaction{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Find Transaction</h2>
+            <p>Search journal entries by entry no, reference, description, or account.</p>
+        </div>
+
+        <a href="{% url 'journal_create' %}" class="btn">➕ New Journal</a>
+    </div>
+
+    <form method="get" class="card" style="box-shadow:none;">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Search</label>
+                <input type="text" name="q" value="{{ query }}" placeholder="Search transaction...">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn">🔍 Search</button>
+            <a href="{% url 'find_transaction' %}" class="btn btn-light">Reset</a>
+        </div>
+    </form>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Entry No</th>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th>Description</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for entry in entries %}
+                    <tr>
+                        <td>{{ entry.entry_no|default:entry.id }}</td>
+                        <td>{{ entry.entry_date }}</td>
+                        <td>{{ entry.reference_no|default:"-" }}</td>
+                        <td>{{ entry.description|default:"-" }}</td>
+                        <td>${{ entry.total_debit }}</td>
+                        <td>${{ entry.total_credit }}</td>
+                        <td>
+                            <a href="{% url 'journal_detail' entry.id %}" class="btn btn-light">View</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="emoji">🔍</div>
+                                No transactions found.
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

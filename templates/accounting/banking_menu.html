@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Banking{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Banking</h2>
+            <p>Bank account, transfer, and reconciliation workspace for {{ company.name }}.</p>
+        </div>
+
+        <a href="{% url 'journal_create' %}" class="btn">➕ Create Journal Entry</a>
+    </div>
+
+    <div class="quick-grid">
+        <a href="{% url 'journal_create' %}" class="quick-card">
+            <div class="quick-icon">🏦</div>
+            <span>Banking</span>
+            <h3>Bank Account</h3>
+        </a>
+
+        <a href="{% url 'journal_create' %}" class="quick-card">
+            <div class="quick-icon">🔁</div>
+            <span>Transfer</span>
+            <h3>Bank Transfer</h3>
+        </a>
+
+        <a href="{% url 'journal_create' %}" class="quick-card">
+            <div class="quick-icon">✅</div>
+            <span>Check</span>
+            <h3>Bank Reconcile</h3>
+        </a>
+
+        <a href="{% url 'accounting_reports' %}" class="quick-card">
+            <div class="quick-icon">📊</div>
+            <span>Output</span>
+            <h3>Reports</h3>
+        </a>
+    </div>
+</div>
+
+{% endblock %}
