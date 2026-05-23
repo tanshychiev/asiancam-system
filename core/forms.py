@@ -36,13 +36,19 @@ class StaffUserCreateForm(forms.ModelForm):
     phone = forms.CharField(
         required=False,
         label="Phone",
-        widget=forms.TextInput(attrs={"placeholder": "Phone number", "class": "form-control"}),
+        widget=forms.TextInput(attrs={
+            "placeholder": "Phone number",
+            "class": "form-control",
+        }),
     )
 
     position = forms.CharField(
         required=False,
         label="Position",
-        widget=forms.TextInput(attrs={"placeholder": "Position", "class": "form-control"}),
+        widget=forms.TextInput(attrs={
+            "placeholder": "Position",
+            "class": "form-control",
+        }),
     )
 
     can_view_reports = forms.BooleanField(required=False, initial=True)
@@ -50,35 +56,59 @@ class StaffUserCreateForm(forms.ModelForm):
 
     password = forms.CharField(
         label="Password",
-        widget=forms.PasswordInput(attrs={"placeholder": "Password", "class": "form-control"}),
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "Password",
+            "class": "form-control",
+        }),
     )
 
     confirm_password = forms.CharField(
         label="Confirm Password",
-        widget=forms.PasswordInput(attrs={"placeholder": "Confirm password", "class": "form-control"}),
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "Confirm password",
+            "class": "form-control",
+        }),
     )
 
     class Meta:
         model = User
         fields = ["username", "first_name", "last_name", "email", "is_active"]
         widgets = {
-            "username": forms.TextInput(attrs={"placeholder": "Username", "class": "form-control"}),
-            "first_name": forms.TextInput(attrs={"placeholder": "First name", "class": "form-control"}),
-            "last_name": forms.TextInput(attrs={"placeholder": "Last name", "class": "form-control"}),
-            "email": forms.EmailInput(attrs={"placeholder": "Email", "class": "form-control"}),
-            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "username": forms.TextInput(attrs={
+                "placeholder": "Username",
+                "class": "form-control",
+            }),
+            "first_name": forms.TextInput(attrs={
+                "placeholder": "First name",
+                "class": "form-control",
+            }),
+            "last_name": forms.TextInput(attrs={
+                "placeholder": "Last name",
+                "class": "form-control",
+            }),
+            "email": forms.EmailInput(attrs={
+                "placeholder": "Email",
+                "class": "form-control",
+            }),
+            "is_active": forms.CheckboxInput(attrs={
+                "class": "form-check-input",
+            }),
         }
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
+
         if username and User.objects.filter(username=username).exists():
             raise forms.ValidationError("This username already exists.")
+
         return username
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
+
         if email and User.objects.filter(email=email).exists():
             raise forms.ValidationError("This email already exists.")
+
         return email
 
     def clean(self):
@@ -155,12 +185,18 @@ class StaffUserEditForm(forms.ModelForm):
 
     phone = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Phone number", "class": "form-control"}),
+        widget=forms.TextInput(attrs={
+            "placeholder": "Phone number",
+            "class": "form-control",
+        }),
     )
 
     position = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Position", "class": "form-control"}),
+        widget=forms.TextInput(attrs={
+            "placeholder": "Position",
+            "class": "form-control",
+        }),
     )
 
     can_view_reports = forms.BooleanField(required=False)
@@ -170,11 +206,25 @@ class StaffUserEditForm(forms.ModelForm):
         model = User
         fields = ["username", "first_name", "last_name", "email", "is_active"]
         widgets = {
-            "username": forms.TextInput(attrs={"placeholder": "Username", "class": "form-control"}),
-            "first_name": forms.TextInput(attrs={"placeholder": "First name", "class": "form-control"}),
-            "last_name": forms.TextInput(attrs={"placeholder": "Last name", "class": "form-control"}),
-            "email": forms.EmailInput(attrs={"placeholder": "Email", "class": "form-control"}),
-            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "username": forms.TextInput(attrs={
+                "placeholder": "Username",
+                "class": "form-control",
+            }),
+            "first_name": forms.TextInput(attrs={
+                "placeholder": "First name",
+                "class": "form-control",
+            }),
+            "last_name": forms.TextInput(attrs={
+                "placeholder": "Last name",
+                "class": "form-control",
+            }),
+            "email": forms.EmailInput(attrs={
+                "placeholder": "Email",
+                "class": "form-control",
+            }),
+            "is_active": forms.CheckboxInput(attrs={
+                "class": "form-check-input",
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -193,23 +243,30 @@ class StaffUserEditForm(forms.ModelForm):
         self.fields["can_download_reports"].initial = profile.can_download_reports
 
         first_group = self.instance.groups.first()
+
         if first_group:
             self.fields["role"].initial = first_group
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
+
         if username:
             exists = User.objects.filter(username=username).exclude(id=self.instance.id).exists()
+
             if exists:
                 raise forms.ValidationError("This username already exists.")
+
         return username
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
+
         if email:
             exists = User.objects.filter(email=email).exclude(id=self.instance.id).exists()
+
             if exists:
                 raise forms.ValidationError("This email already exists.")
+
         return email
 
     def clean(self):
@@ -262,12 +319,18 @@ class StaffUserEditForm(forms.ModelForm):
 class StaffPasswordChangeForm(forms.Form):
     password = forms.CharField(
         label="New Password",
-        widget=forms.PasswordInput(attrs={"placeholder": "New password", "class": "form-control"}),
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "New password",
+            "class": "form-control",
+        }),
     )
 
     confirm_password = forms.CharField(
         label="Confirm Password",
-        widget=forms.PasswordInput(attrs={"placeholder": "Confirm password", "class": "form-control"}),
+        widget=forms.PasswordInput(attrs={
+            "placeholder": "Confirm password",
+            "class": "form-control",
+        }),
     )
 
     def clean(self):
@@ -286,17 +349,63 @@ class StaffPasswordChangeForm(forms.Form):
 
 
 class CompanyCreateForm(forms.ModelForm):
+    assigned_staff = forms.ModelMultipleChoiceField(
+        queryset=User.objects.filter(
+            is_active=True,
+            is_superuser=False,
+        ).order_by("username"),
+        required=False,
+        label="Assigned Staff",
+        widget=forms.CheckboxSelectMultiple,
+    )
+
     class Meta:
         model = Company
-        fields = ["name", "code", "vatin", "phone", "email", "address", "is_active"]
+        fields = [
+            "name",
+            "code",
+            "logo",
+            "vatin",
+            "phone",
+            "email",
+            "address",
+            "assigned_staff",
+            "is_active",
+        ]
         widgets = {
-            "name": forms.TextInput(attrs={"placeholder": "Company name", "class": "form-control"}),
-            "code": forms.TextInput(attrs={"placeholder": "Company code", "class": "form-control"}),
-            "vatin": forms.TextInput(attrs={"placeholder": "VATIN / Tax ID", "class": "form-control"}),
-            "phone": forms.TextInput(attrs={"placeholder": "Phone number", "class": "form-control"}),
-            "email": forms.EmailInput(attrs={"placeholder": "Email", "class": "form-control"}),
-            "address": forms.Textarea(attrs={"placeholder": "Address", "rows": 4, "class": "form-control"}),
-            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "name": forms.TextInput(attrs={
+                "placeholder": "Company name",
+                "class": "form-control",
+            }),
+            "code": forms.TextInput(attrs={
+                "placeholder": "Company code",
+                "class": "form-control",
+            }),
+            "logo": forms.ClearableFileInput(attrs={
+                "class": "form-control",
+                "accept": "image/*",
+                "id": "id_logo",
+            }),
+            "vatin": forms.TextInput(attrs={
+                "placeholder": "VATIN / Tax ID",
+                "class": "form-control",
+            }),
+            "phone": forms.TextInput(attrs={
+                "placeholder": "Phone number",
+                "class": "form-control",
+            }),
+            "email": forms.EmailInput(attrs={
+                "placeholder": "Email",
+                "class": "form-control",
+            }),
+            "address": forms.Textarea(attrs={
+                "placeholder": "Address",
+                "rows": 4,
+                "class": "form-control",
+            }),
+            "is_active": forms.CheckboxInput(attrs={
+                "class": "form-check-input",
+            }),
         }
 
 

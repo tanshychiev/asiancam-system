@@ -31,7 +31,7 @@ urlpatterns = [
     path("vendors/", include("vendors.urls")),
     path("stock/", include("stock.urls")),
     path("customers/", include("customers.urls")),
+    path("workspaces/", include("workspaces.urls")),
 
-    # ✅ extra accounting operation pages
     path("accounting-ops/", include("accounting_ops.urls")),
 ]

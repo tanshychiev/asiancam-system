@@ -1,14 +1,23 @@
-from django.contrib.auth.decorators import login_required
+from datetime import date
+
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import MonthlyWorkspaceForm
-from .models import MonthlyWorkspace
+from clients.models import Client
 from reports.models import ReportFile
 
+from .forms import MonthlyWorkspaceForm
+from .models import MonthlyWorkspace
+
+
+# =========================================================
+# ROLE HELPERS
+# =========================================================
 
 def _is_admin(user):
     if user.is_superuser:
@@ -40,7 +49,11 @@ def _is_customer(user):
 def _is_staff_user(user):
     if _is_admin(user):
         return False
-    return not _is_customer(user)
+
+    if _is_customer(user):
+        return False
+
+    return True
 
 
 def _can_access_workspace(user, workspace):
@@ -63,17 +76,35 @@ def _can_staff_work(user, workspace):
     return workspace.assigned_staff.filter(id=user.id).exists()
 
 
+# =========================================================
+# WORKSPACE LIST
+# =========================================================
+
 @login_required
 def workspace_list(request):
     today = timezone.localdate()
-    year = int(request.GET.get("year") or today.year)
-    month = int(request.GET.get("month") or today.month)
+
+    try:
+        year = int(request.GET.get("year") or today.year)
+    except ValueError:
+        year = today.year
+
+    try:
+        month = int(request.GET.get("month") or today.month)
+    except ValueError:
+        month = today.month
+
     q = (request.GET.get("q") or "").strip()
     status = (request.GET.get("status") or "").strip()
 
     workspaces = (
         MonthlyWorkspace.objects
-        .select_related("client", "submitted_by", "approved_by", "rejected_by")
+        .select_related(
+            "client",
+            "submitted_by",
+            "approved_by",
+            "rejected_by",
+        )
         .prefetch_related("assigned_staff")
         .filter(year=year, month=month)
     )
@@ -87,29 +118,182 @@ def workspace_list(request):
     if q:
         workspaces = workspaces.filter(
             Q(client__company_name__icontains=q)
-            | Q(title__icontains=q)
             | Q(client__client_code__icontains=q)
+            | Q(title__icontains=q)
+            | Q(assigned_staff__username__icontains=q)
+            | Q(assigned_staff__first_name__icontains=q)
+            | Q(assigned_staff__last_name__icontains=q)
         )
 
     if status:
         workspaces = workspaces.filter(status=status)
 
+    workspaces = workspaces.distinct()
+
+    total_count = workspaces.count()
+    pending_count = workspaces.filter(status=MonthlyWorkspace.STATUS_PENDING).count()
+    progress_count = workspaces.filter(status=MonthlyWorkspace.STATUS_IN_PROGRESS).count()
+    waiting_count = workspaces.filter(status=MonthlyWorkspace.STATUS_WAITING_CUSTOMER).count()
+    completed_count = workspaces.filter(status=MonthlyWorkspace.STATUS_COMPLETED).count()
+    approved_count = workspaces.filter(status=MonthlyWorkspace.STATUS_APPROVED).count()
+    rejected_count = workspaces.filter(status=MonthlyWorkspace.STATUS_REJECTED).count()
+
+    month_choices = [
+        (1, "January"),
+        (2, "February"),
+        (3, "March"),
+        (4, "April"),
+        (5, "May"),
+        (6, "June"),
+        (7, "July"),
+        (8, "August"),
+        (9, "September"),
+        (10, "October"),
+        (11, "November"),
+        (12, "December"),
+    ]
+
+    year_choices = list(range(today.year - 3, today.year + 2))
+
     return render(request, "workspaces/workspace_list.html", {
-        "workspaces": workspaces.distinct(),
+        "workspaces": workspaces,
         "year": year,
         "month": month,
         "q": q,
         "status": status,
         "status_choices": MonthlyWorkspace.STATUS_CHOICES,
+        "month_choices": month_choices,
+        "year_choices": year_choices,
         "can_create": _is_admin(request.user),
+
+        "total_count": total_count,
+        "pending_count": pending_count,
+        "progress_count": progress_count,
+        "waiting_count": waiting_count,
+        "completed_count": completed_count,
+        "approved_count": approved_count,
+        "rejected_count": rejected_count,
     })
 
+
+# =========================================================
+# AUTO GENERATE MONTHLY WORKSPACES
+# =========================================================
+
+@login_required
+@require_POST
+def workspace_generate_month(request):
+    if not _is_admin(request.user):
+        messages.error(request, "Only admin can generate monthly workspaces.")
+        return redirect("workspace_list")
+
+    today = timezone.localdate()
+
+    try:
+        year = int(request.POST.get("year") or today.year)
+    except ValueError:
+        year = today.year
+
+    try:
+        month = int(request.POST.get("month") or today.month)
+    except ValueError:
+        month = today.month
+
+    try:
+        due_day = int(request.POST.get("due_day") or 25)
+    except ValueError:
+        due_day = 25
+
+    if month < 1 or month > 12:
+        month = today.month
+
+    if due_day < 1:
+        due_day = 1
+
+    if due_day > 28:
+        due_day = 28
+
+    due_date = date(year, month, due_day)
+
+    if month == 1:
+        previous_year = year - 1
+        previous_month = 12
+    else:
+        previous_year = year
+        previous_month = month - 1
+
+    clients = Client.objects.filter(
+        status=Client.STATUS_ACTIVE,
+    ).order_by("company_name")
+
+    created_count = 0
+    skipped_count = 0
+    copied_staff_count = 0
+
+    with transaction.atomic():
+        for client in clients:
+            workspace, created = MonthlyWorkspace.objects.get_or_create(
+                client=client,
+                year=year,
+                month=month,
+                defaults={
+                    "title": f"{client.company_name} - {year}-{month:02d}",
+                    "status": MonthlyWorkspace.STATUS_PENDING,
+                    "due_date": due_date,
+                    "created_by": request.user,
+                },
+            )
+
+            if created:
+                previous_workspace = (
+                    MonthlyWorkspace.objects
+                    .filter(
+                        client=client,
+                        year=previous_year,
+                        month=previous_month,
+                    )
+                    .prefetch_related("assigned_staff")
+                    .first()
+                )
+
+                if previous_workspace:
+                    previous_staff = list(previous_workspace.assigned_staff.all())
+
+                    if previous_staff:
+                        workspace.assigned_staff.set(previous_staff)
+                        copied_staff_count += 1
+
+                created_count += 1
+            else:
+                skipped_count += 1
+
+    messages.success(
+        request,
+        (
+            f"Monthly workspaces generated for {month:02d}/{year}. "
+            f"Created: {created_count}, skipped existing: {skipped_count}, "
+            f"copied staff from last month: {copied_staff_count}."
+        ),
+    )
+
+    return redirect(f"/workspaces/?year={year}&month={month}")
+
+
+# =========================================================
+# WORKSPACE DETAIL
+# =========================================================
 
 @login_required
 def workspace_detail(request, pk):
     workspace = get_object_or_404(
         MonthlyWorkspace.objects
-        .select_related("client", "created_by", "submitted_by", "approved_by", "rejected_by")
+        .select_related(
+            "client",
+            "created_by",
+            "submitted_by",
+            "approved_by",
+            "rejected_by",
+        )
         .prefetch_related("assigned_staff"),
         pk=pk,
     )
@@ -118,10 +302,19 @@ def workspace_detail(request, pk):
         messages.error(request, "You do not have permission to view this workspace.")
         return redirect("dashboard_home")
 
-    reports = ReportFile.objects.filter(workspace=workspace).select_related("uploaded_by", "approved_by")
+    reports = ReportFile.objects.filter(
+        workspace=workspace,
+    ).select_related(
+        "uploaded_by",
+        "approved_by",
+    )
 
     if _is_customer(request.user):
-        reports = reports.filter(is_approved=True, visible_to_customer=True)
+        reports = reports.filter(
+            is_approved=True,
+            visible_to_customer=True,
+        )
+
         if workspace.status != MonthlyWorkspace.STATUS_APPROVED:
             reports = reports.none()
 
@@ -170,6 +363,10 @@ def workspace_detail(request, pk):
     })
 
 
+# =========================================================
+# CREATE / EDIT
+# =========================================================
+
 @login_required
 def workspace_create(request):
     if not _is_admin(request.user):
@@ -178,6 +375,7 @@ def workspace_create(request):
 
     if request.method == "POST":
         form = MonthlyWorkspaceForm(request.POST)
+
         if form.is_valid():
             workspace = form.save(commit=False)
             workspace.created_by = request.user
@@ -205,6 +403,7 @@ def workspace_edit(request, pk):
 
     if request.method == "POST":
         form = MonthlyWorkspaceForm(request.POST, instance=workspace)
+
         if form.is_valid():
             form.save()
             messages.success(request, "Monthly workspace updated.")
@@ -218,6 +417,10 @@ def workspace_edit(request, pk):
         "workspace": workspace,
     })
 
+
+# =========================================================
+# STAFF ACTIONS
+# =========================================================
 
 @login_required
 @require_POST
@@ -233,6 +436,7 @@ def workspace_start(request, pk):
         return redirect("workspace_detail", pk=workspace.pk)
 
     workspace.start_work()
+
     messages.success(request, "Workspace marked as In Progress.")
     return redirect("workspace_detail", pk=workspace.pk)
 
@@ -251,9 +455,14 @@ def workspace_submit(request, pk):
         return redirect("workspace_detail", pk=workspace.pk)
 
     workspace.submit_for_review(request.user)
+
     messages.success(request, "Workspace completed and submitted to admin for review.")
     return redirect("workspace_detail", pk=workspace.pk)
 
+
+# =========================================================
+# ADMIN REVIEW ACTIONS
+# =========================================================
 
 @login_required
 @require_POST

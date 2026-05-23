@@ -510,3 +510,25 @@ def role_create(request):
         "selected_permission_ids": selected_permission_ids,
         "total_permissions": total_permissions,
     })
+
+
+@login_required
+@user_passes_test(admin_required)
+def company_edit(request, company_id):
+    company = get_object_or_404(Company, id=company_id)
+
+    if request.method == "POST":
+        form = CompanyCreateForm(request.POST, request.FILES, instance=company)
+
+        if form.is_valid():
+            company = form.save()
+            messages.success(request, f"Company {company.name} updated successfully.")
+            return redirect("company_list")
+    else:
+        form = CompanyCreateForm(instance=company)
+
+    return render(request, "companies/company_create.html", {
+        "form": form,
+        "company": company,
+        "is_edit": True,
+    })

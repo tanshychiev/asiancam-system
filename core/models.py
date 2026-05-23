@@ -6,6 +6,13 @@ class Company(models.Model):
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=50, blank=True)
 
+    logo = models.ImageField(
+        upload_to="company_logos/",
+        blank=True,
+        null=True,
+        verbose_name="Company Logo",
+    )
+
     vatin = models.CharField(
         max_length=100,
         blank=True,
@@ -16,7 +23,6 @@ class Company(models.Model):
     email = models.EmailField(blank=True)
     address = models.TextField(blank=True)
 
-    # Staff users who can work on this company
     assigned_staff = models.ManyToManyField(
         User,
         blank=True,
@@ -56,8 +62,6 @@ class UserProfile(models.Model):
         default=USER_TYPE_STAFF,
     )
 
-    # Only for client user.
-    # One company can have many client users.
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,

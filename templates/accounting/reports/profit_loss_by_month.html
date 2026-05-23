@@ -1,20 +1,23 @@
 {% extends "accounting/reports/report_base.html" %}
 
 {% block report_summary %}
-<section class="kpi-grid no-print">
-    <div class="kpi-card">
+<section class="kpi-grid no-print asian-kpi-grid">
+    <div class="kpi-card asian-kpi-card">
         <span>Year</span>
         <strong>{{ report_year }}</strong>
     </div>
-    <div class="kpi-card">
+
+    <div class="kpi-card asian-kpi-card">
         <span>Accounts</span>
         <strong>{{ pl_month_rows|length }}</strong>
     </div>
-    <div class="kpi-card">
+
+    <div class="kpi-card asian-kpi-card">
         <span>Date From</span>
         <strong>{{ date_from }}</strong>
     </div>
-    <div class="kpi-card">
+
+    <div class="kpi-card asian-kpi-card">
         <span>Date To</span>
         <strong>{{ date_to }}</strong>
     </div>
@@ -25,52 +28,98 @@
 {% block report_content %}
 
 <style>
+    :root {
+        --ac-blue: #159de0;
+        --ac-blue-dark: #056fae;
+        --ac-blue-deep: #073763;
+        --ac-blue-soft: #eef8ff;
+        --ac-cyan: #68d4f5;
+        --ac-border: #d9edf8;
+        --ac-text: #18344a;
+        --ac-muted: #6b7c93;
+        --ac-shadow: 0 18px 42px rgba(0, 95, 150, 0.12);
+        --ac-shadow-soft: 0 10px 26px rgba(0, 95, 150, 0.08);
+    }
+
+    .asian-kpi-grid {
+        gap: 14px;
+    }
+
+    .asian-kpi-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f4fbff 100%);
+        border: 1px solid var(--ac-border);
+        box-shadow: var(--ac-shadow-soft);
+        border-radius: 18px;
+    }
+
+    .asian-kpi-card span {
+        color: var(--ac-muted);
+        font-weight: 700;
+        letter-spacing: 0.2px;
+    }
+
+    .asian-kpi-card strong {
+        color: var(--ac-blue-deep);
+        font-weight: 900;
+    }
+
     .modern-pl-wrap {
         max-width: 1320px;
-        margin: 0 auto 40px auto;
+        margin: 0 auto 42px auto;
         background: #ffffff;
-        border: 1px solid #d6dce8;
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
+        border: 1px solid var(--ac-border);
+        border-radius: 22px;
+        box-shadow: var(--ac-shadow);
         overflow-x: auto;
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: "Inter", "Noto Sans Khmer", "Segoe UI", Arial, sans-serif;
     }
 
     .modern-pl-header {
         min-width: 1180px;
-        background: #062b68;
+        background:
+            radial-gradient(circle at top right, rgba(104, 212, 245, 0.34), transparent 34%),
+            linear-gradient(135deg, var(--ac-blue-deep) 0%, var(--ac-blue-dark) 58%, var(--ac-blue) 100%);
         color: #ffffff;
-        padding: 16px 20px 12px 20px;
+        padding: 20px 22px 16px 22px;
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        gap: 20px;
+        gap: 22px;
     }
 
     .modern-pl-header h2 {
         margin: 0;
-        font-size: 18px;
-        font-weight: 800;
+        font-size: 20px;
+        font-weight: 900;
         letter-spacing: 0.2px;
     }
 
     .modern-pl-header h3 {
-        margin: 5px 0 0 0;
+        margin: 6px 0 0 0;
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 800;
     }
 
     .modern-pl-header p {
-        margin: 3px 0 0 0;
+        margin: 4px 0 0 0;
         font-size: 12px;
-        opacity: 0.9;
+        opacity: 0.92;
+        font-weight: 600;
     }
 
     .modern-pl-right {
         font-size: 11px;
-        opacity: 0.9;
+        opacity: 0.94;
         white-space: nowrap;
-        padding-top: 2px;
+        padding-top: 3px;
         text-align: right;
+        line-height: 1.6;
+    }
+
+    .click-hint {
+        color: #dff6ff;
+        font-size: 11px;
+        margin-top: 4px;
     }
 
     .modern-pl-table {
@@ -78,23 +127,24 @@
         min-width: 1180px;
         border-collapse: collapse;
         background: #ffffff;
-        color: #111827;
+        color: var(--ac-text);
         font-size: 12px;
     }
 
     .modern-pl-table th,
     .modern-pl-table td {
-        padding: 5px 6px;
+        padding: 8px 8px;
         vertical-align: middle;
     }
 
     .modern-pl-table thead th {
-        background: #062b68;
+        background: linear-gradient(180deg, var(--ac-blue-deep), #052f57);
         color: #ffffff;
-        font-weight: 800;
+        font-weight: 900;
         text-align: right;
-        border-bottom: 2px solid #0b1f45;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.18);
         white-space: nowrap;
+        letter-spacing: 0.25px;
     }
 
     .modern-pl-table thead th:first-child {
@@ -102,8 +152,8 @@
     }
 
     .modern-account {
-        min-width: 260px;
-        max-width: 260px;
+        min-width: 280px;
+        max-width: 280px;
         text-align: left;
         white-space: nowrap;
         overflow: hidden;
@@ -111,7 +161,7 @@
     }
 
     .modern-money {
-        min-width: 78px;
+        min-width: 82px;
         text-align: right;
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
@@ -119,53 +169,64 @@
 
     .modern-row {
         cursor: pointer;
-        transition: background 0.12s ease;
+        transition: 0.14s ease;
+    }
+
+    .modern-row td {
+        border-top: 1px solid #edf7ff;
     }
 
     .modern-row:hover td {
-        background: #eef6ff;
+        background: var(--ac-blue-soft);
     }
 
     .modern-row:active td {
-        background: #dbeafe;
+        background: #dff3ff;
     }
 
     .modern-blue {
-        color: #566bff;
-        font-weight: 600;
+        color: var(--ac-blue-dark);
+        font-weight: 700;
     }
 
     .modern-section td {
-        padding-top: 14px;
-        font-weight: 800;
-        color: #111827;
-        background: #ffffff;
+        padding-top: 16px;
+        padding-bottom: 10px;
+        font-weight: 900;
+        color: var(--ac-blue-deep);
+        background: linear-gradient(135deg, #ffffff, #f6fbff);
+        border-bottom: 1px solid var(--ac-border);
     }
 
     .modern-total td {
         font-weight: 900;
-        border-top: 2px solid #111827;
-        background: #f8fafc;
+        border-top: 2px solid var(--ac-blue-deep);
+        background: #f6fbff;
     }
 
     .modern-net td {
         font-weight: 900;
-        border-top: 2px solid #111827;
-        border-bottom: 2px solid #111827;
-        background: #f8fafc;
+        border-top: 2px solid var(--ac-blue-deep);
+        border-bottom: 2px solid var(--ac-blue-deep);
+        background: #f6fbff;
     }
 
     .modern-empty {
         text-align: center;
-        padding: 26px;
-        color: #64748b;
+        padding: 34px;
+        color: var(--ac-muted);
         font-style: italic;
+        background: #ffffff;
     }
 
-    .click-hint {
-        color: #9fb8ff;
-        font-size: 11px;
-        margin-top: 4px;
+    .modern-account-link {
+        color: var(--ac-blue-deep);
+        font-weight: 800;
+    }
+
+    .modern-account-code {
+        color: var(--ac-muted);
+        font-weight: 700;
     }
 
     @media print {
@@ -179,12 +240,26 @@
             margin: 0;
             border: none;
             box-shadow: none;
+            border-radius: 0;
             overflow: visible;
         }
 
         .modern-pl-header,
         .modern-pl-table {
             min-width: 100%;
+        }
+
+        .modern-pl-header {
+            background: #073763 !important;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+        }
+
+        .modern-pl-table thead th {
+            background: #073763 !important;
+            color: #ffffff !important;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
         }
 
         .modern-pl-table {
@@ -241,7 +316,7 @@
     <table class="modern-pl-table">
         <thead>
             <tr>
-                <th class="modern-account"></th>
+                <th class="modern-account">Account</th>
                 <th class="modern-money">JAN</th>
                 <th class="modern-money">FEB</th>
                 <th class="modern-money">MAR</th>
@@ -269,7 +344,8 @@
                     onclick="window.location.href='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
 
                     <td class="modern-account">
-                        {{ row.code }} - {{ row.name }}
+                        <span class="modern-account-code">{{ row.code }}</span>
+                        <span class="modern-account-link"> - {{ row.name }}</span>
                     </td>
 
                     {% for amount in row.months %}
@@ -282,7 +358,7 @@
                         </td>
                     {% endfor %}
 
-                    <td class="modern-money">
+                    <td class="modern-money modern-blue">
                         <strong>{{ row.total }}</strong>
                     </td>
                 </tr>

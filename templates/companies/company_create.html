@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Create Company{% endblock %}
+{% block title %}
+    {% if is_edit %}Edit Company{% else %}Create Company{% endif %}
+{% endblock %}
 
 {% block content %}
 
@@ -77,7 +79,8 @@
     }
 
     .field-box input,
-    .field-box textarea {
+    .field-box textarea,
+    .field-box select {
         width: 100%;
         border: 1px solid #d7efff;
         background: #fbfdff;
@@ -89,9 +92,95 @@
     }
 
     .field-box input:focus,
-    .field-box textarea:focus {
+    .field-box textarea:focus,
+    .field-box select:focus {
         border-color: #15aaf5;
         box-shadow: 0 0 0 4px rgba(21,170,245,.12);
+    }
+
+    .logo-drop-zone {
+        border: 2px dashed #bfe7fb;
+        background: linear-gradient(135deg, #ffffff, #eef8ff);
+        border-radius: 22px;
+        padding: 18px;
+        cursor: pointer;
+        transition: 0.18s ease;
+    }
+
+    .logo-drop-zone.dragover {
+        border-color: #15aaf5;
+        background: #eef8ff;
+        box-shadow: 0 0 0 5px rgba(21, 170, 245, 0.12);
+    }
+
+    .logo-preview-box {
+        min-height: 170px;
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #d7efff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        overflow: hidden;
+    }
+
+    .logo-preview-box img {
+        width: 100%;
+        max-height: 180px;
+        object-fit: contain;
+        padding: 12px;
+    }
+
+    #logoPlaceholder {
+        color: #073763;
+        display: grid;
+        gap: 6px;
+    }
+
+    #logoPlaceholder strong {
+        font-size: 18px;
+        font-weight: 950;
+    }
+
+    #logoPlaceholder span {
+        color: #6b7c93;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .logo-upload-icon {
+        font-size: 42px;
+    }
+
+    .logo-drop-zone input[type="file"] {
+        display: none;
+    }
+
+    .staff-check-box {
+        background: #fbfdff;
+        border: 1px solid #d7efff;
+        border-radius: 18px;
+        padding: 14px 16px;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
+    .staff-check-box ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .staff-check-box li {
+        padding: 8px 0;
+        color: #073763;
+        font-weight: 800;
+    }
+
+    .staff-check-box input {
+        width: auto;
+        margin-right: 8px;
     }
 
     .check-row {
@@ -178,17 +267,42 @@
 
     <section class="front-hero">
         <div>
-            <h1>➕ Create Company</h1>
-            <p>Create a client/company workspace with VATIN and phone number.</p>
+            <h1>
+                {% if is_edit %}
+                    ✏️ Edit Company
+                {% else %}
+                    ➕ Create Company
+                {% endif %}
+            </h1>
+
+            <p>
+                {% if is_edit %}
+                    Update company information, logo, and assigned staff.
+                {% else %}
+                    Create a company workspace, upload logo, assign staff, and prepare monthly accounting work.
+                {% endif %}
+            </p>
         </div>
 
-        <a href="/companies/" class="back-btn">← Company List</a>
+        <a href="{% url 'company_list' %}" class="back-btn">← Company List</a>
     </section>
 
-    <form method="post" class="front-card">
+    <form method="post" enctype="multipart/form-data" class="front-card">
         {% csrf_token %}
 
-        <h2 class="form-title">Company Information</h2>
+        <h2 class="form-title">
+            {% if is_edit %}
+                Company Information
+            {% else %}
+                Company Information
+            {% endif %}
+        </h2>
+
+        {% if form.non_field_errors %}
+            <div class="field-error">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
 
         <div class="form-grid">
             <div class="field-box">
@@ -203,6 +317,32 @@
                 <label>Company Code</label>
                 {{ form.code }}
                 {% for error in form.code.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="field-box full">
+                <label>Company Logo</label>
+
+                <div class="logo-drop-zone" id="logoDropZone">
+                    <div class="logo-preview-box">
+                        {% if is_edit and company.logo %}
+                            <img id="logoPreview" src="{{ company.logo.url }}" alt="Logo preview">
+                        {% else %}
+                            <img id="logoPreview" src="" alt="Logo preview" style="display:none;">
+                        {% endif %}
+
+                        <div id="logoPlaceholder" {% if is_edit and company.logo %}style="display:none;"{% endif %}>
+                            <div class="logo-upload-icon">🖼️</div>
+                            <strong>Drag company logo here</strong>
+                            <span>or paste image / click to upload</span>
+                        </div>
+                    </div>
+
+                    {{ form.logo }}
+                </div>
+
+                {% for error in form.logo.errors %}
                     <div class="field-error">{{ error }}</div>
                 {% endfor %}
             </div>
@@ -238,6 +378,17 @@
                     <div class="field-error">{{ error }}</div>
                 {% endfor %}
             </div>
+
+            <div class="field-box full">
+                <label>Assigned Staff</label>
+                <div class="staff-check-box">
+                    {{ form.assigned_staff }}
+                </div>
+
+                {% for error in form.assigned_staff.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
         </div>
 
         <div class="check-row">
@@ -246,11 +397,103 @@
         </div>
 
         <div class="actions">
-            <button type="submit" class="save-btn">✅ Create Company</button>
-            <a href="/companies/" class="cancel-btn">Cancel</a>
+            <button type="submit" class="save-btn">
+                {% if is_edit %}
+                    ✅ Update Company
+                {% else %}
+                    ✅ Save Company
+                {% endif %}
+            </button>
+
+            <a href="{% url 'company_list' %}" class="cancel-btn">Cancel</a>
         </div>
     </form>
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const dropZone = document.getElementById("logoDropZone");
+    const fileInput = document.getElementById("id_logo");
+    const preview = document.getElementById("logoPreview");
+    const placeholder = document.getElementById("logoPlaceholder");
+
+    if (!dropZone || !fileInput || !preview || !placeholder) {
+        return;
+    }
+
+    function showPreview(file) {
+        if (!file || !file.type.startsWith("image/")) {
+            alert("Please upload image file only.");
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+            preview.src = event.target.result;
+            preview.style.display = "block";
+            placeholder.style.display = "none";
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    function setFile(file) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+        showPreview(file);
+    }
+
+    dropZone.addEventListener("click", function () {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener("change", function () {
+        if (fileInput.files.length > 0) {
+            showPreview(fileInput.files[0]);
+        }
+    });
+
+    dropZone.addEventListener("dragover", function (event) {
+        event.preventDefault();
+        dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", function () {
+        dropZone.classList.remove("dragover");
+    });
+
+    dropZone.addEventListener("drop", function (event) {
+        event.preventDefault();
+        dropZone.classList.remove("dragover");
+
+        const file = event.dataTransfer.files[0];
+
+        if (file) {
+            setFile(file);
+        }
+    });
+
+    document.addEventListener("paste", function (event) {
+        if (!event.clipboardData || !event.clipboardData.items) {
+            return;
+        }
+
+        const items = event.clipboardData.items;
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+
+            if (item.type.startsWith("image/")) {
+                const file = item.getAsFile();
+                setFile(file);
+                break;
+            }
+        }
+    });
+});
+</script>
 
 {% endblock %}

@@ -39,6 +39,13 @@
         line-height: 1.6;
     }
 
+    .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
     .hero-btn {
         min-height: 44px;
         padding: 0 20px;
@@ -53,9 +60,16 @@
         white-space: nowrap;
     }
 
+    .hero-btn.light {
+        background: #ffffff;
+        color: #0579bd;
+        border: 1px solid #cfeeff;
+        box-shadow: none;
+    }
+
     .company-toolbar {
         display: grid;
-        grid-template-columns: 1fr 260px;
+        grid-template-columns: 1fr 220px 220px 220px;
         gap: 16px;
         margin-bottom: 22px;
     }
@@ -129,6 +143,18 @@
         color: #073763;
         font-size: 28px;
         font-weight: 950;
+    }
+
+    .summary-card.pending strong {
+        color: #b86b00;
+    }
+
+    .summary-card.done strong {
+        color: #056fae;
+    }
+
+    .summary-card.approved strong {
+        color: #0f8a4a;
     }
 
     .selected-company-box {
@@ -211,17 +237,28 @@
         font-weight: 950;
     }
 
+    .company-logo,
     .company-icon {
-        width: 54px;
-        height: 54px;
+        width: 58px;
+        height: 58px;
         border-radius: 18px;
+        margin-bottom: 15px;
+    }
+
+    .company-logo {
+        object-fit: cover;
+        border: 1px solid #d7efff;
+        background: #ffffff;
+        box-shadow: 0 10px 22px rgba(0, 128, 200, 0.12);
+    }
+
+    .company-icon {
         background: linear-gradient(135deg, #15aaf5, #67d9ff);
         color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 24px;
-        margin-bottom: 15px;
     }
 
     .company-card h3 {
@@ -235,22 +272,81 @@
     .meta {
         margin-top: 10px;
         display: grid;
-        gap: 6px;
+        gap: 7px;
         color: #6b7c93;
         font-size: 13px;
     }
 
-    .select-btn {
+    .meta strong {
+        color: #073763;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        padding: 5px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 950;
+    }
+
+    .status-pill.approved {
+        background: #e8fff4;
+        color: #0f8a4a;
+        border: 1px solid #c3f7dc;
+    }
+
+    .status-pill.done {
+        background: #fff7e8;
+        color: #b86b00;
+        border: 1px solid #ffe2a8;
+    }
+
+    .status-pill.progress {
+        background: #eef8ff;
+        color: #056fae;
+        border: 1px solid #d7efff;
+    }
+
+    .status-pill.pending,
+    .status-pill.no-workspace {
+        background: #f3f4f6;
+        color: #4b5563;
+        border: 1px solid #e5e7eb;
+    }
+
+    .status-pill.rejected {
+        background: #fff0f0;
+        color: #d11f1f;
+        border: 1px solid #ffd5d5;
+    }
+
+    .status-pill.waiting {
+        background: #f5f3ff;
+        color: #6d28d9;
+        border: 1px solid #ddd6fe;
+    }
+
+    .card-actions {
+        display: grid;
+        gap: 10px;
         margin-top: 18px;
+    }
+
+    .select-btn,
+    .workspace-btn {
         min-height: 42px;
         padding: 0 18px;
         border-radius: 999px;
-        background: linear-gradient(135deg, #15aaf5, #67d9ff);
-        color: #fff;
         font-weight: 950;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        text-align: center;
+    }
+
+    .select-btn {
+        background: linear-gradient(135deg, #15aaf5, #67d9ff);
+        color: #fff;
         box-shadow: 0 12px 24px rgba(21,170,245,.25);
     }
 
@@ -259,6 +355,22 @@
         color: #0f8a4a;
         border: 1px solid #c3f7dc;
         box-shadow: none;
+    }
+
+    .workspace-btn {
+        background: #ffffff;
+        color: #0579bd;
+        border: 1px solid #cfeeff;
+    }
+
+    .workspace-btn.light {
+        color: #6b7c93;
+    }
+
+    .workspace-btn.edit {
+        color: #073763;
+        border-color: #d7efff;
+        background: linear-gradient(135deg, #ffffff, #eef8ff);
     }
 
     .empty-box {
@@ -277,17 +389,17 @@
         margin: 8px 0;
     }
 
-    @media (max-width: 1000px) {
-        .company-grid {
+    @media (max-width: 1120px) {
+        .company-toolbar {
             grid-template-columns: 1fr 1fr;
         }
 
-        .company-toolbar {
-            grid-template-columns: 1fr;
+        .company-grid {
+            grid-template-columns: 1fr 1fr;
         }
     }
 
-    @media (max-width: 620px) {
+    @media (max-width: 700px) {
         .company-hero,
         .selected-company-box {
             flex-direction: column;
@@ -296,6 +408,7 @@
             border-radius: 24px;
         }
 
+        .company-toolbar,
         .company-grid {
             grid-template-columns: 1fr;
         }
@@ -304,8 +417,10 @@
             flex-direction: column;
         }
 
+        .hero-actions,
         .hero-btn,
         .select-btn,
+        .workspace-btn,
         .search-btn,
         .clear-btn,
         .change-btn {
@@ -320,13 +435,16 @@
         <div>
             <h1>🏢 Select Company</h1>
             <p>
-                Admin can see all companies. Staff can only see assigned companies.
-                After selecting a company, the accounting navbar and work menu will appear.
+                Admin can see all companies, staff assignment, logo, and monthly work status.
+                Staff can only see assigned companies.
             </p>
         </div>
 
         {% if request.user.is_superuser %}
-            <a href="/companies/create/" class="hero-btn">➕ Create Company</a>
+            <div class="hero-actions">
+                <a href="{% url 'workspace_list' %}" class="hero-btn light">📅 Monthly Workspaces</a>
+                <a href="{% url 'company_create' %}" class="hero-btn">➕ Create Company</a>
+            </div>
         {% endif %}
     </section>
 
@@ -337,13 +455,13 @@
                     type="text"
                     name="q"
                     value="{{ query }}"
-                    placeholder="Search company name, code, phone, or email..."
+                    placeholder="Search company name, code, phone, VATIN, or email..."
                 >
 
                 <button type="submit" class="search-btn">🔍 Search</button>
 
                 {% if query %}
-                    <a href="/companies/" class="clear-btn">Clear</a>
+                    <a href="{% url 'company_list' %}" class="clear-btn">Clear</a>
                 {% endif %}
             </form>
         </div>
@@ -351,6 +469,16 @@
         <div class="summary-card">
             <span>Total Companies</span>
             <strong>{{ total_companies }}</strong>
+        </div>
+
+        <div class="summary-card pending">
+            <span>This Month Pending</span>
+            <strong>{{ pending_count|default:0 }}</strong>
+        </div>
+
+        <div class="summary-card approved">
+            <span>This Month Approved</span>
+            <strong>{{ approved_count|default:0 }}</strong>
         </div>
     </div>
 
@@ -361,7 +489,7 @@
                 <span>You are working inside this company workspace.</span>
             </div>
 
-            <a href="/companies/clear/" class="change-btn">Change / Clear Selection</a>
+            <a href="{% url 'clear_selected_company' %}" class="change-btn">Change / Clear Selection</a>
         </div>
     {% endif %}
 
@@ -369,11 +497,16 @@
         <div class="company-grid">
             {% for company in companies %}
                 <div class="company-card {% if selected_company and selected_company.id == company.id %}selected{% endif %}">
+
                     {% if selected_company and selected_company.id == company.id %}
                         <div class="selected-badge">Selected</div>
                     {% endif %}
 
-                    <div class="company-icon">🏢</div>
+                    {% if company.logo %}
+                        <img src="{{ company.logo.url }}" class="company-logo" alt="{{ company.name }}">
+                    {% else %}
+                        <div class="company-icon">🏢</div>
+                    {% endif %}
 
                     <h3>{{ company.name }}</h3>
 
@@ -396,17 +529,79 @@
 
                         <div>
                             <strong>Status:</strong>
-                            {% if company.is_active %}Active{% else %}Inactive{% endif %}
+                            {% if company.is_active %}
+                                Active
+                            {% else %}
+                                Inactive
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <strong>Assigned Staff:</strong>
+                            {{ company.assigned_staff_count|default:0 }}
+                        </div>
+
+                        <div>
+                            <strong>Client Users:</strong>
+                            {{ company.client_user_count|default:0 }}
+                        </div>
+
+                        <div>
+                            <strong>This Month:</strong>
+
+                            {% if company.current_workspace_status == "approved" %}
+                                <span class="status-pill approved">Approved</span>
+                            {% elif company.current_workspace_status == "completed" %}
+                                <span class="status-pill done">Done / Waiting Approval</span>
+                            {% elif company.current_workspace_status == "in_progress" %}
+                                <span class="status-pill progress">In Progress</span>
+                            {% elif company.current_workspace_status == "rejected" %}
+                                <span class="status-pill rejected">Rejected</span>
+                            {% elif company.current_workspace_status == "waiting_customer" %}
+                                <span class="status-pill waiting">Waiting Customer</span>
+                            {% elif company.current_workspace_status == "pending" %}
+                                <span class="status-pill pending">Pending</span>
+                            {% else %}
+                                <span class="status-pill no-workspace">No Workspace</span>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <strong>Workspace Staff:</strong>
+                            {{ company.current_workspace_staff_names|default:"-" }}
                         </div>
                     </div>
 
-                    {% if selected_company and selected_company.id == company.id %}
-                        <a href="/" class="select-btn selected">✅ Continue Work</a>
-                    {% else %}
-                        <a href="{% url 'select_company' company.id %}" class="select-btn">
-                            Select Company
-                        </a>
-                    {% endif %}
+                    <div class="card-actions">
+                        {% if company.current_workspace %}
+                            <a href="{% url 'workspace_detail' company.current_workspace.pk %}" class="workspace-btn">
+                                📅 View Monthly Work
+                            </a>
+                        {% else %}
+                            {% if request.user.is_superuser %}
+                                <a href="{% url 'workspace_create' %}" class="workspace-btn light">
+                                    ➕ Create Monthly Work
+                                </a>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if request.user.is_superuser %}
+                            <a href="{% url 'company_edit' company.id %}" class="workspace-btn edit">
+                                ✏️ Edit Company
+                            </a>
+                        {% endif %}
+
+                        {% if selected_company and selected_company.id == company.id %}
+                            <a href="{% url 'dashboard_home' %}" class="select-btn selected">
+                                ✅ Continue Work
+                            </a>
+                        {% else %}
+                            <a href="{% url 'select_company' company.id %}" class="select-btn">
+                                Select Company
+                            </a>
+                        {% endif %}
+                    </div>
+
                 </div>
             {% endfor %}
         </div>
@@ -414,16 +609,17 @@
         <div class="empty-box">
             <div style="font-size:50px;">🏢</div>
             <h3>No company found</h3>
+
             {% if query %}
                 <p>No result for: <strong>{{ query }}</strong></p>
                 <br>
-                <a href="/companies/" class="select-btn">Show All Companies</a>
+                <a href="{% url 'company_list' %}" class="select-btn">Show All Companies</a>
             {% else %}
                 <p>Please create a company or assign staff to a company.</p>
 
                 {% if request.user.is_superuser %}
                     <br>
-                    <a href="/companies/create/" class="select-btn">Create Company</a>
+                    <a href="{% url 'company_create' %}" class="select-btn">Create Company</a>
                 {% endif %}
             {% endif %}
         </div>
