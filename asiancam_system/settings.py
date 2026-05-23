@@ -18,6 +18,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
+    "5.223.90.183",
 ]
 
 
@@ -33,19 +34,19 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    # AsianCam apps
     "dashboard",
     "core.apps.CoreConfig",
     "clients",
     "workspaces",
     "reports",
 
+    # Accounting apps
     "accounting",
     "vendors",
     "stock",
     "customers",
     "accounting_ops",
-    
-
 ]
 
 
@@ -145,10 +146,11 @@ USE_TZ = True
 # =========================
 
 STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
