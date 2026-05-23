@@ -1,47 +1,310 @@
 {% extends "accounting/reports/report_base.html" %}
 
 {% block report_summary %}
-<section class="kpi-grid">
-    <div class="kpi-card"><span>Rows Shown</span><strong>{{ ap_aging_rows|length }}</strong></div>
-    <div class="kpi-card"><span>As Of</span><strong>{{ date_to }}</strong></div>
-    <div class="kpi-card"><span>Source</span><strong>Vendor Transactions</strong></div>
-    <div class="kpi-card"><span>Click Row</span><strong>Vendor Detail</strong></div>
+<section class="kpi-grid no-print">
+    <div class="kpi-card">
+        <span>Rows Shown</span>
+        <strong>{{ ap_aging_rows|length }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>As Of</span>
+        <strong>{{ date_to }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Source</span>
+        <strong>Vendor Transactions</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Click Row</span>
+        <strong>Vendor Detail</strong>
+    </div>
 </section>
 {% endblock %}
 
+
 {% block report_content %}
-<div class="table-wrap">
-    <table class="report-table">
+
+<style>
+    .aging-detail-paper {
+        max-width: 1260px;
+        margin: 0 auto 40px auto;
+        background: #ffffff;
+        border: 1px solid #d5dbe5;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+        overflow-x: auto;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #000;
+    }
+
+    .aging-detail-header {
+        min-width: 1080px;
+        text-align: center;
+        padding: 22px 20px 12px 20px;
+        background: #ffffff;
+    }
+
+    .aging-detail-header h2 {
+        margin: 0;
+        color: #00008b;
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .aging-detail-header h3 {
+        margin: 4px 0 0 0;
+        color: #00008b;
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .aging-detail-header p {
+        margin: 4px 0 0 0;
+        color: #00008b;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .aging-click-note {
+        margin-top: 8px;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .aging-detail-table {
+        width: 100%;
+        min-width: 1080px;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+    .aging-detail-table th,
+    .aging-detail-table td {
+        padding: 5px 7px;
+        border-bottom: 1px solid #e5e7eb;
+        vertical-align: middle;
+    }
+
+    .aging-detail-table thead th {
+        background: #f5f5f5;
+        font-weight: 800;
+        color: #000;
+        border-top: 1px dotted #c9c9c9;
+        border-bottom: 1px solid #b5b5b5;
+        white-space: nowrap;
+    }
+
+    .aging-detail-table thead th.money {
+        text-align: right;
+    }
+
+    .aging-group-row td {
+        background: #d9d9d9;
+        font-weight: 800;
+        color: #000;
+        border-bottom: 1px solid #c7c7c7;
+    }
+
+    .aging-row {
+        cursor: pointer;
+    }
+
+    .aging-row:hover td {
+        background: #eef6ff;
+    }
+
+    .aging-row:active td {
+        background: #dbeafe;
+    }
+
+    .aging-name {
+        min-width: 220px;
+        max-width: 260px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-left: 28px !important;
+    }
+
+    .aging-type {
+        width: 95px;
+        white-space: nowrap;
+    }
+
+    .aging-date {
+        width: 95px;
+        white-space: nowrap;
+    }
+
+    .aging-number {
+        width: 80px;
+        white-space: nowrap;
+    }
+
+    .aging-terms {
+        width: 80px;
+        white-space: nowrap;
+    }
+
+    .aging-due {
+        width: 95px;
+        white-space: nowrap;
+    }
+
+    .aging-days {
+        width: 70px;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .money {
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .aging-final-total td {
+        background: #eef3f6;
+        font-weight: 900;
+        border-top: 2px solid #000;
+    }
+
+    .aging-final-total .money {
+        border-top: 1px solid #000;
+        border-bottom: 4px double #000;
+    }
+
+    .aging-empty {
+        text-align: center;
+        padding: 28px;
+        color: #64748b;
+        font-style: italic;
+    }
+
+    @media print {
+        .no-print,
+        .kpi-grid,
+        .aging-click-note {
+            display: none !important;
+        }
+
+        .aging-detail-paper {
+            max-width: 100%;
+            margin: 0;
+            border: none;
+            box-shadow: none;
+            overflow: visible;
+        }
+
+        .aging-detail-header,
+        .aging-detail-table {
+            min-width: 100%;
+        }
+
+        .aging-detail-table {
+            font-size: 9px;
+        }
+
+        .aging-detail-table th,
+        .aging-detail-table td {
+            padding: 3px 4px;
+        }
+
+        .aging-row:hover td,
+        .aging-row:active td {
+            background: transparent;
+        }
+    }
+</style>
+
+
+<div class="aging-detail-paper">
+
+    <div class="aging-detail-header">
+        <h2>
+            {% if company %}
+                {{ company.name }}
+            {% else %}
+                AsianCam Accounting Portal
+            {% endif %}
+        </h2>
+        <h3>A/P Aging Detail</h3>
+        <p>As of {{ date_to }}</p>
+        <div class="aging-click-note">Click any vendor transaction row to view detail</div>
+    </div>
+
+    <table class="aging-detail-table">
         <thead>
             <tr>
-                <th>Vendor</th>
-                <th>Date</th>
-                <th>Number</th>
-                <th>Type</th>
+                <th class="aging-name">Name</th>
+                <th class="aging-type">Type</th>
+                <th class="aging-date">Date</th>
+                <th class="aging-number">Num</th>
+                <th class="aging-terms">Terms</th>
+                <th class="aging-due">Due Date</th>
+                <th class="aging-days">Aging</th>
                 <th class="money">Current</th>
-                <th class="money">1-30</th>
-                <th class="money">31-60</th>
-                <th class="money">61-90</th>
-                <th class="money">Over 90</th>
+                <th class="money">1 - 30</th>
+                <th class="money">31 - 60</th>
+                <th class="money">61 - 90</th>
+                <th class="money">&gt; 90</th>
+                <th class="money">Open Balance</th>
             </tr>
         </thead>
+
         <tbody>
+            <tr class="aging-group-row">
+                <td colspan="13">A/P Aging Transactions</td>
+            </tr>
+
             {% for row in ap_aging_rows %}
-                <tr class="click-row" onclick="window.location='{% url 'vendor_transaction_detail' row.id %}'">
-                    <td>{{ row.vendor }}</td>
-                    <td>{{ row.date }}</td>
-                    <td>{{ row.number|default:"-" }}</td>
-                    <td><span class="small-pill">{{ row.type }}</span></td>
-                    <td class="money">${{ row.current }}</td>
-                    <td class="money">${{ row.days_1_30 }}</td>
-                    <td class="money">${{ row.days_31_60 }}</td>
-                    <td class="money">${{ row.days_61_90 }}</td>
-                    <td class="money">${{ row.over_90 }}</td>
+                <tr class="aging-row"
+                    title="Click to view vendor transaction detail"
+                    onclick="window.location.href='{% url 'vendor_transaction_detail' row.id %}'">
+
+                    <td class="aging-name">{{ row.vendor }}</td>
+                    <td class="aging-type">{{ row.type|default:"Bill" }}</td>
+                    <td class="aging-date">{{ row.date }}</td>
+                    <td class="aging-number">{{ row.number|default:"-" }}</td>
+                    <td class="aging-terms">{{ row.terms|default:"-" }}</td>
+                    <td class="aging-due">{{ row.due_date|default:"-" }}</td>
+                    <td class="aging-days">{{ row.aging|default:"" }}</td>
+
+                    <td class="money">
+                        {% if row.current == 0 or row.current == "0.00" or row.current == "0" %}-{% else %}${{ row.current }}{% endif %}
+                    </td>
+                    <td class="money">
+                        {% if row.days_1_30 == 0 or row.days_1_30 == "0.00" or row.days_1_30 == "0" %}-{% else %}${{ row.days_1_30 }}{% endif %}
+                    </td>
+                    <td class="money">
+                        {% if row.days_31_60 == 0 or row.days_31_60 == "0.00" or row.days_31_60 == "0" %}-{% else %}${{ row.days_31_60 }}{% endif %}
+                    </td>
+                    <td class="money">
+                        {% if row.days_61_90 == 0 or row.days_61_90 == "0.00" or row.days_61_90 == "0" %}-{% else %}${{ row.days_61_90 }}{% endif %}
+                    </td>
+                    <td class="money">
+                        {% if row.over_90 == 0 or row.over_90 == "0.00" or row.over_90 == "0" %}-{% else %}${{ row.over_90 }}{% endif %}
+                    </td>
+                    <td class="money">
+                        <strong>
+                            {% if row.total %}
+                                ${{ row.total }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </strong>
+                    </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="9"><div class="empty-state">No AP aging data.</div></td></tr>
+                <tr>
+                    <td colspan="13">
+                        <div class="aging-empty">No AP aging data.</div>
+                    </td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
+
 </div>
+
 {% endblock %}

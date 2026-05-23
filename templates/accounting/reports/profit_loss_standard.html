@@ -1,48 +1,304 @@
 {% extends "accounting/reports/report_base.html" %}
 
 {% block report_summary %}
-<section class="kpi-grid">
-    <div class="kpi-card"><span>Total Revenue</span><strong>${{ total_revenue }}</strong></div>
-    <div class="kpi-card"><span>Gross Profit</span><strong>${{ gross_profit }}</strong></div>
-    <div class="kpi-card"><span>Total Expense</span><strong>${{ total_expense }}</strong></div>
-    <div class="kpi-card"><span>Net Profit / Loss</span><strong>${{ net_profit }}</strong></div>
+<section class="kpi-grid no-print">
+    <div class="kpi-card">
+        <span>Total Revenue</span>
+        <strong>${{ total_revenue }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Gross Profit</span>
+        <strong>${{ gross_profit }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Total Expense</span>
+        <strong>${{ total_expense }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Net Profit / Loss</span>
+        <strong>${{ net_profit }}</strong>
+    </div>
 </section>
 {% endblock %}
 
+
 {% block report_content %}
-<div class="table-wrap">
-    <table class="report-table">
-        <thead>
-            <tr>
-                <th>Code</th>
-                <th>Account</th>
-                <th>Type</th>
-                <th>Section</th>
-                <th class="money">Balance</th>
-            </tr>
-        </thead>
+
+<style>
+    .pl-paper {
+        max-width: 980px;
+        margin: 0 auto 40px auto;
+        background: #ffffff;
+        border: 1px solid #d8dee6;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+        padding: 44px 58px;
+        color: #111827;
+        font-family: "Times New Roman", Georgia, serif;
+    }
+
+    .pl-header {
+        text-align: center;
+        margin-bottom: 38px;
+    }
+
+    .pl-header .company-name {
+        font-size: 20px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+
+    .pl-header .report-name {
+        font-size: 22px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+
+    .pl-header .period {
+        font-size: 14px;
+        color: #374151;
+    }
+
+    .pl-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 16px;
+    }
+
+    .pl-table td {
+        padding: 5px 0;
+        vertical-align: middle;
+    }
+
+    .pl-label {
+        width: 65%;
+    }
+
+    .pl-code {
+        width: 80px;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .pl-amount {
+        width: 170px;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .pl-section-title td {
+        padding-top: 18px;
+        padding-bottom: 7px;
+        font-weight: 700;
+        text-transform: uppercase;
+        border-bottom: 2px solid #111827;
+    }
+
+    .pl-row {
+        cursor: pointer;
+    }
+
+    .pl-row:hover td {
+        background: #f8fafc;
+    }
+
+    .pl-indent {
+        padding-left: 42px !important;
+    }
+
+    .pl-total td {
+        padding-top: 7px;
+        padding-bottom: 7px;
+        font-weight: 700;
+    }
+
+    .pl-total .pl-amount {
+        border-top: 1px solid #111827;
+    }
+
+    .pl-subtotal td {
+        padding-top: 7px;
+        padding-bottom: 7px;
+        font-weight: 700;
+    }
+
+    .pl-subtotal .pl-amount {
+        border-top: 2px solid #111827;
+    }
+
+    .pl-grand-total td {
+        padding-top: 8px;
+        padding-bottom: 8px;
+        font-weight: 700;
+    }
+
+    .pl-grand-total .pl-amount {
+        border-top: 2px solid #111827;
+        border-bottom: 4px double #111827;
+    }
+
+    .pl-empty {
+        color: #64748b;
+        font-style: italic;
+    }
+
+    .pl-note {
+        margin-top: 30px;
+        padding-top: 12px;
+        border-top: 1px solid #d1d5db;
+        font-size: 13px;
+        color: #6b7280;
+        font-family: Arial, sans-serif;
+    }
+
+    @media print {
+        .no-print,
+        .kpi-grid {
+            display: none !important;
+        }
+
+        .pl-paper {
+            max-width: 100%;
+            margin: 0;
+            padding: 20px 28px;
+            border: none;
+            box-shadow: none;
+        }
+
+        .pl-row:hover td {
+            background: transparent;
+        }
+    }
+</style>
+
+
+<div class="pl-paper">
+
+    <div class="pl-header">
+        <div class="company-name">
+            {% if company %}{{ company.name }}{% else %}AsianCam Accounting Portal{% endif %}
+        </div>
+        <div class="report-name">Profit and Loss Statement</div>
+        <div class="period">
+            For the period ended {{ date_to }}
+        </div>
+        <div class="period">
+            Period: {{ date_from }} to {{ date_to }}
+        </div>
+    </div>
+
+
+    <table class="pl-table">
         <tbody>
+
+            <!-- REVENUE -->
+            <tr class="pl-section-title">
+                <td colspan="3">Revenue</td>
+            </tr>
+
             {% for row in profit_loss_rows %}
-                <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
-                    <td><span class="code-pill">{{ row.code }}</span></td>
-                    <td>{{ row.name }}</td>
-                    <td><span class="type-pill">{{ row.account_type }}</span></td>
-                    <td>{{ row.report_section|default:"-" }}</td>
-                    <td class="money">${{ row.balance }}</td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="5"><div class="empty-state">No Profit/Loss data.</div></td></tr>
+                {% if row.account_type == "revenue" or row.account_type == "income" %}
+                    <tr class="pl-row"
+                        onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                        <td class="pl-code">{{ row.code }}</td>
+                        <td class="pl-label pl-indent">{{ row.name }}</td>
+                        <td class="pl-amount">${{ row.balance }}</td>
+                    </tr>
+                {% endif %}
             {% endfor %}
+
+            <tr class="pl-total">
+                <td></td>
+                <td>Total Revenue</td>
+                <td class="pl-amount">${{ total_revenue }}</td>
+            </tr>
+
+
+            <!-- COST OF SALES -->
+            <tr class="pl-section-title">
+                <td colspan="3">Cost of Sales</td>
+            </tr>
+
+            {% for row in profit_loss_rows %}
+                {% if row.account_type == "cogs" or row.account_type == "cost_of_sales" %}
+                    <tr class="pl-row"
+                        onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                        <td class="pl-code">{{ row.code }}</td>
+                        <td class="pl-label pl-indent">{{ row.name }}</td>
+                        <td class="pl-amount">${{ row.balance }}</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+
+            <tr class="pl-total">
+                <td></td>
+                <td>Total Cost of Sales</td>
+                <td class="pl-amount">${{ total_cogs }}</td>
+            </tr>
+
+            <tr class="pl-subtotal">
+                <td></td>
+                <td>Gross Profit</td>
+                <td class="pl-amount">${{ gross_profit }}</td>
+            </tr>
+
+
+            <!-- OPERATING EXPENSES -->
+            <tr class="pl-section-title">
+                <td colspan="3">Operating Expenses</td>
+            </tr>
+
+            {% for row in profit_loss_rows %}
+                {% if row.account_type == "expense" %}
+                    <tr class="pl-row"
+                        onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                        <td class="pl-code">{{ row.code }}</td>
+                        <td class="pl-label pl-indent">{{ row.name }}</td>
+                        <td class="pl-amount">${{ row.balance }}</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+
+            <tr class="pl-total">
+                <td></td>
+                <td>Total Operating Expenses</td>
+                <td class="pl-amount">${{ total_expense }}</td>
+            </tr>
+
+
+            <!-- OTHER INCOME / EXPENSE -->
+            <tr class="pl-section-title">
+                <td colspan="3">Other Income / Expense</td>
+            </tr>
+
+            <tr>
+                <td></td>
+                <td class="pl-label pl-indent">Other Income</td>
+                <td class="pl-amount">${{ total_other_income }}</td>
+            </tr>
+
+            <tr>
+                <td></td>
+                <td class="pl-label pl-indent">Other Expense</td>
+                <td class="pl-amount">${{ total_other_expense }}</td>
+            </tr>
+
+
+            <!-- NET PROFIT -->
+            <tr class="pl-grand-total">
+                <td></td>
+                <td>Net Profit / Loss</td>
+                <td class="pl-amount">${{ net_profit }}</td>
+            </tr>
+
         </tbody>
-        <tfoot>
-            <tr class="tfoot-total"><th colspan="4">Total Revenue</th><th class="money">${{ total_revenue }}</th></tr>
-            <tr class="tfoot-total"><th colspan="4">Total COGS</th><th class="money">${{ total_cogs }}</th></tr>
-            <tr class="tfoot-total"><th colspan="4">Gross Profit</th><th class="money">${{ gross_profit }}</th></tr>
-            <tr class="tfoot-total"><th colspan="4">Total Expense</th><th class="money">${{ total_expense }}</th></tr>
-            <tr class="tfoot-total"><th colspan="4">Other Income</th><th class="money">${{ total_other_income }}</th></tr>
-            <tr class="tfoot-total"><th colspan="4">Other Expense</th><th class="money">${{ total_other_expense }}</th></tr>
-            <tr class="tfoot-total"><th colspan="4">Net Profit / Loss</th><th class="money">${{ net_profit }}</th></tr>
-        </tfoot>
     </table>
+
+    <div class="pl-note">
+        This statement is generated from accounting ledger balances for the selected reporting period.
+    </div>
+
 </div>
+
 {% endblock %}

@@ -1,45 +1,286 @@
 {% extends "accounting/reports/report_base.html" %}
 
 {% block report_summary %}
-<section class="kpi-grid">
-    <div class="kpi-card"><span>Total Assets</span><strong>${{ total_assets }}</strong></div>
-    <div class="kpi-card"><span>Total Liabilities</span><strong>${{ total_liabilities }}</strong></div>
-    <div class="kpi-card"><span>Total Equity</span><strong>${{ total_equity }}</strong></div>
-    <div class="kpi-card"><span>Balance Check</span><strong>${{ balance_check }}</strong></div>
+<section class="kpi-grid no-print">
+    <div class="kpi-card">
+        <span>Total Assets</span>
+        <strong>${{ total_assets }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Total Liabilities</span>
+        <strong>${{ total_liabilities }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Total Equity</span>
+        <strong>${{ total_equity }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Balance Check</span>
+        <strong>${{ balance_check }}</strong>
+    </div>
 </section>
 {% endblock %}
 
+
 {% block report_content %}
-<div class="table-wrap">
-    <table class="report-table">
-        <thead>
-            <tr>
-                <th>Code</th>
-                <th>Account</th>
-                <th>Type</th>
-                <th>Section</th>
-                <th class="money">Balance</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in balance_sheet_rows %}
-                <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
-                    <td><span class="code-pill">{{ row.code }}</span></td>
-                    <td>{{ row.name }}</td>
-                    <td><span class="type-pill">{{ row.account_type }}</span></td>
-                    <td>{{ row.report_section|default:"-" }}</td>
-                    <td class="money">${{ row.balance }}</td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="5"><div class="empty-state">No Balance Sheet data.</div></td></tr>
-            {% endfor %}
-        </tbody>
-        <tfoot>
-            <tr class="tfoot-total"><th colspan="4">Total Assets</th><th class="money">${{ total_assets }}</th></tr>
-            <tr class="tfoot-total"><th colspan="4">Total Liabilities</th><th class="money">${{ total_liabilities }}</th></tr>
-            <tr class="tfoot-total"><th colspan="4">Total Equity</th><th class="money">${{ total_equity }}</th></tr>
-            <tr class="tfoot-total"><th colspan="4">Balance Check</th><th class="money">${{ balance_check }}</th></tr>
-        </tfoot>
-    </table>
+
+<style>
+    .balance-sheet-paper {
+        max-width: 980px;
+        margin: 0 auto 40px auto;
+        background: #ffffff;
+        border: 1px solid #d8dee6;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+        padding: 44px 58px;
+        color: #111827;
+        font-family: "Times New Roman", Georgia, serif;
+    }
+
+    .bs-header {
+        text-align: center;
+        margin-bottom: 34px;
+    }
+
+    .bs-header .company-name {
+        font-size: 20px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .bs-header .report-name {
+        font-size: 22px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .bs-header .period {
+        font-size: 14px;
+        color: #374151;
+    }
+
+    .bs-section-title {
+        font-size: 16px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-top: 24px;
+        margin-bottom: 8px;
+        padding-bottom: 5px;
+        border-bottom: 2px solid #111827;
+    }
+
+    .bs-subtitle {
+        font-size: 15px;
+        font-weight: 700;
+        margin-top: 14px;
+        margin-bottom: 6px;
+    }
+
+    .bs-row,
+    .bs-total,
+    .bs-grand-total {
+        display: grid;
+        grid-template-columns: 90px 1fr 170px;
+        gap: 14px;
+        align-items: center;
+        font-size: 15px;
+    }
+
+    .bs-row {
+        padding: 5px 0;
+        cursor: pointer;
+    }
+
+    .bs-row:hover {
+        background: #f8fafc;
+    }
+
+    .bs-code {
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .bs-account {
+        padding-left: 18px;
+    }
+
+    .bs-amount {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .bs-total {
+        padding: 7px 0;
+        margin-top: 6px;
+        font-weight: 700;
+        border-top: 1px solid #111827;
+    }
+
+    .bs-grand-total {
+        padding: 8px 0;
+        margin-top: 8px;
+        font-weight: 700;
+        border-top: 2px solid #111827;
+        border-bottom: 4px double #111827;
+    }
+
+    .bs-empty {
+        display: grid;
+        grid-template-columns: 90px 1fr 170px;
+        gap: 14px;
+        padding: 5px 0;
+        font-size: 15px;
+        color: #64748b;
+    }
+
+    .bs-check {
+        margin-top: 26px;
+    }
+
+    .bs-note {
+        margin-top: 28px;
+        padding-top: 12px;
+        border-top: 1px solid #d1d5db;
+        font-size: 13px;
+        color: #6b7280;
+        font-family: Arial, sans-serif;
+    }
+
+    @media print {
+        .no-print,
+        .kpi-grid {
+            display: none !important;
+        }
+
+        .balance-sheet-paper {
+            max-width: 100%;
+            margin: 0;
+            padding: 20px 28px;
+            border: none;
+            box-shadow: none;
+        }
+
+        .bs-row:hover {
+            background: transparent;
+        }
+    }
+</style>
+
+
+<div class="balance-sheet-paper">
+
+    <div class="bs-header">
+        <div class="company-name">
+            {% if company %}{{ company.name }}{% else %}AsianCam Accounting Portal{% endif %}
+        </div>
+        <div class="report-name">Balance Sheet</div>
+        <div class="period">
+            As at {{ date_to }}
+        </div>
+        <div class="period">
+            Period: {{ date_from }} to {{ date_to }}
+        </div>
+    </div>
+
+
+    <!-- ASSETS -->
+    <div class="bs-section-title">Assets</div>
+
+    <div class="bs-subtitle">Current Assets</div>
+
+    {% for row in balance_sheet_rows %}
+        {% if row.account_type == "asset" %}
+            <div class="bs-row"
+                 onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                <div class="bs-code">{{ row.code }}</div>
+                <div class="bs-account">{{ row.name }}</div>
+                <div class="bs-amount">${{ row.balance }}</div>
+            </div>
+        {% endif %}
+    {% empty %}
+        <div class="bs-empty">
+            <div></div>
+            <div>No assets</div>
+            <div class="bs-amount">$0.00</div>
+        </div>
+    {% endfor %}
+
+    <div class="bs-total">
+        <div></div>
+        <div>Total Current Assets</div>
+        <div class="bs-amount">${{ total_assets }}</div>
+    </div>
+
+    <div class="bs-grand-total">
+        <div></div>
+        <div>Total Assets</div>
+        <div class="bs-amount">${{ total_assets }}</div>
+    </div>
+
+
+    <!-- LIABILITIES AND EQUITY -->
+    <div class="bs-section-title">Liabilities and Equity</div>
+
+    <div class="bs-subtitle">Liabilities</div>
+
+    {% for row in balance_sheet_rows %}
+        {% if row.account_type == "liability" %}
+            <div class="bs-row"
+                 onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                <div class="bs-code">{{ row.code }}</div>
+                <div class="bs-account">{{ row.name }}</div>
+                <div class="bs-amount">${{ row.balance }}</div>
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    <div class="bs-total">
+        <div></div>
+        <div>Total Liabilities</div>
+        <div class="bs-amount">${{ total_liabilities }}</div>
+    </div>
+
+
+    <div class="bs-subtitle">Equity</div>
+
+    {% for row in balance_sheet_rows %}
+        {% if row.account_type == "equity" %}
+            <div class="bs-row"
+                 onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+                <div class="bs-code">{{ row.code }}</div>
+                <div class="bs-account">{{ row.name }}</div>
+                <div class="bs-amount">${{ row.balance }}</div>
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    <div class="bs-total">
+        <div></div>
+        <div>Total Equity</div>
+        <div class="bs-amount">${{ total_equity }}</div>
+    </div>
+
+    <div class="bs-grand-total">
+        <div></div>
+        <div>Total Liabilities and Equity</div>
+        <div class="bs-amount">${{ total_assets }}</div>
+    </div>
+
+
+    <!-- BALANCE CHECK -->
+    <div class="bs-check">
+        <div class="bs-total">
+            <div></div>
+            <div>Balance Check</div>
+            <div class="bs-amount">${{ balance_check }}</div>
+        </div>
+    </div>
+
+    <div class="bs-note">
+        This report is generated from accounting ledger balances for the selected reporting period.
+    </div>
+
 </div>
+
 {% endblock %}

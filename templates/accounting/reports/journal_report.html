@@ -1,43 +1,293 @@
 {% extends "accounting/reports/report_base.html" %}
 
 {% block report_summary %}
-<section class="kpi-grid">
-    <div class="kpi-card"><span>Rows Shown</span><strong>{{ journal_report_rows|length }}</strong></div>
-    <div class="kpi-card"><span>Date From</span><strong>{{ date_from }}</strong></div>
-    <div class="kpi-card"><span>Date To</span><strong>{{ date_to }}</strong></div>
-    <div class="kpi-card"><span>Click Row</span><strong>Journal Detail</strong></div>
+<section class="kpi-grid no-print">
+    <div class="kpi-card">
+        <span>Rows Shown</span>
+        <strong>{{ journal_report_rows|length }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Date From</span>
+        <strong>{{ date_from }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Date To</span>
+        <strong>{{ date_to }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Click Row</span>
+        <strong>Journal Detail</strong>
+    </div>
 </section>
 {% endblock %}
 
+
 {% block report_content %}
-<div class="table-wrap">
-    <table class="report-table">
+
+<style>
+    .jr-paper {
+        max-width: 1180px;
+        margin: 0 auto 40px auto;
+        background: #ffffff;
+        border: 1px solid #d8dee6;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+        padding: 38px 46px;
+        color: #111827;
+        font-family: Arial, Helvetica, sans-serif;
+        overflow-x: auto;
+    }
+
+    .jr-header {
+        text-align: center;
+        margin-bottom: 28px;
+    }
+
+    .jr-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .jr-header h3 {
+        margin: 5px 0 0 0;
+        font-size: 18px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .jr-header p {
+        margin: 5px 0 0 0;
+        font-size: 13px;
+        color: #374151;
+    }
+
+    .jr-click-note {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .jr-table {
+        width: 100%;
+        min-width: 1020px;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+    .jr-table th,
+    .jr-table td {
+        padding: 6px 7px;
+        vertical-align: middle;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .jr-table thead th {
+        background: #f3f4f6;
+        color: #111827;
+        font-weight: 800;
+        border-top: 2px solid #111827;
+        border-bottom: 2px solid #111827;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .jr-table thead th.jr-money {
+        text-align: right;
+    }
+
+    .jr-row {
+        cursor: pointer;
+    }
+
+    .jr-row:hover td {
+        background: #eef6ff;
+    }
+
+    .jr-row:active td {
+        background: #dbeafe;
+    }
+
+    .jr-date {
+        width: 95px;
+        white-space: nowrap;
+    }
+
+    .jr-no {
+        width: 115px;
+        white-space: nowrap;
+        font-weight: 700;
+    }
+
+    .jr-ref {
+        width: 120px;
+        white-space: nowrap;
+    }
+
+    .jr-desc {
+        min-width: 230px;
+    }
+
+    .jr-account {
+        min-width: 250px;
+        white-space: nowrap;
+    }
+
+    .jr-money {
+        width: 120px;
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .jr-code {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: #e8eef7;
+        color: #0f3a68;
+        font-size: 11px;
+        font-weight: 800;
+        margin-right: 5px;
+    }
+
+    .jr-empty {
+        text-align: center;
+        padding: 28px;
+        color: #64748b;
+        font-style: italic;
+    }
+
+    .jr-footer {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 2px solid #111827;
+        font-size: 11px;
+        color: #64748b;
+    }
+
+    @media print {
+        .no-print,
+        .kpi-grid {
+            display: none !important;
+        }
+
+        .jr-paper {
+            max-width: 100%;
+            margin: 0;
+            padding: 20px 24px;
+            border: none;
+            box-shadow: none;
+            overflow: visible;
+        }
+
+        .jr-table {
+            min-width: 100%;
+            font-size: 9px;
+        }
+
+        .jr-table th,
+        .jr-table td {
+            padding: 4px 5px;
+        }
+
+        .jr-row:hover td,
+        .jr-row:active td {
+            background: transparent;
+        }
+
+        .jr-click-note {
+            display: none;
+        }
+    }
+</style>
+
+
+<div class="jr-paper">
+
+    <div class="jr-header">
+        <h2>
+            {% if company %}
+                {{ company.name }}
+            {% else %}
+                AsianCam Accounting Portal
+            {% endif %}
+        </h2>
+        <h3>Journal Report</h3>
+        <p>From {{ date_from }} To {{ date_to }}</p>
+        <div class="jr-click-note">Click any journal row to view journal detail</div>
+    </div>
+
+    <table class="jr-table">
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Journal No</th>
-                <th>Reference</th>
-                <th>Description</th>
-                <th>Account</th>
-                <th class="money">Debit</th>
-                <th class="money">Credit</th>
+                <th class="jr-date">Date</th>
+                <th class="jr-no">Journal No</th>
+                <th class="jr-ref">Reference</th>
+                <th class="jr-desc">Description</th>
+                <th class="jr-account">Account</th>
+                <th class="jr-money">Debit</th>
+                <th class="jr-money">Credit</th>
             </tr>
         </thead>
+
         <tbody>
             {% for line in journal_report_rows %}
-                <tr class="click-row" onclick="window.location='{% url 'journal_detail' line.journal_entry.id %}'">
-                    <td>{{ line.journal_entry.entry_date }}</td>
-                    <td>{{ line.journal_entry.entry_no }}</td>
-                    <td>{{ line.journal_entry.reference_no|default:"-" }}</td>
-                    <td>{{ line.journal_entry.description|default:"-" }}</td>
-                    <td><span class="code-pill">{{ line.account.code }}</span> {{ line.account.name }}</td>
-                    <td class="money">${{ line.debit }}</td>
-                    <td class="money">${{ line.credit }}</td>
+                <tr class="jr-row"
+                    title="Click to view journal detail"
+                    onclick="window.location.href='{% url 'journal_detail' line.journal_entry.id %}'">
+
+                    <td class="jr-date">
+                        {{ line.journal_entry.entry_date }}
+                    </td>
+
+                    <td class="jr-no">
+                        {{ line.journal_entry.entry_no }}
+                    </td>
+
+                    <td class="jr-ref">
+                        {{ line.journal_entry.reference_no|default:"-" }}
+                    </td>
+
+                    <td class="jr-desc">
+                        {{ line.journal_entry.description|default:"-" }}
+                    </td>
+
+                    <td class="jr-account">
+                        <span class="jr-code">{{ line.account.code }}</span>
+                        {{ line.account.name }}
+                    </td>
+
+                    <td class="jr-money">
+                        {% if line.debit == 0 or line.debit == "0.00" or line.debit == "0" %}
+                            -
+                        {% else %}
+                            ${{ line.debit }}
+                        {% endif %}
+                    </td>
+
+                    <td class="jr-money">
+                        {% if line.credit == 0 or line.credit == "0.00" or line.credit == "0" %}
+                            -
+                        {% else %}
+                            ${{ line.credit }}
+                        {% endif %}
+                    </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="7"><div class="empty-state">No journal data.</div></td></tr>
+                <tr>
+                    <td colspan="7">
+                        <div class="jr-empty">No journal data.</div>
+                    </td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <div class="jr-footer">
+        Journal report generated from journal entry lines for the selected period.
+    </div>
+
 </div>
+
 {% endblock %}

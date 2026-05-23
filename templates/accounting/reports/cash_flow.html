@@ -1,40 +1,239 @@
 {% extends "accounting/reports/report_base.html" %}
 
 {% block report_summary %}
-<section class="kpi-grid">
-    <div class="kpi-card"><span>Cash Change</span><strong>${{ total_cash_change }}</strong></div>
-    <div class="kpi-card"><span>Accounts</span><strong>{{ cash_flow_rows|length }}</strong></div>
-    <div class="kpi-card"><span>Date From</span><strong>{{ date_from }}</strong></div>
-    <div class="kpi-card"><span>Date To</span><strong>{{ date_to }}</strong></div>
+<section class="kpi-grid no-print">
+    <div class="kpi-card">
+        <span>Cash Change</span>
+        <strong>${{ total_cash_change }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Accounts</span>
+        <strong>{{ cash_flow_rows|length }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Date From</span>
+        <strong>{{ date_from }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Date To</span>
+        <strong>{{ date_to }}</strong>
+    </div>
 </section>
 {% endblock %}
 
+
 {% block report_content %}
-<div class="table-wrap">
-    <table class="report-table">
-        <thead>
-            <tr>
-                <th>Code</th>
-                <th>Account</th>
-                <th>Section</th>
-                <th class="money">Cash Movement</th>
-            </tr>
-        </thead>
+
+<style>
+    .cf-paper {
+        max-width: 820px;
+        margin: 0 auto 40px auto;
+        background: #ffffff;
+        border: 1px solid #d8dee6;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+        padding: 42px 58px;
+        color: #111827;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .cf-header {
+        text-align: center;
+        margin-bottom: 34px;
+        color: #064663;
+    }
+
+    .cf-header .company-name {
+        font-size: 17px;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .cf-header .report-name {
+        font-size: 19px;
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .cf-header .period {
+        font-size: 14px;
+        font-weight: 700;
+        font-style: italic;
+    }
+
+    .cf-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+    }
+
+    .cf-table td {
+        padding: 5px 0;
+        vertical-align: middle;
+    }
+
+    .cf-section td {
+        padding-top: 14px;
+        padding-bottom: 5px;
+        font-weight: 800;
+        font-size: 16px;
+    }
+
+    .cf-row {
+        cursor: pointer;
+    }
+
+    .cf-row:hover td {
+        background: #eef6ff;
+    }
+
+    .cf-row:active td {
+        background: #dbeafe;
+    }
+
+    .cf-account {
+        padding-left: 22px !important;
+    }
+
+    .cf-code {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        margin-right: 6px;
+    }
+
+    .cf-section-label {
+        color: #64748b;
+        font-size: 12px;
+        margin-left: 6px;
+    }
+
+    .cf-money {
+        width: 150px;
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .cf-total td {
+        padding-top: 7px;
+        font-weight: 700;
+    }
+
+    .cf-total .cf-money {
+        border-top: 1px solid #111827;
+    }
+
+    .cf-grand-total td {
+        padding-top: 8px;
+        font-weight: 800;
+    }
+
+    .cf-grand-total .cf-money {
+        border-top: 1px solid #111827;
+        border-bottom: 4px double #111827;
+    }
+
+    .cf-empty {
+        text-align: center;
+        padding: 26px;
+        color: #64748b;
+        font-style: italic;
+    }
+
+    .cf-note {
+        margin-top: 24px;
+        padding-top: 12px;
+        border-top: 1px solid #d1d5db;
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    @media print {
+        .no-print,
+        .kpi-grid {
+            display: none !important;
+        }
+
+        .cf-paper {
+            max-width: 100%;
+            margin: 0;
+            padding: 20px 30px;
+            border: none;
+            box-shadow: none;
+        }
+
+        .cf-row:hover td,
+        .cf-row:active td {
+            background: transparent;
+        }
+    }
+</style>
+
+
+<div class="cf-paper">
+
+    <div class="cf-header">
+        <div class="company-name">
+            {% if company %}
+                {{ company.name }}
+            {% else %}
+                AsianCam Accounting Portal
+            {% endif %}
+        </div>
+        <div class="report-name">Statement of Cash Flows</div>
+        <div class="period">For the period ended {{ date_to }}</div>
+        <div class="period">From {{ date_from }} To {{ date_to }}</div>
+    </div>
+
+    <table class="cf-table">
         <tbody>
+
+            <tr class="cf-section">
+                <td>Cash Flow Activities</td>
+                <td class="cf-money"></td>
+            </tr>
+
             {% for row in cash_flow_rows %}
-                <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
-                    <td><span class="code-pill">{{ row.code }}</span></td>
-                    <td>{{ row.name }}</td>
-                    <td>{{ row.section|default:"-" }}</td>
-                    <td class="money">${{ row.amount }}</td>
+                <tr class="cf-row"
+                    title="Click to view ledger detail"
+                    onclick="window.location.href='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+
+                    <td class="cf-account">
+                        <span class="cf-code">{{ row.code }}</span>
+                        {{ row.name }}
+                        {% if row.section %}
+                            <span class="cf-section-label">({{ row.section }})</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="cf-money">
+                        {% if row.amount == 0 or row.amount == "0.00" or row.amount == "0" %}
+                            -
+                        {% else %}
+                            ${{ row.amount }}
+                        {% endif %}
+                    </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="4"><div class="empty-state">No Cash Flow data.</div></td></tr>
+                <tr>
+                    <td colspan="2">
+                        <div class="cf-empty">No Cash Flow data.</div>
+                    </td>
+                </tr>
             {% endfor %}
+
+            <tr class="cf-grand-total">
+                <td>Net Cash Increase / Decrease</td>
+                <td class="cf-money">${{ total_cash_change }}</td>
+            </tr>
+
         </tbody>
-        <tfoot>
-            <tr class="tfoot-total"><th colspan="3">Net Cash Increase / Decrease</th><th class="money">${{ total_cash_change }}</th></tr>
-        </tfoot>
     </table>
+
+    <div class="cf-note">
+        Click any cash flow account row to view the ledger detail for the selected period.
+    </div>
+
 </div>
+
 {% endblock %}

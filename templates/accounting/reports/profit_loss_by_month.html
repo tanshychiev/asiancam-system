@@ -1,50 +1,301 @@
 {% extends "accounting/reports/report_base.html" %}
 
 {% block report_summary %}
-<section class="kpi-grid">
-    <div class="kpi-card"><span>Year</span><strong>{{ report_year }}</strong></div>
-    <div class="kpi-card"><span>Accounts</span><strong>{{ pl_month_rows|length }}</strong></div>
-    <div class="kpi-card"><span>Date From</span><strong>{{ date_from }}</strong></div>
-    <div class="kpi-card"><span>Date To</span><strong>{{ date_to }}</strong></div>
+<section class="kpi-grid no-print">
+    <div class="kpi-card">
+        <span>Year</span>
+        <strong>{{ report_year }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Accounts</span>
+        <strong>{{ pl_month_rows|length }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Date From</span>
+        <strong>{{ date_from }}</strong>
+    </div>
+    <div class="kpi-card">
+        <span>Date To</span>
+        <strong>{{ date_to }}</strong>
+    </div>
 </section>
 {% endblock %}
 
+
 {% block report_content %}
-<div class="table-wrap">
-    <table class="report-table wide">
+
+<style>
+    .modern-pl-wrap {
+        max-width: 1320px;
+        margin: 0 auto 40px auto;
+        background: #ffffff;
+        border: 1px solid #d6dce8;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
+        overflow-x: auto;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .modern-pl-header {
+        min-width: 1180px;
+        background: #062b68;
+        color: #ffffff;
+        padding: 16px 20px 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .modern-pl-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+    }
+
+    .modern-pl-header h3 {
+        margin: 5px 0 0 0;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .modern-pl-header p {
+        margin: 3px 0 0 0;
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+    .modern-pl-right {
+        font-size: 11px;
+        opacity: 0.9;
+        white-space: nowrap;
+        padding-top: 2px;
+        text-align: right;
+    }
+
+    .modern-pl-table {
+        width: 100%;
+        min-width: 1180px;
+        border-collapse: collapse;
+        background: #ffffff;
+        color: #111827;
+        font-size: 12px;
+    }
+
+    .modern-pl-table th,
+    .modern-pl-table td {
+        padding: 5px 6px;
+        vertical-align: middle;
+    }
+
+    .modern-pl-table thead th {
+        background: #062b68;
+        color: #ffffff;
+        font-weight: 800;
+        text-align: right;
+        border-bottom: 2px solid #0b1f45;
+        white-space: nowrap;
+    }
+
+    .modern-pl-table thead th:first-child {
+        text-align: left;
+    }
+
+    .modern-account {
+        min-width: 260px;
+        max-width: 260px;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .modern-money {
+        min-width: 78px;
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .modern-row {
+        cursor: pointer;
+        transition: background 0.12s ease;
+    }
+
+    .modern-row:hover td {
+        background: #eef6ff;
+    }
+
+    .modern-row:active td {
+        background: #dbeafe;
+    }
+
+    .modern-blue {
+        color: #566bff;
+        font-weight: 600;
+    }
+
+    .modern-section td {
+        padding-top: 14px;
+        font-weight: 800;
+        color: #111827;
+        background: #ffffff;
+    }
+
+    .modern-total td {
+        font-weight: 900;
+        border-top: 2px solid #111827;
+        background: #f8fafc;
+    }
+
+    .modern-net td {
+        font-weight: 900;
+        border-top: 2px solid #111827;
+        border-bottom: 2px solid #111827;
+        background: #f8fafc;
+    }
+
+    .modern-empty {
+        text-align: center;
+        padding: 26px;
+        color: #64748b;
+        font-style: italic;
+    }
+
+    .click-hint {
+        color: #9fb8ff;
+        font-size: 11px;
+        margin-top: 4px;
+    }
+
+    @media print {
+        .no-print,
+        .kpi-grid {
+            display: none !important;
+        }
+
+        .modern-pl-wrap {
+            max-width: 100%;
+            margin: 0;
+            border: none;
+            box-shadow: none;
+            overflow: visible;
+        }
+
+        .modern-pl-header,
+        .modern-pl-table {
+            min-width: 100%;
+        }
+
+        .modern-pl-table {
+            font-size: 8px;
+        }
+
+        .modern-pl-table th,
+        .modern-pl-table td {
+            padding: 3px 4px;
+        }
+
+        .modern-account {
+            min-width: 160px;
+            max-width: 160px;
+        }
+
+        .modern-money {
+            min-width: 50px;
+        }
+
+        .modern-row:hover td,
+        .modern-row:active td {
+            background: transparent;
+        }
+
+        .click-hint {
+            display: none;
+        }
+    }
+</style>
+
+
+<div class="modern-pl-wrap">
+
+    <div class="modern-pl-header">
+        <div>
+            <h2>
+                {% if company %}
+                    {{ company.name }}
+                {% else %}
+                    [Company Name]
+                {% endif %}
+            </h2>
+            <h3>Profit and Loss Statement</h3>
+            <p>Profit/Loss by Month</p>
+        </div>
+
+        <div class="modern-pl-right">
+            <div>From {{ date_from }} To {{ date_to }}</div>
+            <div class="click-hint">Click any account row to view ledger detail</div>
+        </div>
+    </div>
+
+    <table class="modern-pl-table">
         <thead>
             <tr>
-                <th>Code</th>
-                <th>Account</th>
-                <th class="money">Jan</th>
-                <th class="money">Feb</th>
-                <th class="money">Mar</th>
-                <th class="money">Apr</th>
-                <th class="money">May</th>
-                <th class="money">Jun</th>
-                <th class="money">Jul</th>
-                <th class="money">Aug</th>
-                <th class="money">Sep</th>
-                <th class="money">Oct</th>
-                <th class="money">Nov</th>
-                <th class="money">Dec</th>
-                <th class="money">Total</th>
+                <th class="modern-account"></th>
+                <th class="modern-money">JAN</th>
+                <th class="modern-money">FEB</th>
+                <th class="modern-money">MAR</th>
+                <th class="modern-money">APR</th>
+                <th class="modern-money">MAY</th>
+                <th class="modern-money">JUN</th>
+                <th class="modern-money">JUL</th>
+                <th class="modern-money">AUG</th>
+                <th class="modern-money">SEP</th>
+                <th class="modern-money">OCT</th>
+                <th class="modern-money">NOV</th>
+                <th class="modern-money">DEC</th>
+                <th class="modern-money">Full Year</th>
             </tr>
         </thead>
+
         <tbody>
+            <tr class="modern-section">
+                <td colspan="14">Profit and Loss Accounts</td>
+            </tr>
+
             {% for row in pl_month_rows %}
-                <tr class="click-row" onclick="window.location='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
-                    <td><span class="code-pill">{{ row.code }}</span></td>
-                    <td>{{ row.name }}</td>
+                <tr class="modern-row"
+                    title="Click to view ledger detail"
+                    onclick="window.location.href='{% url 'report_ledger_detail' row.account_id %}?date_from={{ date_from }}&date_to={{ date_to }}'">
+
+                    <td class="modern-account">
+                        {{ row.code }} - {{ row.name }}
+                    </td>
+
                     {% for amount in row.months %}
-                        <td class="money">${{ amount }}</td>
+                        <td class="modern-money modern-blue">
+                            {% if amount == 0 or amount == "0.00" or amount == "0" %}
+                                -
+                            {% else %}
+                                {{ amount }}
+                            {% endif %}
+                        </td>
                     {% endfor %}
-                    <td class="money"><strong>${{ row.total }}</strong></td>
+
+                    <td class="modern-money">
+                        <strong>{{ row.total }}</strong>
+                    </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="15"><div class="empty-state">No monthly Profit/Loss data.</div></td></tr>
+                <tr>
+                    <td colspan="14">
+                        <div class="modern-empty">No monthly Profit/Loss data.</div>
+                    </td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
+
 </div>
+
 {% endblock %}
