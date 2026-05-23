@@ -3,10 +3,16 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # =========================
+    # ITEM MASTER
+    # =========================
     path("items/", views.item_list, name="stock_item_list"),
     path("items/new/", views.item_create, name="stock_item_create"),
     path("items/<int:item_id>/edit/", views.item_edit, name="stock_item_edit"),
 
+    # =========================
+    # MASTER DATA
+    # =========================
     path("item-groups/", views.item_group_list, name="stock_item_group_list"),
     path("item-groups/new/", views.item_group_create, name="stock_item_group_create"),
 
@@ -19,6 +25,25 @@ urlpatterns = [
     path("warehouses/", views.warehouse_list, name="stock_warehouse_list"),
     path("warehouses/new/", views.warehouse_create, name="stock_warehouse_create"),
 
+    # =========================
+    # GENERIC STOCK DOCUMENT URLS
+    # Important: your templates/views use these names
+    # =========================
+    path(
+        "documents/<str:doc_type>/",
+        views.stock_document_list,
+        name="stock_document_list",
+    ),
+    path(
+        "documents/<str:doc_type>/new/",
+        views.stock_document_create,
+        name="stock_document_create",
+    ),
+
+    # =========================
+    # SHORTCUT STOCK DOCUMENT URLS
+    # These keep your clean menu URLs
+    # =========================
     path("stock-issues/", views.stock_issue_list, name="stock_issue_list"),
     path("stock-issues/new/", views.stock_issue_create, name="stock_issue_create"),
 
