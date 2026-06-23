@@ -123,6 +123,38 @@
         justify-content: center;
         text-align: center;
         overflow: hidden;
+        position: relative;
+    }
+
+    .logo-remove-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 5;
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(222, 45, 61, 0.94);
+        color: #ffffff;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 900;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(201, 42, 56, 0.28);
+        transition: 0.16s ease;
+    }
+
+    .logo-remove-btn:hover {
+        background: #b91c2c;
+        transform: scale(1.05);
+    }
+
+    .logo-remove-btn.visible {
+        display: inline-flex;
     }
 
     .logo-preview-box img {
@@ -326,6 +358,14 @@
 
                 <div class="logo-drop-zone" id="logoDropZone">
                     <div class="logo-preview-box">
+                        <button
+                            type="button"
+                            id="removeLogoButton"
+                            class="logo-remove-btn {% if is_edit and company.logo %}visible{% endif %}"
+                            aria-label="Remove company logo"
+                            title="Remove logo"
+                        >×</button>
+
                         {% if is_edit and company.logo %}
                             <img id="logoPreview" src="{{ company.logo.url }}" alt="Logo preview">
                         {% else %}
@@ -340,6 +380,7 @@
                     </div>
 
                     {{ form.logo }}
+                    <input type="hidden" name="remove_logo" id="removeLogoInput" value="0">
                 </div>
 
                 {% for error in form.logo.errors %}
@@ -417,8 +458,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const fileInput = document.getElementById("id_logo");
     const preview = document.getElementById("logoPreview");
     const placeholder = document.getElementById("logoPlaceholder");
+    const removeButton = document.getElementById("removeLogoButton");
+    const removeInput = document.getElementById("removeLogoInput");
 
-    if (!dropZone || !fileInput || !preview || !placeholder) {
+    if (!dropZone || !fileInput || !preview || !placeholder || !removeButton || !removeInput) {
         return;
     }
 
@@ -434,6 +477,8 @@ document.addEventListener("DOMContentLoaded", function () {
             preview.src = event.target.result;
             preview.style.display = "block";
             placeholder.style.display = "none";
+            removeButton.classList.add("visible");
+            removeInput.value = "0";
         };
 
         reader.readAsDataURL(file);
@@ -446,8 +491,24 @@ document.addEventListener("DOMContentLoaded", function () {
         showPreview(file);
     }
 
-    dropZone.addEventListener("click", function () {
+    dropZone.addEventListener("click", function (event) {
+        if (event.target.closest("#removeLogoButton")) {
+            return;
+        }
+
         fileInput.click();
+    });
+
+    removeButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        fileInput.value = "";
+        preview.src = "";
+        preview.style.display = "none";
+        placeholder.style.display = "grid";
+        removeButton.classList.remove("visible");
+        removeInput.value = "1";
     });
 
     fileInput.addEventListener("change", function () {

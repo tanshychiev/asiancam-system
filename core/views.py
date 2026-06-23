@@ -115,10 +115,17 @@ def company_list(request):
 @user_passes_test(admin_required)
 def company_create(request):
     if request.method == "POST":
-        form = CompanyCreateForm(request.POST)
+        form = CompanyCreateForm(request.POST, request.FILES)
 
         if form.is_valid():
-            company = form.save()
+            company = form.save(commit=False)
+
+            if request.POST.get("remove_logo") == "1":
+                company.logo = None
+
+            company.save()
+            form.save_m2m()
+
             messages.success(request, f"Company {company.name} created successfully.")
             return redirect("company_list")
     else:
@@ -521,7 +528,18 @@ def company_edit(request, company_id):
         form = CompanyCreateForm(request.POST, request.FILES, instance=company)
 
         if form.is_valid():
-            company = form.save()
+            old_logo = company.logo
+            company = form.save(commit=False)
+
+            if request.POST.get("remove_logo") == "1":
+                if old_logo:
+                    old_logo.delete(save=False)
+
+                company.logo = None
+
+            company.save()
+            form.save_m2m()
+
             messages.success(request, f"Company {company.name} updated successfully.")
             return redirect("company_list")
     else:
