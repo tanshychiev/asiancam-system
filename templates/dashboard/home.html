@@ -5,6 +5,57 @@
 {% block content %}
 
 <style>
+    .home-wrap{max-width:1240px}
+    .hero,.task-card,.quick-card,.workflow-card{
+        background:#fff!important;
+        border:1px solid #dce9f2!important;
+        box-shadow:0 8px 24px rgba(7,55,99,.06)!important;
+    }
+    .hero{border-radius:20px!important;padding:30px!important}
+    .task-card{border-radius:20px!important}
+    .quick-card{border-radius:16px!important;min-height:138px!important}
+    .workflow-card{border-radius:18px!important}
+    .badge{
+        background:#eef7fc!important;
+        border:1px solid #d7eaf5!important;
+        box-shadow:none!important;
+        border-radius:10px!important;
+        font-weight:700!important;
+    }
+    .btn-home{
+        border-radius:10px!important;
+        box-shadow:none!important;
+        font-weight:650!important;
+    }
+    .btn-home.primary{background:#0f8fcb!important}
+    .btn-home.dark{background:#0b3557!important}
+    .quick-icon{
+        width:42px!important;
+        height:42px!important;
+        border-radius:10px!important;
+        background:#eef7fc!important;
+        color:#0f8fcb!important;
+        box-shadow:none!important;
+        border:1px solid #d7eaf5!important;
+    }
+    .quick-icon svg,.inline-svg{
+        width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;
+        stroke-linecap:round;stroke-linejoin:round;
+    }
+    .workflow-step{
+        background:#f8fbfd!important;
+        border:1px solid #e1ebf1!important;
+        border-radius:14px!important;
+    }
+    .workflow-no{
+        border-radius:8px!important;
+        background:#eaf6fc!important;
+        color:#0f8fcb!important;
+    }
+</style>
+
+
+<style>
     .home-wrap {
         max-width: 1220px;
         margin: 0 auto;
@@ -38,7 +89,7 @@
         background: linear-gradient(135deg, #dff6ff, #fff);
         border: 1px solid #b9eaff;
         color: #0579bd;
-        font-weight: 950;
+        font-weight: 700;
         font-size: 13px;
         margin-bottom: 18px;
         box-shadow: 0 10px 24px rgba(21,170,245,.12);
@@ -50,7 +101,7 @@
         font-size: 38px;
         line-height: 1.12;
         letter-spacing: -1px;
-        font-weight: 950;
+        font-weight: 700;
     }
 
     .hero h1 span {
@@ -80,7 +131,7 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
-        font-weight: 950;
+        font-weight: 700;
         font-size: 13px;
         text-decoration: none;
         border: 1px solid transparent;
@@ -130,7 +181,7 @@
         margin: 0;
         color: #073763;
         font-size: 19px;
-        font-weight: 950;
+        font-weight: 700;
     }
 
     .status-pill {
@@ -143,7 +194,7 @@
         padding: 7px 10px;
         border-radius: 999px;
         font-size: 12px;
-        font-weight: 950;
+        font-weight: 700;
     }
 
     .status-pill.pending {
@@ -171,13 +222,13 @@
     .task-row span {
         color: #6b7c93;
         font-size: 13px;
-        font-weight: 850;
+        font-weight: 600;
     }
 
     .task-row strong {
         color: #073763;
         font-size: 13px;
-        font-weight: 950;
+        font-weight: 700;
         text-align: right;
     }
 
@@ -193,7 +244,7 @@
         margin: 0;
         color: #073763;
         font-size: 24px;
-        font-weight: 950;
+        font-weight: 700;
     }
 
     .section-title p {
@@ -243,7 +294,7 @@
         display: block;
         color: #6b7c93;
         font-size: 13px;
-        font-weight: 900;
+        font-weight: 700;
         margin-bottom: 8px;
     }
 
@@ -251,7 +302,7 @@
         margin: 0;
         color: #073763;
         font-size: 23px;
-        font-weight: 950;
+        font-weight: 700;
         letter-spacing: -.5px;
     }
 
@@ -268,7 +319,7 @@
         margin: 0;
         color: #073763;
         font-size: 24px;
-        font-weight: 950;
+        font-weight: 700;
     }
 
     .workflow-card p {
@@ -297,7 +348,7 @@
         border-radius: 999px;
         background: linear-gradient(135deg, #15aaf5, #67d9ff);
         color: white;
-        font-weight: 950;
+        font-weight: 700;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -308,7 +359,7 @@
         margin: 0 0 7px;
         color: #073763;
         font-size: 14px;
-        font-weight: 950;
+        font-weight: 700;
     }
 
     .workflow-step span {
@@ -368,7 +419,7 @@
 
             <div>
                 {% if request.session.selected_company_id %}
-                    <div class="badge">🏢 Company Workspace Active</div>
+                    <div class="badge"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg> Company Workspace Active</div>
 
                     <h1>
                         Work on
@@ -381,14 +432,14 @@
                     </p>
 
                     <div class="actions">
-                        <a href="{% url 'journal_create' %}" class="btn-home primary">🧾 Input Accounting Data</a>
-                        <a href="{% url 'accounting_reports' %}" class="btn-home secondary">📊 View Reports</a>
-                        <a href="{% url 'company_list' %}" class="btn-home secondary">🏢 View Companies</a>
-                        <a href="/companies/clear/" class="btn-home dark">🔄 Change Company</a>
+                        <a href="{% url 'journal_create' %}" class="btn-home primary"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M8 8h8M8 12h8"/></svg> Input Accounting Data</a>
+                        <a href="{% url 'accounting_reports' %}" class="btn-home secondary"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg> View Reports</a>
+                        <a href="{% url 'company_list' %}" class="btn-home secondary"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg> View Companies</a>
+                        <a href="/companies/clear/" class="btn-home dark"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M20 7h-6V1"/><path d="M20 7a8 8 0 1 0 1 7"/></svg> Change Company</a>
                     </div>
 
                 {% elif request.user.is_superuser %}
-                    <div class="badge">👑 Admin Control Center</div>
+                    <div class="badge"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M5 8l3 4 4-7 4 7 3-4-1 10H6L5 8Z"/></svg> Admin Control Center</div>
 
                     <h1>
                         Welcome Admin,
@@ -401,16 +452,16 @@
                     </p>
 
                     <div class="actions">
-                        <a href="{% url 'company_list' %}" class="btn-home primary">🏢 View Companies</a>
-                        <a href="/users/" class="btn-home secondary">👥 View Users</a>
-                        <a href="/roles/" class="btn-home secondary">🔐 View Roles</a>
-                        <a href="/companies/create/" class="btn-home secondary">➕ Create Company</a>
-                        <a href="/users/create/" class="btn-home secondary">👤 Create User</a>
-                        <a href="/companies/assign-staff/" class="btn-home dark">🔗 Assign Staff</a>
+                        <a href="{% url 'company_list' %}" class="btn-home primary"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg> View Companies</a>
+                        <a href="/users/" class="btn-home secondary"><svg class="inline-svg" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2"/></svg> View Users</a>
+                        <a href="/roles/" class="btn-home secondary"><svg class="inline-svg" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> View Roles</a>
+                        <a href="/companies/create/" class="btn-home secondary"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Create Company</a>
+                        <a href="/users/create/" class="btn-home secondary"><svg class="inline-svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg> Create User</a>
+                        <a href="/companies/assign-staff/" class="btn-home dark"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1 1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1-1"/></svg> Assign Staff</a>
                     </div>
 
                 {% else %}
-                    <div class="badge">👋 Staff Workspace</div>
+                    <div class="badge"><svg class="inline-svg" viewBox="0 0 24 24"><circle cx="12" cy="7" r="3"/><path d="M5 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg> Staff Workspace</div>
 
                     <h1>
                         Welcome,
@@ -423,7 +474,7 @@
                     </p>
 
                     <div class="actions">
-                        <a href="{% url 'company_list' %}" class="btn-home primary">🏢 Select Company</a>
+                        <a href="{% url 'company_list' %}" class="btn-home primary"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg> Select Company</a>
                     </div>
                 {% endif %}
             </div>
@@ -510,25 +561,25 @@
 
             <div class="quick-grid">
                 <a href="{% url 'chart_of_accounts' %}" class="quick-card">
-                    <div class="quick-icon">📒</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div>
                     <span>Setup</span>
                     <h3>Chart of Accounts</h3>
                 </a>
 
                 <a href="{% url 'journal_create' %}" class="quick-card">
-                    <div class="quick-icon">🧾</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M8 8h8M8 12h8"/></svg></div>
                     <span>Manual Input</span>
                     <h3>Accounting Data</h3>
                 </a>
 
                 <a href="{% url 'accounting_import_excel' %}" class="quick-card">
-                    <div class="quick-icon">📤</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m8 7 4-4 4 4"/><path d="M5 15v5h14v-5"/></svg></div>
                     <span>Import Excel</span>
                     <h3>Documents</h3>
                 </a>
 
                 <a href="{% url 'accounting_reports' %}" class="quick-card">
-                    <div class="quick-icon">📊</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
                     <span>Output</span>
                     <h3>Reports</h3>
                 </a>
@@ -544,49 +595,49 @@
 
             <div class="quick-grid">
                 <a href="{% url 'company_list' %}" class="quick-card">
-                    <div class="quick-icon">🏢</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg></div>
                     <span>View</span>
                     <h3>Company List</h3>
                 </a>
 
                 <a href="/users/" class="quick-card">
-                    <div class="quick-icon">👥</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2"/></svg></div>
                     <span>View</span>
                     <h3>User List</h3>
                 </a>
 
                 <a href="/roles/" class="quick-card">
-                    <div class="quick-icon">🔐</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
                     <span>View</span>
                     <h3>Role List</h3>
                 </a>
 
                 <a href="/companies/assign-staff/" class="quick-card">
-                    <div class="quick-icon">🔗</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1 1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1-1"/></svg></div>
                     <span>Access Control</span>
                     <h3>Assign Staff</h3>
                 </a>
 
                 <a href="/companies/create/" class="quick-card">
-                    <div class="quick-icon">➕</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
                     <span>Create</span>
                     <h3>Create Company</h3>
                 </a>
 
                 <a href="/users/create/" class="quick-card">
-                    <div class="quick-icon">👤</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></div>
                     <span>Create</span>
                     <h3>Create User</h3>
                 </a>
 
                 <a href="/roles/create/" class="quick-card">
-                    <div class="quick-icon">🛡️</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-2.9 8.2-7 10-4.1-1.8-7-5.5-7-10V6l7-3Z"/></svg></div>
                     <span>Create</span>
                     <h3>Create Role</h3>
                 </a>
 
                 <a href="{% url 'company_list' %}" class="quick-card">
-                    <div class="quick-icon">✅</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></div>
                     <span>Work</span>
                     <h3>Select Company</h3>
                 </a>
@@ -639,25 +690,25 @@
 
             <div class="quick-grid">
                 <a href="{% url 'company_list' %}" class="quick-card">
-                    <div class="quick-icon">🏢</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg></div>
                     <span>Step 1</span>
                     <h3>Select Company</h3>
                 </a>
 
                 <div class="quick-card">
-                    <div class="quick-icon">🧾</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M8 8h8M8 12h8"/></svg></div>
                     <span>Step 2</span>
                     <h3>Input Data</h3>
                 </div>
 
                 <div class="quick-card">
-                    <div class="quick-icon">📊</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
                     <span>Step 3</span>
                     <h3>Auto Reports</h3>
                 </div>
 
                 <div class="quick-card">
-                    <div class="quick-icon">✅</div>
+                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></div>
                     <span>Step 4</span>
                     <h3>Approval</h3>
                 </div>
