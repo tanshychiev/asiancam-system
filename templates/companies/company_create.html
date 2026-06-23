@@ -189,6 +189,67 @@
         display: none;
     }
 
+    .staff-search-wrap {
+        position: relative;
+        margin-bottom: 10px;
+    }
+
+    .staff-search-input {
+        width: 100%;
+        min-height: 44px;
+        padding: 11px 44px 11px 42px !important;
+        border: 1px solid #d7efff !important;
+        border-radius: 14px !important;
+        background: #ffffff !important;
+        color: #073763 !important;
+        font-size: 13px !important;
+        font-weight: 700;
+        outline: none;
+    }
+
+    .staff-search-input:focus {
+        border-color: #15aaf5 !important;
+        box-shadow: 0 0 0 4px rgba(21,170,245,.12) !important;
+    }
+
+    .staff-search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6b7c93;
+        pointer-events: none;
+        font-size: 15px;
+    }
+
+    .staff-search-clear {
+        position: absolute;
+        right: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #6b7c93;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .staff-search-clear.visible {
+        display: inline-flex;
+    }
+
+    .staff-search-clear:hover {
+        background: #eaf7ff;
+        color: #0579bd;
+    }
+
     .staff-check-box {
         background: #fbfdff;
         border: 1px solid #d7efff;
@@ -196,6 +257,19 @@
         padding: 14px 16px;
         max-height: 220px;
         overflow-y: auto;
+    }
+
+    .staff-empty-result {
+        display: none;
+        padding: 16px 8px;
+        color: #6b7c93;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .staff-empty-result.visible {
+        display: block;
     }
 
     .staff-check-box ul {
@@ -422,8 +496,33 @@
 
             <div class="field-box full">
                 <label>Assigned Staff</label>
-                <div class="staff-check-box">
+
+                <div class="staff-search-wrap">
+                    <span class="staff-search-icon">🔍</span>
+
+                    <input
+                        type="search"
+                        id="staffSearchInput"
+                        class="staff-search-input"
+                        placeholder="Search staff by username..."
+                        autocomplete="off"
+                    >
+
+                    <button
+                        type="button"
+                        id="staffSearchClear"
+                        class="staff-search-clear"
+                        aria-label="Clear staff search"
+                        title="Clear search"
+                    >×</button>
+                </div>
+
+                <div class="staff-check-box" id="staffCheckBox">
                     {{ form.assigned_staff }}
+
+                    <div id="staffEmptyResult" class="staff-empty-result">
+                        No matching staff found.
+                    </div>
                 </div>
 
                 {% for error in form.assigned_staff.errors %}
@@ -554,6 +653,59 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
     });
+
+    const staffSearchInput = document.getElementById("staffSearchInput");
+    const staffSearchClear = document.getElementById("staffSearchClear");
+    const staffCheckBox = document.getElementById("staffCheckBox");
+    const staffEmptyResult = document.getElementById("staffEmptyResult");
+
+    if (staffSearchInput && staffSearchClear && staffCheckBox && staffEmptyResult) {
+        const staffRows = Array.from(
+            staffCheckBox.querySelectorAll("li")
+        );
+
+        function filterStaff() {
+            const keyword = staffSearchInput.value
+                .trim()
+                .toLowerCase();
+
+            let visibleCount = 0;
+
+            staffRows.forEach(function (row) {
+                const staffName = row.textContent
+                    .trim()
+                    .toLowerCase();
+
+                const matches = !keyword || staffName.includes(keyword);
+
+                row.style.display = matches ? "" : "none";
+
+                if (matches) {
+                    visibleCount += 1;
+                }
+            });
+
+            staffSearchClear.classList.toggle(
+                "visible",
+                keyword.length > 0
+            );
+
+            staffEmptyResult.classList.toggle(
+                "visible",
+                staffRows.length > 0 && visibleCount === 0
+            );
+        }
+
+        staffSearchInput.addEventListener("input", filterStaff);
+
+        staffSearchClear.addEventListener("click", function () {
+            staffSearchInput.value = "";
+            filterStaff();
+            staffSearchInput.focus();
+        });
+
+        filterStaff();
+    }
 });
 </script>
 
