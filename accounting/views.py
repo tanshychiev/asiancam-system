@@ -1421,6 +1421,11 @@ def accounting_reports(request):
     date_to = (request.GET.get("date_to") or today.strftime("%Y-%m-%d")).strip()
     posted_status = get_posted_status()
 
+    try:
+        as_of_date = datetime.strptime(date_to, "%Y-%m-%d").date() if date_to else today
+    except Exception:
+        as_of_date = today
+
     # =====================================================
     # Base posted journal lines
     # =====================================================
@@ -1436,7 +1441,7 @@ def accounting_reports(request):
         lines = lines.filter(journal_entry__entry_date__lte=date_to)
 
     # =====================================================
-    # Trial Balance / P&L / Balance Sheet account summary
+    # Trial Balance / P&L / Balance Sheet
     # =====================================================
     account_rows = (
         lines
@@ -1531,8 +1536,7 @@ def accounting_reports(request):
     balance_check = total_assets - (total_liabilities + total_equity + net_profit)
 
     # =====================================================
-    # General Ledger / Journal Report preview rows
-    # Click row -> journal detail
+    # General Ledger / Journal Report preview
     # =====================================================
     journal_report_rows = (
         lines
@@ -1543,7 +1547,6 @@ def accounting_reports(request):
 
     # =====================================================
     # Profit/Loss by Month preview
-    # Click account -> ledger detail
     # =====================================================
     pl_month_rows = []
     year = today.year
@@ -1603,86 +1606,263 @@ def accounting_reports(request):
             })
 
     # =====================================================
-    # AP Aging preview
-    # Click row -> vendor transaction detail
+    # Aging helpers
+    # =====================================================
+    def get_type_values(model, attr_names, keywords=None):
+        values = []
+
+        for attr in attr_names:
+            value = getattr(model, attr, None)
+            if value and value not in values:
+                values.append(value)
+
+        if keywords:
+            for value, label in getattr(model, "TYPE_CHOICES", []):
+                text = f"{value} {label}".lower()
+                if any(word.lower() in text for word in keywords):
+                    if value not in values:
+                        values.append(value)
+
+        return values
+
+    def get_party_name(obj):
+        if not obj:
+            return "-"
+
+        for field in ["name", "vendor_name", "customer_name", "company_name"]:
+            value = getattr(obj, field, None)
+            if value:
+                return value
+
+        return str(obj)
+
+    def build_aging_row(tx, name, amount, name_key):
+        tx_date = getattr(tx, "transaction_date", None)
+        due_date = getattr(tx, "due_date", None) or tx_date
+
+        aging_days = 0
+        if due_date:
+            aging_days = (as_of_date - due_date).days
+
+        display_type = (
+            tx.get_transaction_type_display()
+            if hasattr(tx, "get_transaction_type_display")
+            else getattr(tx, "transaction_type", "")
+        )
+
+        return {
+            "id": tx.id,
+            name_key: name or "-",
+            "date": tx_date,
+            "number": getattr(tx, "number", None) or getattr(tx, "po_number", None) or "-",
+            "type": display_type,
+            "terms": getattr(tx, "terms", None) or getattr(tx, "payment_terms", None) or "-",
+            "due_date": due_date,
+            "class_name": getattr(tx, "class_name", None) or getattr(tx, "transaction_class", None) or "-",
+            "aging": aging_days if aging_days > 0 else 0,
+            "current": amount if aging_days <= 0 else Decimal("0.00"),
+            "days_1_30": amount if 1 <= aging_days <= 30 else Decimal("0.00"),
+            "days_31_60": amount if 31 <= aging_days <= 60 else Decimal("0.00"),
+            "days_61_90": amount if 61 <= aging_days <= 90 else Decimal("0.00"),
+            "over_90": amount if aging_days > 90 else Decimal("0.00"),
+            "total": amount,
+        }
+
+    # =====================================================
+    # AP Aging
+    # Purchase Bill - Vendor Payment = Open Balance
+    # Fully paid bill disappears.
+    # Partial payment shows remaining balance.
+    # FIFO by vendor.
     # =====================================================
     ap_aging_rows = []
+
     try:
         from vendors.models import VendorTransaction
 
-        ap_qs = VendorTransaction.objects.filter(
-            company=company,
-            status=VendorTransaction.STATUS_POSTED,
-            transaction_type__in=[
-                VendorTransaction.TYPE_PURCHASE_ORDER,
-                VendorTransaction.TYPE_ADJUSTMENT,
+        ap_bill_types = get_type_values(
+            VendorTransaction,
+            [
+                "TYPE_PURCHASE_ORDER",
+                "TYPE_BILL",
+                "TYPE_VENDOR_BILL",
+                "TYPE_ADJUSTMENT",
             ],
-        ).select_related("vendor").order_by("vendor__name", "transaction_date")
+            keywords=["purchase", "bill", "adjustment"],
+        )
 
-        if date_to:
-            ap_qs = ap_qs.filter(transaction_date__lte=date_to)
+        ap_payment_types = get_type_values(
+            VendorTransaction,
+            [
+                "TYPE_VENDOR_PAYMENT",
+                "TYPE_PAYMENT",
+                "TYPE_PAY_BILL",
+            ],
+            keywords=["payment", "pay", "paid"],
+        )
 
-        for tx in ap_qs[:300]:
-            age = (today - tx.transaction_date).days
-            amount = tx.amount or Decimal("0.00")
+        vendor_payment_pool = {}
 
-            ap_aging_rows.append({
-                "id": tx.id,
-                "vendor": tx.vendor.name if tx.vendor else "-",
-                "date": tx.transaction_date,
-                "number": tx.number,
-                "type": tx.get_transaction_type_display(),
-                "current": amount if age <= 0 else Decimal("0.00"),
-                "days_1_30": amount if 1 <= age <= 30 else Decimal("0.00"),
-                "days_31_60": amount if 31 <= age <= 60 else Decimal("0.00"),
-                "days_61_90": amount if 61 <= age <= 90 else Decimal("0.00"),
-                "over_90": amount if age > 90 else Decimal("0.00"),
-            })
-    except Exception:
+        if ap_payment_types:
+            payment_rows = (
+                VendorTransaction.objects
+                .filter(
+                    company=company,
+                    status=VendorTransaction.STATUS_POSTED,
+                    transaction_type__in=ap_payment_types,
+                    transaction_date__lte=as_of_date,
+                )
+                .values("vendor_id")
+                .annotate(total=Sum("amount"))
+            )
+
+            vendor_payment_pool = {
+                row["vendor_id"]: row["total"] or Decimal("0.00")
+                for row in payment_rows
+            }
+
+        if ap_bill_types:
+            ap_bills = (
+                VendorTransaction.objects
+                .filter(
+                    company=company,
+                    status=VendorTransaction.STATUS_POSTED,
+                    transaction_type__in=ap_bill_types,
+                    transaction_date__lte=as_of_date,
+                )
+                .select_related("vendor")
+                .order_by("vendor__name", "transaction_date", "id")
+            )
+
+            for tx in ap_bills:
+                open_amount = tx.amount or Decimal("0.00")
+                vendor_id = getattr(tx, "vendor_id", None)
+                available_payment = vendor_payment_pool.get(vendor_id, Decimal("0.00"))
+
+                if available_payment > 0:
+                    applied_amount = min(open_amount, available_payment)
+                    open_amount -= applied_amount
+                    vendor_payment_pool[vendor_id] = available_payment - applied_amount
+
+                if open_amount <= 0:
+                    continue
+
+                ap_aging_rows.append(
+                    build_aging_row(
+                        tx=tx,
+                        name=get_party_name(getattr(tx, "vendor", None)),
+                        amount=open_amount,
+                        name_key="vendor",
+                    )
+                )
+
+                if len(ap_aging_rows) >= 300:
+                    break
+
+    except Exception as e:
+        print("AP Aging error:", e)
         ap_aging_rows = []
 
     # =====================================================
-    # AR Aging preview
-    # Click row -> customer transaction detail
+    # AR Aging
+    # Sale Invoice - Customer Payment = Open Balance
+    # Fully paid invoice disappears.
+    # Partial payment shows remaining balance.
+    # FIFO by customer.
     # =====================================================
     ar_aging_rows = []
+
     try:
         from customers.models import CustomerTransaction
 
-        ar_qs = CustomerTransaction.objects.filter(
-            company=company,
-            status=CustomerTransaction.STATUS_POSTED,
-            transaction_type__in=[
-                CustomerTransaction.TYPE_INVOICE,
-                CustomerTransaction.TYPE_ADJUSTMENT,
+        ar_invoice_types = get_type_values(
+            CustomerTransaction,
+            [
+                "TYPE_INVOICE",
+                "TYPE_CUSTOMER_INVOICE",
+                "TYPE_SALE_INVOICE",
+                "TYPE_SALE_ORDER",
+                "TYPE_ADJUSTMENT",
             ],
-        ).select_related("customer").order_by("customer__name", "transaction_date")
+            keywords=["invoice", "sale", "adjustment"],
+        )
 
-        if date_to:
-            ar_qs = ar_qs.filter(transaction_date__lte=date_to)
+        ar_payment_types = get_type_values(
+            CustomerTransaction,
+            [
+                "TYPE_CUSTOMER_PAYMENT",
+                "TYPE_PAYMENT",
+                "TYPE_RECEIPT",
+                "TYPE_RECEIVE_PAYMENT",
+                "TYPE_CUSTOMER_RECEIPT",
+            ],
+            keywords=["payment", "receipt", "receive", "paid"],
+        )
 
-        for tx in ar_qs[:300]:
-            age = (today - tx.transaction_date).days
-            amount = tx.amount or Decimal("0.00")
+        customer_payment_pool = {}
 
-            ar_aging_rows.append({
-                "id": tx.id,
-                "customer": tx.customer.name,
-                "date": tx.transaction_date,
-                "number": tx.number,
-                "type": tx.get_transaction_type_display(),
-                "current": amount if age <= 0 else Decimal("0.00"),
-                "days_1_30": amount if 1 <= age <= 30 else Decimal("0.00"),
-                "days_31_60": amount if 31 <= age <= 60 else Decimal("0.00"),
-                "days_61_90": amount if 61 <= age <= 90 else Decimal("0.00"),
-                "over_90": amount if age > 90 else Decimal("0.00"),
-            })
-    except Exception:
+        if ar_payment_types:
+            payment_rows = (
+                CustomerTransaction.objects
+                .filter(
+                    company=company,
+                    status=CustomerTransaction.STATUS_POSTED,
+                    transaction_type__in=ar_payment_types,
+                    transaction_date__lte=as_of_date,
+                )
+                .values("customer_id")
+                .annotate(total=Sum("amount"))
+            )
+
+            customer_payment_pool = {
+                row["customer_id"]: row["total"] or Decimal("0.00")
+                for row in payment_rows
+            }
+
+        if ar_invoice_types:
+            ar_invoices = (
+                CustomerTransaction.objects
+                .filter(
+                    company=company,
+                    status=CustomerTransaction.STATUS_POSTED,
+                    transaction_type__in=ar_invoice_types,
+                    transaction_date__lte=as_of_date,
+                )
+                .select_related("customer")
+                .order_by("customer__name", "transaction_date", "id")
+            )
+
+            for tx in ar_invoices:
+                open_amount = tx.amount or Decimal("0.00")
+                customer_id = getattr(tx, "customer_id", None)
+                available_payment = customer_payment_pool.get(customer_id, Decimal("0.00"))
+
+                if available_payment > 0:
+                    applied_amount = min(open_amount, available_payment)
+                    open_amount -= applied_amount
+                    customer_payment_pool[customer_id] = available_payment - applied_amount
+
+                if open_amount <= 0:
+                    continue
+
+                ar_aging_rows.append(
+                    build_aging_row(
+                        tx=tx,
+                        name=get_party_name(getattr(tx, "customer", None)),
+                        amount=open_amount,
+                        name_key="customer",
+                    )
+                )
+
+                if len(ar_aging_rows) >= 300:
+                    break
+
+    except Exception as e:
+        print("AR Aging error:", e)
         ar_aging_rows = []
 
     # =====================================================
     # Cash Flow preview
-    # Click account -> ledger detail
     # =====================================================
     cash_flow_rows = []
     cash_accounts = ChartOfAccount.objects.filter(
@@ -1750,9 +1930,6 @@ def accounting_reports(request):
 
         "total_cash_change": total_cash_change,
     })
-# =========================================================
-# ACCOUNTING MENU PAGES
-# =========================================================
 
 @login_required
 def report_mapping(request):
