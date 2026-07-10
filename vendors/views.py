@@ -78,8 +78,6 @@ def create_vendor_journal(transaction_obj, user):
     Vendor Payment:
         Dr Account Payable
         Cr Cash / Bank
-
-    Because we create JournalEntryLine, your existing reports auto include this.
     """
 
     if transaction_obj.status != VendorTransaction.STATUS_POSTED:
@@ -101,7 +99,7 @@ def create_vendor_journal(transaction_obj, user):
         )
 
         JournalEntryLine.objects.create(
-            entry=entry,
+            journal_entry=entry,
             account=transaction_obj.debit_account,
             description=transaction_obj.memo or transaction_obj.get_transaction_type_display(),
             debit=transaction_obj.amount,
@@ -109,7 +107,7 @@ def create_vendor_journal(transaction_obj, user):
         )
 
         JournalEntryLine.objects.create(
-            entry=entry,
+            journal_entry=entry,
             account=transaction_obj.credit_account,
             description=transaction_obj.memo or transaction_obj.get_transaction_type_display(),
             debit=Decimal("0.00"),
