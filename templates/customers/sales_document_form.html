@@ -2,13 +2,11 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
 
+<div class="record-page customer-record">
+<div class="record-banner">
+<div class="record-banner-main"><div class="record-icon">S</div><div><div class="record-eyebrow">Sales document</div><h1>{{ page_title }}</h1><p>Quotation and Sale Order workflow before invoice/payment posting.</p></div></div><a href="{% url 'customer_center' %}" class="btn btn-light">← Customer Center</a>
+</div>
 <div class="card">
-    <div class="card-head">
-        <div>
-            <h2>{{ page_title }}</h2>
-            <p>Quotation and Sale Order are sales documents. They do not affect reports until invoice/payment is posted.</p>
-        </div>
-    </div>
 
     <form method="post">
         {% csrf_token %}
@@ -28,6 +26,7 @@
             <a href="{% url 'customer_center' %}" class="btn btn-light">Back</a>
         </div>
     </form>
+</div>
 </div>
 
 {% endblock %}

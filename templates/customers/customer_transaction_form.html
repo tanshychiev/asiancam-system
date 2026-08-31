@@ -2,15 +2,11 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
 
+<div class="record-page customer-record">
+<div class="record-banner">
+<div class="record-banner-main"><div class="record-icon">C</div><div><div class="record-eyebrow">Receivable transaction</div><h1>{{ page_title }}</h1><p>Invoice / receipt posting that updates customer accounting reports.</p></div></div><a href="{% url 'customer_transaction_list' %}" class="btn btn-light">← Customer Transactions</a>
+</div>
 <div class="card">
-    <div class="card-head">
-        <div>
-            <h2>{{ page_title }}</h2>
-            <p>This transaction will auto generate journal entry for accounting reports.</p>
-        </div>
-
-        <a href="{% url 'customer_transaction_list' %}" class="btn btn-light">← Back</a>
-    </div>
 
     <div class="message">
         Invoice example: Debit Account Receivable, Credit Sales Revenue.
@@ -37,6 +33,7 @@
             <a href="{% url 'accounting_reports' %}" class="btn btn-light">📊 View Reports</a>
         </div>
     </form>
+</div>
 </div>
 
 {% endblock %}

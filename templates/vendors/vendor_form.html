@@ -1,81 +1,50 @@
 {% extends "base.html" %}
-
 {% block title %}{{ page_title }}{% endblock %}
-
 {% block content %}
-
-<div class="card">
-    <div class="card-head">
-        <div>
-            <h2>{{ page_title }}</h2>
-            <p>Create or edit vendor information for {{ company.name }}.</p>
+<div class="record-page vendor-record">
+    <div class="record-banner">
+        <div class="record-banner-main">
+            <div class="record-icon">V</div>
+            <div>
+                <div class="record-eyebrow">Vendor master</div>
+                <h1>{{ page_title }}</h1>
+                <p>Supplier identity, contact information and payable setup for {{ company.name }}.</p>
+            </div>
         </div>
-
-        <a href="{% url 'vendor_center' %}" class="btn btn-light">← Back</a>
+        <a href="{% url 'vendor_center' %}" class="btn btn-light">← Vendor Center</a>
     </div>
 
-    <form method="post">
+    <form method="post" class="card">
         {% csrf_token %}
+        {% if form.non_field_errors %}<div class="message error">{{ form.non_field_errors }}</div>{% endif %}
 
-        {% if form.non_field_errors %}
-            <div class="message error">{{ form.non_field_errors }}</div>
-        {% endif %}
-
-        <div class="form-grid">
-            <div class="form-group">
-                <label>Vendor ID / Code</label>
-                {{ form.code }}
-                {{ form.code.errors }}
-            </div>
-
-            <div class="form-group">
-                <label>Vendor Name</label>
-                {{ form.name }}
-                {{ form.name.errors }}
-            </div>
-
-            <div class="form-group">
-                <label>Phone</label>
-                {{ form.phone }}
-                {{ form.phone.errors }}
-            </div>
-
-            <div class="form-group">
-                <label>Email</label>
-                {{ form.email }}
-                {{ form.email.errors }}
-            </div>
-
-            <div class="form-group">
-                <label>Contact Person</label>
-                {{ form.contact_person }}
-                {{ form.contact_person.errors }}
-            </div>
-
-            <div class="form-group">
-                <label>Opening Balance</label>
-                {{ form.opening_balance }}
-                {{ form.opening_balance.errors }}
-            </div>
-
-            <div class="form-group">
-                <label>Status</label>
-                {{ form.is_active }}
-                Active Vendor
-                {{ form.is_active.errors }}
+        <div class="record-section">
+            <div class="record-section-title">Supplier identity & contact</div>
+            <div class="record-section-body record-compact-grid">
+                <div class="form-group"><label>Vendor ID / Code</label>{{ form.code }}{{ form.code.errors }}</div>
+                <div class="form-group"><label>Vendor Name</label>{{ form.name }}{{ form.name.errors }}</div>
+                <div class="form-group"><label>Phone</label>{{ form.phone }}{{ form.phone.errors }}</div>
+                <div class="form-group"><label>Email</label>{{ form.email }}{{ form.email.errors }}</div>
+                <div class="form-group"><label>Contact Person</label>{{ form.contact_person }}{{ form.contact_person.errors }}</div>
+                <div class="form-group record-span-2"><label>Address</label>{{ form.address }}{{ form.address.errors }}</div>
             </div>
         </div>
 
-        <div class="form-group">
-            <label>Address</label>
-            {{ form.address }}
-            {{ form.address.errors }}
-        </div>
-
-        <div class="form-group">
-            <label>Memo</label>
-            {{ form.memo }}
-            {{ form.memo.errors }}
+        <div class="record-section">
+            <div class="record-section-title">Payable setup</div>
+            <div class="record-section-body record-compact-grid">
+                <div class="form-group"><label>Opening Balance</label>{{ form.opening_balance }}{{ form.opening_balance.errors }}</div>
+                <div class="status-field" data-status-toggle>
+                    <div class="status-field-copy"><strong>Vendor Status</strong><span>Inactive vendors stay in history but cannot be used as active suppliers.</span></div>
+                    <span class="status-native-input">{{ form.is_active }}</span>
+                    <div class="status-toggle" role="group" aria-label="Vendor status">
+                        <button type="button" class="status-choice" data-value="1">Active</button>
+                        <button type="button" class="status-choice" data-value="0">Inactive</button>
+                    </div>
+                    {{ form.is_active.errors }}
+                </div>
+                <div class="form-group record-span-2"><label>Memo</label>{{ form.memo }}{{ form.memo.errors }}</div>
+            </div>
         </div>
 
         <div class="form-actions">
@@ -84,5 +53,4 @@
         </div>
     </form>
 </div>
-
 {% endblock %}

@@ -1,35 +1,53 @@
 {% extends "base.html" %}
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
-
-<div class="card">
-    <div class="card-head">
-        <div>
-            <h2>{{ page_title }}</h2>
-            <p>Customer master data for {{ company.name }}.</p>
-        </div>
-
-        <a href="{% url 'customer_center' %}" class="btn btn-light">← Back</a>
-    </div>
-
-    <form method="post">
-        {% csrf_token %}
-
-        <div class="form-grid">
-            {% for field in form %}
-            <div class="form-group">
-                <label>{{ field.label }}</label>
-                {{ field }}
-                {{ field.errors }}
+<div class="record-page customer-record">
+    <div class="record-banner">
+        <div class="record-banner-main">
+            <div class="record-icon">C</div>
+            <div>
+                <div class="record-eyebrow">Customer account</div>
+                <h1>{{ page_title }}</h1>
+                <p>Customer profile, sales assignment and receivable setup for {{ company.name }}.</p>
             </div>
-            {% endfor %}
+        </div>
+        <a href="{% url 'customer_center' %}" class="btn btn-light">← Customer Center</a>
+    </div>
+    <form method="post" class="card">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="message error">{{ form.non_field_errors }}</div>{% endif %}
+
+        <div class="record-section">
+            <div class="record-section-title">Profile & contact</div>
+            <div class="record-section-body record-compact-grid three">
+                <div class="form-group"><label>{{ form.code.label }}</label>{{ form.code }}{{ form.code.errors }}</div>
+                <div class="form-group"><label>{{ form.name.label }}</label>{{ form.name }}{{ form.name.errors }}</div>
+                <div class="form-group"><label>{{ form.local_name.label }}</label>{{ form.local_name }}{{ form.local_name.errors }}</div>
+                <div class="form-group"><label>{{ form.phone.label }}</label>{{ form.phone }}{{ form.phone.errors }}</div>
+                <div class="form-group"><label>{{ form.email.label }}</label>{{ form.email }}{{ form.email.errors }}</div>
+                <div class="form-group"><label>{{ form.telegram.label }}</label>{{ form.telegram }}{{ form.telegram.errors }}</div>
+                <div class="form-group record-span-2"><label>{{ form.address.label }}</label>{{ form.address }}{{ form.address.errors }}</div>
+            </div>
         </div>
 
-        <div class="form-actions">
-            <button class="btn" type="submit">💾 {{ button_text }}</button>
-            <a href="{% url 'customer_center' %}" class="btn btn-light">Cancel</a>
+        <div class="record-section">
+            <div class="record-section-title">Sales & credit setup</div>
+            <div class="record-section-body record-compact-grid">
+                <div class="form-group"><label>{{ form.customer_type.label }}</label>{{ form.customer_type }}{{ form.customer_type.errors }}</div>
+                <div class="form-group"><label>{{ form.salesperson.label }}</label>{{ form.salesperson }}{{ form.salesperson.errors }}</div>
+                <div class="form-group"><label>{{ form.price_level.label }}</label>{{ form.price_level }}{{ form.price_level.errors }}</div>
+                <div class="form-group"><label>{{ form.region.label }}</label>{{ form.region }}{{ form.region.errors }}</div>
+                <div class="form-group"><label>{{ form.opening_balance.label }}</label>{{ form.opening_balance }}{{ form.opening_balance.errors }}</div>
+                <div class="status-field" data-status-toggle>
+                    <div class="status-field-copy"><strong>Customer Status</strong><span>Use Inactive when the customer should remain in history only.</span></div>
+                    <span class="status-native-input">{{ form.is_active }}</span>
+                    <div class="status-toggle" role="group" aria-label="Customer status"><button type="button" class="status-choice" data-value="1">Active</button><button type="button" class="status-choice" data-value="0">Inactive</button></div>
+                    {{ form.is_active.errors }}
+                </div>
+                <div class="form-group record-span-2"><label>{{ form.memo.label }}</label>{{ form.memo }}{{ form.memo.errors }}</div>
+            </div>
         </div>
+        <div class="form-actions"><button class="btn" type="submit">💾 {{ button_text }}</button><a href="{% url 'customer_center' %}" class="btn btn-light">Cancel</a></div>
     </form>
 </div>
-
 {% endblock %}

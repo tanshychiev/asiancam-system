@@ -3,6 +3,8 @@
 
 {% block content %}
 
+<div class="record-page account-record">
+<div class="record-banner"><div class="record-banner-main"><div class="record-icon">A</div><div><div class="record-eyebrow">Accounting operation</div><h1>{{ page_title }}</h1><p>{{ company.name }}</p></div></div></div>
 <div class="card">
     <div class="card-head">
         <div>
@@ -20,11 +22,16 @@
 
         <div class="form-grid">
             {% for field in form %}
-            <div class="form-group">
-                <label>{{ field.label }}</label>
-                {{ field }}
+            {% if field.name == 'is_active' %}
+            <div class="status-field" data-status-toggle>
+                <div class="status-field-copy"><strong>Status</strong><span>Active records are available for new accounting operations.</span></div>
+                <span class="status-native-input">{{ field }}</span>
+                <div class="status-toggle"><button type="button" class="status-choice" data-value="1">Active</button><button type="button" class="status-choice" data-value="0">Inactive</button></div>
                 {{ field.errors }}
             </div>
+            {% else %}
+            <div class="form-group"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+            {% endif %}
             {% endfor %}
         </div>
 
@@ -33,6 +40,7 @@
             <a href="{% url 'dashboard_home' %}" class="btn btn-light">Close</a>
         </div>
     </form>
+</div>
 </div>
 
 {% endblock %}

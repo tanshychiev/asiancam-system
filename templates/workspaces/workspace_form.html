@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
 {% block content %}
-<div class="card">
-    <h1>{{ title }}</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn" type="submit">Save</button>
-        <a class="btn gray" href="{% url 'workspace_list' %}">Cancel</a>
+<div class="record-page setup-record">
+    <div class="record-banner"><div class="record-banner-main"><div class="record-icon">W</div><div><div class="record-eyebrow">Monthly workspace</div><h1>{{ title }}</h1><p>Accounting period workspace setup. This is not a customer/vendor master record.</p></div></div><a href="{% url 'workspace_list' %}" class="btn btn-light">← Workspaces</a></div>
+    <form method="post" class="card">{% csrf_token %}
+        <div class="record-section"><div class="record-section-title">Period setup</div><div class="record-section-body form-grid">
+            {% for field in form %}<div class="form-group"><label>{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endfor %}
+        </div></div>
+        <div class="form-actions"><button class="btn" type="submit">💾 Save Workspace</button><a class="btn btn-light" href="{% url 'workspace_list' %}">Cancel</a></div>
     </form>
 </div>
 {% endblock %}

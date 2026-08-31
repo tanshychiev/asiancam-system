@@ -304,9 +304,10 @@
             </div>
         </div>
 
-        <div class="check-row">
-            {{ form.is_active }}
-            <label>Active user</label>
+        <div class="status-field" data-status-toggle>
+            <div class="status-field-copy"><strong>User Status</strong><span>Inactive users cannot sign in but remain in user history.</span></div>
+            <span class="status-native-input">{{ form.is_active }}</span>
+            <div class="status-toggle"><button type="button" class="status-choice" data-value="1">Active</button><button type="button" class="status-choice" data-value="0">Inactive</button></div>
         </div>
 
         <div class="actions">

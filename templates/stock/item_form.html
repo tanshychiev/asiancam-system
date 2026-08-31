@@ -1,41 +1,32 @@
 {% extends "base.html" %}
-
 {% block title %}{{ page_title }}{% endblock %}
-
 {% block content %}
-
-<div class="card">
-    <div class="card-head">
-        <div>
-            <h2>{{ page_title }}</h2>
-            <p>Create item master and connect item to accounting accounts.</p>
-        </div>
-
-        <a href="{% url 'stock_item_list' %}" class="btn btn-light">← Back</a>
+<div class="record-page item-record">
+    <div class="record-banner">
+        <div class="record-banner-main"><div class="record-icon">I</div><div><div class="record-eyebrow">Inventory master</div><h1>{{ page_title }}</h1><p>Item identity, pricing and accounting mapping.</p></div></div>
+        <a href="{% url 'stock_item_list' %}" class="btn btn-light">← Item List</a>
     </div>
-
-    <form method="post">
+    <form method="post" class="card">
         {% csrf_token %}
-
-        <div class="form-grid">
-            {% for field in form %}
-                <div class="form-group">
-                    <label>{{ field.label }}</label>
-                    {{ field }}
-                    {{ field.errors }}
-                </div>
-            {% endfor %}
-        </div>
-
-        <div class="message">
-            For reporting: Inventory Account, COGS Account, and Revenue Account help connect stock/sales to reports.
-        </div>
-
-        <div class="form-actions">
-            <button type="submit" class="btn">💾 {{ button_text }}</button>
-            <a href="{% url 'stock_item_list' %}" class="btn btn-light">Cancel</a>
-        </div>
+        {% if form.non_field_errors %}<div class="message error">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="record-section"><div class="record-section-title">Item identity</div><div class="record-section-body record-compact-grid three">
+            <div class="form-group"><label>{{ form.code.label }}</label>{{ form.code }}{{ form.code.errors }}</div>
+            <div class="form-group"><label>{{ form.name.label }}</label>{{ form.name }}{{ form.name.errors }}</div>
+            <div class="form-group"><label>{{ form.item_type.label }}</label>{{ form.item_type }}{{ form.item_type.errors }}</div>
+            <div class="form-group"><label>{{ form.item_group.label }}</label>{{ form.item_group }}{{ form.item_group.errors }}</div>
+            <div class="form-group"><label>{{ form.item_brand.label }}</label>{{ form.item_brand }}{{ form.item_brand.errors }}</div>
+            <div class="form-group"><label>{{ form.unit_set.label }}</label>{{ form.unit_set }}{{ form.unit_set.errors }}</div>
+        </div></div>
+        <div class="record-section"><div class="record-section-title">Price & accounting</div><div class="record-section-body record-compact-grid three">
+            <div class="form-group"><label>{{ form.cost_price.label }}</label>{{ form.cost_price }}{{ form.cost_price.errors }}</div>
+            <div class="form-group"><label>{{ form.sale_price.label }}</label>{{ form.sale_price }}{{ form.sale_price.errors }}</div>
+            <div class="status-field" data-status-toggle><div class="status-field-copy"><strong>Item Status</strong><span>Inactive items stay in records but are unavailable for new transactions.</span></div><span class="status-native-input">{{ form.is_active }}</span><div class="status-toggle" role="group" aria-label="Item status"><button type="button" class="status-choice" data-value="1">Active</button><button type="button" class="status-choice" data-value="0">Inactive</button></div>{{ form.is_active.errors }}</div>
+            <div class="form-group"><label>{{ form.inventory_account.label }}</label>{{ form.inventory_account }}{{ form.inventory_account.errors }}</div>
+            <div class="form-group"><label>{{ form.cogs_account.label }}</label>{{ form.cogs_account }}{{ form.cogs_account.errors }}</div>
+            <div class="form-group"><label>{{ form.revenue_account.label }}</label>{{ form.revenue_account }}{{ form.revenue_account.errors }}</div>
+            <div class="form-group record-span-2"><label>{{ form.memo.label }}</label>{{ form.memo }}{{ form.memo.errors }}</div>
+        </div></div>
+        <div class="form-actions"><button type="submit" class="btn">💾 {{ button_text }}</button><a href="{% url 'stock_item_list' %}" class="btn btn-light">Cancel</a></div>
     </form>
 </div>
-
 {% endblock %}
