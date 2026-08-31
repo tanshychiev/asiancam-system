@@ -25,14 +25,12 @@ urlpatterns = [
     path("purchase-order/new/", views.purchase_bill_create, name="purchase_order_create"),
     path(
         "cash-expense/new/",
-        views.vendor_transaction_create,
-        {"transaction_type": VendorTransaction.TYPE_CASH_EXPENSE},
+        views.vendor_payment_new,
         name="cash_expense_create",
     ),
     path(
         "payment/new/",
-        views.vendor_transaction_create,
-        {"transaction_type": VendorTransaction.TYPE_VENDOR_PAYMENT},
+        views.vendor_payment_new,
         name="vendor_payment_create",
     ),
 ]

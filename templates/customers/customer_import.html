@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block title %}Import Customers{% endblock %}{% block content %}
+<div class="card accounting-sheet" style="max-width:760px;margin:auto">
+  <div class="card-head"><div><h2>Import Customer List</h2><p>Batch add/update customers from Excel.</p></div></div>
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    <div class="form-group"><label>Excel file (.xlsx)</label><input type="file" name="file" accept=".xlsx" required></div>
+    <p class="muted">Columns supported: Customer ID, Customer Name, Local Name, Phone, Email, Telegram, Address.</p>
+    <div class="form-actions"><button class="btn" type="submit">Import Excel</button><a class="btn btn-light" href="{% url 'customer_center' %}">Close</a></div>
+  </form>
+</div>{% endblock %}

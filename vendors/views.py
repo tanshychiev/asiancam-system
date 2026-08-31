@@ -756,3 +756,49 @@ def vendor_transaction_detail(request, transaction_id):
         "company": company,
         "transaction": vendor_transaction,
     })
+
+# =========================================================
+# CUSTOMER REQUIREMENT PAYMENT IMPLEMENTATION
+# =========================================================
+from .forms import VendorPaymentForm, VendorPaymentAllocationFormSet, VendorPaymentOtherChargeFormSet
+from .models import VendorPayment, VendorPaymentAllocation, VendorPaymentOtherCharge
+
+
+def create_vendor_payment_journal(payment,user):
+    if payment.status!=VendorPayment.STATUS_POSTED or payment.total_amount<=0:return None
+    with transaction.atomic():
+        if payment.journal_entry_id:payment.journal_entry.delete()
+        entry=JournalEntry.objects.create(company=payment.company,entry_date=payment.payment_date,reference_no=payment.number,description=f"Payment - {payment.vendor.name}",status=get_posted_status(),created_by=user)
+        ap_total=payment.allocations.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+        if ap_total>0:JournalEntryLine.objects.create(journal_entry=entry,account=payment.accounts_payable_account,description="Apply to bills",debit=ap_total,credit=Decimal("0.00"))
+        for ch in payment.other_charges.select_related("account"):
+            if ch.amount>0:JournalEntryLine.objects.create(journal_entry=entry,account=ch.account,description=ch.memo,debit=ch.amount,credit=Decimal("0.00"))
+        JournalEntryLine.objects.create(journal_entry=entry,account=payment.payment_account,description=payment.memo or "Vendor payment",debit=Decimal("0.00"),credit=payment.total_amount)
+        payment.journal_entry=entry;payment.save(update_fields=["journal_entry"])
+    return entry
+
+
+def _vendor_payment_formset(formset_class,data,instance,company,prefix,extra=None):
+    return formset_class(data=data,instance=instance,prefix=prefix,form_kwargs={"company":company,**(extra or {})}) if data is not None else formset_class(instance=instance,prefix=prefix,form_kwargs={"company":company,**(extra or {})})
+
+@login_required
+def vendor_payment_new(request):
+    company,response=require_company_access(request)
+    if response:return response
+    payment=VendorPayment(company=company,created_by=request.user)
+    vendor_id=(request.POST.get("vendor") if request.method=="POST" else request.GET.get("vendor")) or None
+    form=VendorPaymentForm(request.POST or None,instance=payment,company=company)
+    allocations=_vendor_payment_formset(VendorPaymentAllocationFormSet,request.POST if request.method=="POST" else None,payment,company,"alloc",{"vendor_id":vendor_id})
+    charges=_vendor_payment_formset(VendorPaymentOtherChargeFormSet,request.POST if request.method=="POST" else None,payment,company,"charge")
+    if request.method=="POST" and form.is_valid() and allocations.is_valid() and charges.is_valid():
+        try:
+            with transaction.atomic():
+                payment=form.save(commit=False);payment.company=company;payment.created_by=request.user;payment.status=VendorPayment.STATUS_POSTED;payment.save()
+                allocations.instance=payment;allocations.save();charges.instance=payment;charges.save();payment.recalculate_total();create_vendor_payment_journal(payment,request.user)
+            messages.success(request,"Payment saved successfully.")
+            if request.POST.get("save_action")=="save_new":return redirect("vendor_payment_create")
+            return redirect("vendor_center")
+        except Exception as exc:messages.error(request,f"Could not save payment: {exc}")
+    bills=PurchaseBill.objects.filter(company=company,status=PurchaseBill.STATUS_POSTED)
+    if vendor_id:bills=bills.filter(vendor_id=vendor_id)
+    return render(request,"vendors/payment_form.html",{"company":company,"form":form,"allocation_formset":allocations,"charge_formset":charges,"bills":bills})

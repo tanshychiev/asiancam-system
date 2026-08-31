@@ -161,6 +161,13 @@ def customer_center(request):
         transaction_type=CustomerTransaction.TYPE_RECEIVE_PAYMENT,
     ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
+    # Include the new customer-required Invoice / Receipt workflow while preserving legacy history.
+    try:
+        total_invoice += SalesInvoice.objects.filter(company=company, document_type=SalesInvoice.TYPE_INVOICE, status=SalesInvoice.STATUS_POSTED).aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
+        total_payment += CustomerReceipt.objects.filter(company=company, status=CustomerReceipt.STATUS_POSTED).aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
+    except Exception:
+        # Before the new migration is applied, keep the legacy dashboard usable.
+        pass
     ar_balance = total_invoice - total_payment
 
     return render(request, "customers/customer_center.html", {
@@ -600,3 +607,218 @@ def invoice_create(request):
 @login_required
 def receive_payment_create(request):
     return customer_transaction_create(request, CustomerTransaction.TYPE_RECEIVE_PAYMENT)
+# =========================================================
+# CUSTOMER REQUIREMENT IMPLEMENTATION
+# =========================================================
+from django.http import HttpResponse
+from django.forms import modelformset_factory
+from openpyxl import Workbook, load_workbook
+from stock.models import Item
+from .forms import SalesInvoiceForm, SalesInvoiceLineFormSet, CustomerReceiptForm, CustomerReceiptAllocationFormSet, CustomerReceiptOtherChargeFormSet
+from .models import SalesInvoice, SalesInvoiceLine, CustomerReceipt, CustomerReceiptAllocation, CustomerReceiptOtherCharge
+
+
+def _formset_with_company(formset_class, data, instance, company, extra_kwargs=None, prefix=None):
+    extra_kwargs = extra_kwargs or {}
+    kwargs = {"instance": instance, "prefix": prefix, "form_kwargs": {"company": company, **extra_kwargs}}
+    if data is not None:
+        kwargs["data"] = data
+    return formset_class(**kwargs)
+
+
+def create_sales_invoice_journal(invoice, user):
+    if invoice.status != SalesInvoice.STATUS_POSTED or invoice.total_amount <= 0:
+        return None
+    with transaction.atomic():
+        if invoice.journal_entry_id:
+            invoice.journal_entry.delete()
+        entry = JournalEntry.objects.create(company=invoice.company, entry_date=invoice.invoice_date,
+            reference_no=invoice.number, description=f"{invoice.get_document_type_display()} - {invoice.customer.name}", status=get_posted_status(), created_by=user)
+        debit_account = invoice.deposit_account if invoice.document_type == SalesInvoice.TYPE_SALE_RECEIPT else invoice.accounts_receivable_account
+        JournalEntryLine.objects.create(journal_entry=entry, account=debit_account, description=invoice.memo or invoice.get_document_type_display(), debit=invoice.total_amount, credit=Decimal("0.00"))
+        for line in invoice.lines.select_related("revenue_account"):
+            net = (line.line_amount or Decimal("0")) + (line.tax_amount or Decimal("0")) - (line.discount_amount or Decimal("0"))
+            if net > 0:
+                JournalEntryLine.objects.create(journal_entry=entry, account=line.revenue_account, description=line.description or line.item.name, debit=Decimal("0.00"), credit=net)
+        invoice.journal_entry = entry; invoice.save(update_fields=["journal_entry"])
+    return entry
+
+
+def create_customer_receipt_journal(receipt, user):
+    if receipt.status != CustomerReceipt.STATUS_POSTED or receipt.total_amount <= 0:
+        return None
+    with transaction.atomic():
+        if receipt.journal_entry_id: receipt.journal_entry.delete()
+        entry=JournalEntry.objects.create(company=receipt.company,entry_date=receipt.receipt_date,reference_no=receipt.number,description=f"Receipt / Collection - {receipt.customer.name}",status=get_posted_status(),created_by=user)
+        JournalEntryLine.objects.create(journal_entry=entry,account=receipt.deposit_account,description=receipt.memo or "Customer receipt",debit=receipt.total_amount,credit=Decimal("0.00"))
+        ar_account=None
+        for alloc in receipt.allocations.select_related("invoice__accounts_receivable_account"):
+            ar_account=alloc.invoice.accounts_receivable_account
+            credit=(alloc.amount or Decimal("0"))+(alloc.discount or Decimal("0"))
+            if credit>0: JournalEntryLine.objects.create(journal_entry=entry,account=ar_account,description=f"Apply {alloc.invoice.number}",debit=Decimal("0.00"),credit=credit)
+        for ch in receipt.other_charges.select_related("account"):
+            if ch.amount>0: JournalEntryLine.objects.create(journal_entry=entry,account=ch.account,description=ch.memo,debit=Decimal("0.00"),credit=ch.amount)
+        receipt.journal_entry=entry;receipt.save(update_fields=["journal_entry"])
+    return entry
+
+
+@login_required
+def customer_export_excel(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    # Use the same search as Customer Center so the Excel file matches
+    # what the user is currently viewing.
+    query = (request.GET.get("q") or "").strip()
+
+    customers = Customer.objects.filter(company=company)
+
+    if query:
+        customers = customers.filter(
+            Q(name__icontains=query)
+            | Q(code__icontains=query)
+            | Q(phone__icontains=query)
+            | Q(email__icontains=query)
+            | Q(telegram__icontains=query)
+        )
+
+    customers = customers.select_related(
+        "salesperson",
+        "region",
+    ).order_by("name")
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Customer List"
+
+    ws.append([
+        "Customer",
+        "Code",
+        "Phone",
+        "Email",
+        "Salesperson",
+        "Region",
+        "A/R Balance",
+    ])
+
+    for customer in customers:
+        ws.append([
+            customer.name or "",
+            customer.code or "",
+            customer.phone or "",
+            customer.email or "",
+            customer.salesperson.name if customer.salesperson else "",
+            customer.region.name if customer.region else "",
+            float(customer.ar_balance or 0),
+        ])
+
+    # Make the downloaded sheet easier to read.
+    widths = {
+        "A": 30,
+        "B": 16,
+        "C": 18,
+        "D": 30,
+        "E": 22,
+        "F": 22,
+        "G": 16,
+    }
+    for column, width in widths.items():
+        ws.column_dimensions[column].width = width
+
+    for cell in ws[1]:
+        cell.font = cell.font.copy(bold=True)
+
+    for cell in ws["G"][1:]:
+        cell.number_format = '#,##0.00'
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="customer_list.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def customer_import_excel(request):
+    company,response=require_company_access(request)
+    if response:return response
+    if request.method=="POST" and request.FILES.get("file"):
+        try:
+            wb=load_workbook(request.FILES["file"],data_only=True);ws=wb.active;created=updated=0
+            headers=[str(x.value or "").strip().lower() for x in ws[1]]
+            def idx(*names):
+                for n in names:
+                    if n in headers:return headers.index(n)
+                return None
+            name_i=idx("customer name","name");code_i=idx("customer id","code")
+            if name_i is None: raise ValueError("Excel needs a Customer Name column.")
+            for row in ws.iter_rows(min_row=2,values_only=True):
+                name=str(row[name_i] or "").strip()
+                if not name:continue
+                code=str(row[code_i] or "").strip() if code_i is not None else ""
+                defaults={"code":code}
+                for field,names in [("phone",("phone",)),("email",("email",)),("telegram",("telegram",)),("address",("address",)),("local_name",("local name",))]:
+                    i=idx(*names)
+                    if i is not None:defaults[field]=str(row[i] or "").strip()
+                obj,was_created=Customer.objects.update_or_create(company=company,name=name,defaults=defaults)
+                created+=int(was_created);updated+=int(not was_created)
+            messages.success(request,f"Customer import complete: {created} created, {updated} updated.");return redirect("customer_center")
+        except Exception as exc:messages.error(request,f"Import failed: {exc}")
+    return render(request,"customers/customer_import.html",{"company":company})
+
+
+@login_required
+def sales_invoice_list(request, document_type=SalesInvoice.TYPE_INVOICE):
+    company,response=require_company_access(request)
+    if response:return response
+    qs=SalesInvoice.objects.filter(company=company,document_type=document_type).select_related("customer")
+    q=(request.GET.get("q") or "").strip()
+    if q:qs=qs.filter(Q(number__icontains=q)|Q(customer__name__icontains=q)|Q(customer__code__icontains=q)|Q(po_number__icontains=q))
+    return render(request,"customers/invoice_list.html",{"company":company,"invoices":qs,"document_type":document_type,"query":q,"page_title":"Sale Receipt" if document_type==SalesInvoice.TYPE_SALE_RECEIPT else "Sale Invoices"})
+
+
+def _invoice_formsets(request,company,invoice):
+    return _formset_with_company(SalesInvoiceLineFormSet,request.POST if request.method=="POST" else None,invoice,company,prefix="lines")
+
+@login_required
+def sales_invoice_create(request, document_type=SalesInvoice.TYPE_INVOICE):
+    company,response=require_company_access(request)
+    if response:return response
+    invoice=SalesInvoice(company=company,document_type=document_type,created_by=request.user)
+    form=SalesInvoiceForm(request.POST or None,instance=invoice,company=company,document_type=document_type)
+    lines=_invoice_formsets(request,company,invoice)
+    if request.method=="POST" and form.is_valid() and lines.is_valid():
+        try:
+            with transaction.atomic():
+                invoice=form.save(commit=False);invoice.company=company;invoice.document_type=document_type;invoice.created_by=request.user;invoice.status=SalesInvoice.STATUS_POSTED;invoice.save()
+                lines.instance=invoice;lines.save();invoice.recalculate_totals();create_sales_invoice_journal(invoice,request.user)
+            messages.success(request,f"{invoice.get_document_type_display()} saved successfully.")
+            if request.POST.get("save_action")=="save_new":return redirect("sale_receipt_create" if document_type==SalesInvoice.TYPE_SALE_RECEIPT else "customer_invoice_create")
+            return redirect("sale_receipt_list" if document_type==SalesInvoice.TYPE_SALE_RECEIPT else "customer_invoice_list")
+        except Exception as exc:messages.error(request,f"Could not save: {exc}")
+    return render(request,"customers/invoice_form.html",{"company":company,"form":form,"line_formset":lines,"document_type":document_type,"page_title":"Sale Receipt" if document_type==SalesInvoice.TYPE_SALE_RECEIPT else "Sale Invoice"})
+
+
+@login_required
+def customer_receipt_create(request):
+    company,response=require_company_access(request)
+    if response:return response
+    receipt=CustomerReceipt(company=company,created_by=request.user)
+    customer_id=(request.POST.get("customer") if request.method=="POST" else request.GET.get("customer")) or None
+    form=CustomerReceiptForm(request.POST or None,instance=receipt,company=company)
+    allocations=_formset_with_company(CustomerReceiptAllocationFormSet,request.POST if request.method=="POST" else None,receipt,company,{"customer_id":customer_id},"alloc")
+    charges=_formset_with_company(CustomerReceiptOtherChargeFormSet,request.POST if request.method=="POST" else None,receipt,company,prefix="charge")
+    if request.method=="POST" and form.is_valid() and allocations.is_valid() and charges.is_valid():
+        try:
+            with transaction.atomic():
+                receipt=form.save(commit=False);receipt.company=company;receipt.created_by=request.user;receipt.status=CustomerReceipt.STATUS_POSTED;receipt.save()
+                allocations.instance=receipt;allocations.save();charges.instance=receipt;charges.save();receipt.recalculate_total();create_customer_receipt_journal(receipt,request.user)
+            messages.success(request,"Receipt / Collection saved.")
+            if request.POST.get("save_action")=="save_new":return redirect("receive_payment_create")
+            return redirect("customer_center")
+        except Exception as exc:messages.error(request,f"Could not save receipt: {exc}")
+    open_invoices=SalesInvoice.objects.filter(company=company,document_type=SalesInvoice.TYPE_INVOICE,status=SalesInvoice.STATUS_POSTED)
+    if customer_id:open_invoices=open_invoices.filter(customer_id=customer_id)
+    return render(request,"customers/receipt_form.html",{"company":company,"form":form,"allocation_formset":allocations,"charge_formset":charges,"open_invoices":open_invoices})

@@ -1,114 +1,75 @@
 from django.urls import path
 
-from . import views
-from .models import ImportHistory
+from . import views, report_pages
+from .report_exports import export_accounting_report
+
 
 urlpatterns = [
-    # =========================
-    # Bank
-    # =========================
-    path("bank-accounts/", views.bank_account_list, name="ops_bank_account_list"),
-    path("bank-accounts/new/", views.bank_account_create, name="ops_bank_account_create"),
+    # =====================================================
+    # Chart of Accounts
+    # =====================================================
+    path("chart-of-accounts/", views.chart_of_accounts, name="chart_of_accounts"),
+    path("chart-of-accounts/setup-sample/", views.setup_sample_coa, name="setup_sample_coa"),
+    path("chart-of-accounts/new/", views.account_create, name="account_create"),
+    path("chart-of-accounts/<int:account_id>/edit/", views.account_edit, name="account_edit"),
+    path("chart-of-accounts/<int:account_id>/toggle/", views.account_toggle_active, name="account_toggle_active"),
 
-    path("bank-deposits/", views.bank_deposit_list, name="ops_bank_deposit_list"),
-    path("bank-deposits/new/", views.bank_deposit_create, name="ops_bank_deposit_create"),
+    # =====================================================
+    # Journal / Accounting Data
+    # =====================================================
+    path("journals/", views.journal_list, name="journal_list"),
+    path("journals/new/", views.journal_create, name="journal_create"),
+    path("journals/<int:entry_id>/", views.journal_detail, name="journal_detail"),
+    path("journals/<int:entry_id>/edit/", views.journal_edit, name="journal_edit"),
+    path("journals/<int:entry_id>/delete/", views.journal_delete, name="journal_delete"),
 
-    path("bank-rules/", views.bank_rule_list, name="ops_bank_rule_list"),
-    path("bank-rules/new/", views.bank_rule_create, name="ops_bank_rule_create"),
+    # Dashboard shortcuts
+    path("data/", views.accounting_data_list, name="accounting_data_list"),
+    path("data/new/", views.accounting_data_create, name="accounting_data_create"),
 
-    path("bank-reconciles/", views.bank_reconcile_list, name="ops_bank_reconcile_list"),
-    path("bank-reconciles/new/", views.bank_reconcile_create, name="ops_bank_reconcile_create"),
+    # =====================================================
+    # Journal Excel Import
+    # =====================================================
+    path("import-excel/", views.accounting_import_excel, name="accounting_import_excel"),
+    path("import-excel/sample/", views.download_journal_import_sample, name="download_journal_import_sample"),
 
-    # =========================
-    # Landed Cost
-    # =========================
-    path("landed-costs/", views.landed_cost_list, name="ops_landed_cost_list"),
-    path("landed-costs/new/", views.landed_cost_create, name="ops_landed_cost_create"),
+    # =====================================================
+    # Bulk Update - 3 Real Functions
+    # =====================================================
+    path("bulk-update/", views.bulk_update_items, name="bulk_update_menu"),
+    path("bulk-update/vendors/", views.bulk_update_vendors, name="bulk_update_vendors"),
+    path("bulk-update/items/", views.bulk_update_items, name="bulk_update_items"),
+    path("bulk-update/customers/", views.bulk_update_customers, name="bulk_update_customers"),
 
-    # =========================
-    # Search / Batch
-    # =========================
-    path("find-transaction/", views.find_transaction, name="ops_find_transaction"),
-    path("batch-transaction/", views.batch_transaction, name="ops_batch_transaction"),
+    path("bulk-update/sample/", views.download_bulk_update_sample, name="download_bulk_update_sample"),
+    path("bulk-update/upload/", views.upload_bulk_update, name="upload_bulk_update"),
+    path("bulk-update/report/<int:log_id>/", views.bulk_update_report, name="bulk_update_report"),
 
-    # =========================
-    # Import Pages - Master Data
-    # =========================
-    path(
-        "import/chart-of-account/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_COA},
-        name="ops_import_coa",
-    ),
-    path(
-        "import/item/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_ITEM},
-        name="ops_import_item",
-    ),
-    path(
-        "import/vendor/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_VENDOR},
-        name="ops_import_vendor",
-    ),
-    path(
-        "import/customer/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_CUSTOMER},
-        name="ops_import_customer",
-    ),
+    # =====================================================
+    # Reports - 1 report = 1 page
+    # =====================================================
+    path("reports/", report_pages.report_home, name="accounting_reports"),
+    path("reports/profit-loss-by-month/", report_pages.report_profit_loss_by_month, name="report_profit_loss_by_month"),
+    path("reports/general-ledger/", report_pages.report_general_ledger, name="report_general_ledger"),
+    path("reports/ap-aging/", report_pages.report_ap_aging, name="report_ap_aging"),
+    path("reports/ar-aging/", report_pages.report_ar_aging, name="report_ar_aging"),
+    path("reports/balance-sheet/", report_pages.report_balance_sheet, name="report_balance_sheet"),
+    path("reports/profit-loss-standard/", report_pages.report_profit_loss_standard, name="report_profit_loss_standard"),
+    path("reports/journal-report/", report_pages.report_journal_report, name="report_journal_report"),
+    path("reports/trial-balance/", report_pages.report_trial_balance, name="report_trial_balance"),
+    path("reports/cash-flow/", report_pages.report_cash_flow, name="report_cash_flow"),
 
-    # =========================
-    # Import Pages - Opening Balance
-    # =========================
-    path(
-        "import/trial-balance/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_TRIAL_BALANCE},
-        name="ops_import_trial_balance",
-    ),
-    path(
-        "import/journal-opening/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_JOURNAL_OPENING},
-        name="ops_import_journal_opening",
-    ),
-    path(
-        "import/outstanding-ap/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_OUTSTANDING_AP},
-        name="ops_import_outstanding_ap",
-    ),
-    path(
-        "import/outstanding-ar/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_OUTSTANDING_AR},
-        name="ops_import_outstanding_ar",
-    ),
+    path("reports/ledger/<int:account_id>/", views.report_ledger_detail, name="report_ledger_detail"),
+    path("reports/export/<str:report_slug>/", export_accounting_report, name="accounting_report_export"),
 
-    # =========================
-    # Import Pages - Stock / Transaction
-    # =========================
-    path(
-        "import/stock-balance/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_STOCK_BALANCE},
-        name="ops_import_stock_balance",
-    ),
-    path(
-        "import/batch-transaction/",
-        views.import_page,
-        {"import_type": ImportHistory.TYPE_BATCH_TRANSACTION},
-        name="ops_import_batch_transaction",
-    ),
-
-    # =========================
-    # Download Sample Format
-    # =========================
-    path(
-        "sample/<str:import_type>/",
-        views.download_sample,
-        name="ops_download_sample",
-    ),
+    # =====================================================
+    # Menu pages
+    # =====================================================
+    path("report-mapping/", views.report_mapping, name="report_mapping"),
+    path("banking/", views.banking_menu, name="banking_menu"),
+    path("bank-deposit/", views.bank_deposit, name="bank_deposit"),
+    path("landed-cost/", views.landed_cost_allocation, name="landed_cost_allocation"),
+    path("find-transaction/", views.find_transaction, name="find_transaction"),
+    path("batch-transaction/", views.batch_transaction, name="batch_transaction"),
+    path("import/", views.import_menu, name="import_menu"),
 ]

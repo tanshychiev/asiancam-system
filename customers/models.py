@@ -274,3 +274,133 @@ class SalesDocument(models.Model):
 
     def __str__(self):
         return f"{self.get_document_type_display()} - {self.number or self.id}"
+# =========================================================
+# CUSTOMER REQUIREMENT DOCUMENTS (Invoice / Sale Receipt / Collection)
+# =========================================================
+class SalesInvoice(models.Model):
+    TYPE_INVOICE = "invoice"
+    TYPE_SALE_RECEIPT = "sale_receipt"
+    TYPE_CHOICES = [(TYPE_INVOICE, "Invoice"), (TYPE_SALE_RECEIPT, "Sale Receipt")]
+    STATUS_DRAFT = "draft"
+    STATUS_POSTED = "posted"
+    STATUS_VOID = "void"
+    STATUS_CHOICES = [(STATUS_DRAFT, "Draft"), (STATUS_POSTED, "Posted"), (STATUS_VOID, "Void")]
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="sales_invoices")
+    document_type = models.CharField(max_length=30, choices=TYPE_CHOICES, default=TYPE_INVOICE)
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="sales_invoices")
+    invoice_date = models.DateField(default=timezone.localdate)
+    due_date = models.DateField(null=True, blank=True)
+    number = models.CharField(max_length=80, blank=True)
+    po_number = models.CharField(max_length=80, blank=True)
+    currency = models.CharField(max_length=20, default="USD")
+    exchange_rate = models.DecimalField(max_digits=14, decimal_places=4, default=1)
+    accounts_receivable_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="sales_invoices_ar")
+    deposit_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, null=True, blank=True, related_name="sale_receipt_deposits")
+    salesperson = models.ForeignKey(Salesperson, on_delete=models.SET_NULL, null=True, blank=True)
+    memo = models.TextField(blank=True)
+    subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    tax_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    discount_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_POSTED)
+    journal_entry = models.OneToOneField(JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_invoice")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-invoice_date", "-id"]
+
+    def __str__(self):
+        return f"{self.number or ('INV-' + str(self.pk))} - {self.customer}"
+
+    def recalculate_totals(self, save=True):
+        subtotal = self.lines.aggregate(total=models.Sum("line_amount"))["total"] or Decimal("0.00")
+        tax = self.lines.aggregate(total=models.Sum("tax_amount"))["total"] or Decimal("0.00")
+        discount = self.lines.aggregate(total=models.Sum("discount_amount"))["total"] or Decimal("0.00")
+        self.subtotal, self.tax_total, self.discount_total = subtotal, tax, discount
+        self.total_amount = subtotal + tax - discount
+        if save:
+            self.save(update_fields=["subtotal", "tax_total", "discount_total", "total_amount", "updated_at"])
+        return self.total_amount
+
+    @property
+    def allocated_amount(self):
+        return self.receipt_allocations.filter(receipt__status=CustomerReceipt.STATUS_POSTED).aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+
+    @property
+    def open_balance(self):
+        if self.document_type == self.TYPE_SALE_RECEIPT:
+            return Decimal("0.00")
+        return max(Decimal("0.00"), (self.total_amount or Decimal("0.00")) - self.allocated_amount)
+
+
+class SalesInvoiceLine(models.Model):
+    invoice = models.ForeignKey(SalesInvoice, on_delete=models.CASCADE, related_name="lines")
+    item = models.ForeignKey("stock.Item", on_delete=models.PROTECT, related_name="sales_invoice_lines")
+    description = models.CharField(max_length=255, blank=True)
+    qty = models.DecimalField(max_digits=14, decimal_places=2, default=1)
+    unit_name = models.CharField(max_length=50, blank=True)
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    line_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    discount_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    revenue_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="sales_invoice_revenue_lines")
+    tax_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["id"]
+
+    def save(self, *args, **kwargs):
+        self.line_amount = (self.qty or Decimal("0")) * (self.unit_price or Decimal("0"))
+        if not self.unit_name and self.item_id and self.item.unit_set_id:
+            self.unit_name = self.item.unit_set.default_sale or self.item.unit_set.base_unit
+        if not self.revenue_account_id and self.item_id:
+            self.revenue_account = self.item.revenue_account
+        super().save(*args, **kwargs)
+
+
+class CustomerReceipt(models.Model):
+    STATUS_DRAFT = "draft"
+    STATUS_POSTED = "posted"
+    STATUS_VOID = "void"
+    STATUS_CHOICES = [(STATUS_DRAFT, "Draft"), (STATUS_POSTED, "Posted"), (STATUS_VOID, "Void")]
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="customer_receipts")
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="receipts")
+    receipt_date = models.DateField(default=timezone.localdate)
+    number = models.CharField(max_length=80, blank=True)
+    payment_method = models.CharField(max_length=80, blank=True, default="Cash")
+    deposit_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="customer_receipt_deposits")
+    currency = models.CharField(max_length=20, default="USD")
+    memo = models.TextField(blank=True)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_POSTED)
+    journal_entry = models.OneToOneField(JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name="customer_receipt")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-receipt_date", "-id"]
+
+    def recalculate_total(self, save=True):
+        allocations = self.allocations.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        charges = self.other_charges.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        self.total_amount = allocations + charges
+        if save:
+            self.save(update_fields=["total_amount"])
+        return self.total_amount
+
+
+class CustomerReceiptAllocation(models.Model):
+    receipt = models.ForeignKey(CustomerReceipt, on_delete=models.CASCADE, related_name="allocations")
+    invoice = models.ForeignKey(SalesInvoice, on_delete=models.PROTECT, related_name="receipt_allocations")
+    discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    memo = models.CharField(max_length=255, blank=True)
+
+
+class CustomerReceiptOtherCharge(models.Model):
+    receipt = models.ForeignKey(CustomerReceipt, on_delete=models.CASCADE, related_name="other_charges")
+    memo = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="customer_receipt_other_charges")

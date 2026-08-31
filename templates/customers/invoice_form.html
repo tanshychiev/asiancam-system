@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% block title %}{{ page_title }}{% endblock %}{% block content %}
+<div class="card accounting-sheet">
+<form method="post" id="invoiceForm">{% csrf_token %}
+<div class="card-head"><div><h2>{{ page_title }}</h2><p>Customer sales document</p></div></div>
+{% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+<div class="account-grid account-grid-4">
+  <div><label>Customer*</label>{{ form.customer }}{{ form.customer.errors }}</div>
+  <div><label>Date*</label>{{ form.invoice_date }}{{ form.invoice_date.errors }}</div>
+  <div><label>Number</label>{{ form.number }}</div>
+  <div><label>Currency*</label>{{ form.currency }}</div>
+  <div><label>A/R Account*</label>{{ form.accounts_receivable_account }}</div>
+  <div><label>Due Date</label>{{ form.due_date }}</div>
+  <div><label>PO Number</label>{{ form.po_number }}</div>
+  <div><label>Exchange Rate</label>{{ form.exchange_rate }}</div>
+  <div><label>Salesperson</label>{{ form.salesperson }}</div>
+  {% if document_type == 'sale_receipt' %}<div><label>Deposit To*</label>{{ form.deposit_account }}{{ form.deposit_account.errors }}</div>{% endif %}
+  <div class="span-2"><label>Memo</label>{{ form.memo }}</div>
+</div>
+<div class="sheet-tabs"><button type="button" class="sheet-tab active">Invoice Detail</button></div>
+{{ line_formset.management_form }}
+<div class="table-wrap"><table class="line-table"><thead><tr><th>Item Name / Code</th><th>Description</th><th>Qty</th><th>Unit</th><th>Price($)</th><th>Amount($)</th><th>Discount</th><th>Account</th><th>Tax</th><th></th></tr></thead><tbody id="lineBody">
+{% for f in line_formset %}<tr class="line-row">{% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}<td>{{ f.item }}{{ f.item.errors }}</td><td>{{ f.description }}</td><td>{{ f.qty }}</td><td>{{ f.unit_name }}</td><td>{{ f.unit_price }}</td><td class="js-line-amount">0.00</td><td>{{ f.discount_amount }}</td><td>{{ f.revenue_account }}</td><td>{{ f.tax_amount }}</td><td class="delete-cell">{{ f.DELETE }}</td></tr>{% endfor %}
+</tbody></table></div>
+<div class="totals-box"><div><span>Sub Total</span><strong id="subtotal">0.00</strong></div><div><span>Discount</span><strong id="discount">0.00</strong></div><div><span>Tax</span><strong id="tax">0.00</strong></div><div class="grand"><span>Grand Total</span><strong id="grand">0.00</strong></div></div>
+<div class="bottom-actions"><button class="btn" name="save_action" value="save_new">Save & New</button><button class="btn" name="save_action" value="save_close">Save & Close</button><a class="btn btn-light" href="{% if document_type == 'sale_receipt' %}{% url 'sale_receipt_list' %}{% else %}{% url 'customer_invoice_list' %}{% endif %}">Close</a></div>
+</form></div>
+<script>
+function n(el){return parseFloat((el&&el.value)||0)||0}function calc(){let sub=0,dis=0,tax=0;document.querySelectorAll('.line-row').forEach(r=>{let q=n(r.querySelector('.js-qty')),p=n(r.querySelector('.js-price')),d=n(r.querySelector('.js-discount')),t=n(r.querySelector('.js-tax'));let a=q*p;r.querySelector('.js-line-amount').textContent=a.toFixed(2);sub+=a;dis+=d;tax+=t});document.getElementById('subtotal').textContent=sub.toFixed(2);document.getElementById('discount').textContent=dis.toFixed(2);document.getElementById('tax').textContent=tax.toFixed(2);document.getElementById('grand').textContent=(sub-dis+tax).toFixed(2)}document.addEventListener('input',e=>{if(e.target.matches('.js-qty,.js-price,.js-discount,.js-tax'))calc()});calc();
+</script>{% endblock %}

@@ -1356,6 +1356,26 @@
     </style>
 
     {% block extra_css %}{% endblock %}
+
+<style id="customer-reference-style">
+/* Compact green desktop-accounting style requested in the customer reference PDF. */
+:root{--blue:#078a4b;--blue-dark:#066d3d;--blue-deep:#125b3a;--blue-soft:#f2faf6;--cyan:#28a86a;--border:#d8e4dc;--bg:#f7f9f8;--shadow:0 2px 8px rgba(0,0,0,.06);--shadow-soft:0 1px 5px rgba(0,0,0,.05);--green:#078a4b}
+html,body{background:#f6f7f6;font-size:13px}
+.system-topbar{background:#2e3b34;box-shadow:none;height:38px}
+.main-navbar{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);border-bottom:1px solid #d9e1dc;min-height:64px;padding:8px 18px}
+.brand-logo{background:#078a4b;border-radius:4px;box-shadow:none;width:42px;height:42px}.brand-text strong{color:#155c3c}
+.btn,.select-company-btn{background:#078a4b!important;border:1px solid #06773f!important;color:#fff!important;border-radius:3px!important;box-shadow:none!important;min-height:32px!important;padding:5px 12px!important;font-size:12px!important}
+.btn-light{background:#fff!important;color:#11613e!important;border:1px solid #8eb9a2!important}.btn:hover{filter:brightness(.96);transform:none!important}
+.card{border-radius:4px!important;box-shadow:0 1px 5px rgba(0,0,0,.06)!important;border:1px solid #dce5df!important;background:#fff!important;padding:16px!important}
+.card-head h2{font-size:18px!important;color:#155c3c!important}.card-head p{font-size:12px!important}.quick-card{border-radius:4px!important;box-shadow:none!important}
+input,select,textarea,.form-control{border-radius:2px!important;border:1px solid #cdd9d2!important;min-height:31px!important;padding:5px 7px!important;background:#fff!important;font-size:12px!important}
+table{font-size:12px!important}th{background:#f3f7f4!important;color:#355847!important;border-bottom:1px solid #cfdad3!important;padding:7px 6px!important}td{padding:6px!important;border-bottom:1px solid #e3e9e5!important}
+.accounting-sheet{max-width:1500px;margin:0 auto}.account-grid{display:grid;gap:9px 12px;margin:8px 0 14px}.account-grid-4{grid-template-columns:repeat(4,minmax(150px,1fr))}.account-grid label{display:block;font-size:11px;font-weight:700;color:#4d6559;margin-bottom:3px}.span-2{grid-column:span 2}
+.sheet-tabs{display:flex;border-bottom:2px solid #138b52;margin-top:14px;gap:2px}.sheet-tab{border:0;background:#eef5f1;color:#3f5f50;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer}.sheet-tab.active{background:#078a4b;color:white}.tab-panel{display:none}.tab-panel.active{display:block}
+.line-table select,.line-table input{min-width:85px}.line-table td{padding:3px!important}.delete-cell{width:40px}.totals-box{width:310px;margin:12px 0 12px auto;border:1px solid #d7e0da;background:#fbfcfb}.totals-box div{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #e5ebe7}.totals-box .grand{background:#eff7f2;color:#076d3d;font-size:14px}
+.bottom-actions{display:flex;justify-content:flex-end;gap:6px;border-top:1px solid #dde5e0;padding-top:10px;margin-top:14px}.compact-toolbar{display:flex;gap:6px;margin-bottom:10px}.compact-toolbar input{max-width:300px;width:100%}
+@media(max-width:900px){.account-grid-4{grid-template-columns:repeat(2,minmax(140px,1fr))}}@media(max-width:600px){.account-grid-4{grid-template-columns:1fr}.span-2{grid-column:span 1}}
+</style>
 </head>
 
 <body>

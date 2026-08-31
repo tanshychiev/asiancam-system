@@ -269,3 +269,56 @@ PurchaseBillExpenseLineFormSet = inlineformset_factory(
     extra=2,
     can_delete=True,
 )
+
+# =========================================================
+# CUSTOMER REQUIREMENT PAYMENT FORM
+# =========================================================
+from .models import VendorPayment, VendorPaymentAllocation, VendorPaymentOtherCharge
+
+class VendorPaymentForm(forms.ModelForm):
+    class Meta:
+        model=VendorPayment
+        fields=["vendor","payment_date","number","payment_method","payment_account","accounts_payable_account","currency","memo"]
+        widgets={
+            "vendor":forms.Select(attrs={"class":"form-control searchable-select","id":"id_vendor"}),
+            "payment_date":forms.DateInput(attrs={"type":"date","class":"form-control"}),
+            "number":forms.TextInput(attrs={"class":"form-control"}),
+            "payment_method":forms.TextInput(attrs={"class":"form-control"}),
+            "payment_account":forms.Select(attrs={"class":"form-control"}),
+            "accounts_payable_account":forms.Select(attrs={"class":"form-control"}),
+            "currency":forms.TextInput(attrs={"class":"form-control"}),
+            "memo":forms.Textarea(attrs={"class":"form-control","rows":2}),
+        }
+    def __init__(self,*args,**kwargs):
+        company=kwargs.pop("company",None);super().__init__(*args,**kwargs)
+        if company:
+            self.fields["vendor"].queryset=Vendor.objects.filter(company=company,is_active=True).order_by("name")
+            accounts=_company_accounts(company); self.fields["payment_account"].queryset=accounts; self.fields["accounts_payable_account"].queryset=accounts
+            if not self.is_bound and not self.instance.pk:
+                ap=find_default_ap_account(company); cash=(accounts.filter(name__icontains="cash").first() or accounts.filter(name__icontains="bank").first() or accounts.filter(account_type=ChartOfAccount.ACCOUNT_TYPE_ASSET).first())
+                if ap:self.fields["accounts_payable_account"].initial=ap.pk
+                if cash:self.fields["payment_account"].initial=cash.pk
+        else:
+            self.fields["vendor"].queryset=Vendor.objects.none();self.fields["payment_account"].queryset=ChartOfAccount.objects.none();self.fields["accounts_payable_account"].queryset=ChartOfAccount.objects.none()
+
+class VendorPaymentAllocationForm(forms.ModelForm):
+    class Meta:
+        model=VendorPaymentAllocation; fields=["bill","discount","amount","memo"]
+        widgets={"bill":forms.Select(attrs={"class":"form-control"}),"discount":forms.NumberInput(attrs={"class":"form-control","step":"0.01"}),"amount":forms.NumberInput(attrs={"class":"form-control","step":"0.01"}),"memo":forms.TextInput(attrs={"class":"form-control"})}
+    def __init__(self,*args,**kwargs):
+        company=kwargs.pop("company",None);vendor_id=kwargs.pop("vendor_id",None);super().__init__(*args,**kwargs)
+        qs=PurchaseBill.objects.none()
+        if company:
+            qs=PurchaseBill.objects.filter(company=company,status=PurchaseBill.STATUS_POSTED)
+            if vendor_id:qs=qs.filter(vendor_id=vendor_id)
+        self.fields["bill"].queryset=qs.order_by("bill_date","id")
+
+class VendorPaymentOtherChargeForm(forms.ModelForm):
+    class Meta:
+        model=VendorPaymentOtherCharge; fields=["memo","amount","account"]
+        widgets={"memo":forms.TextInput(attrs={"class":"form-control"}),"amount":forms.NumberInput(attrs={"class":"form-control","step":"0.01"}),"account":forms.Select(attrs={"class":"form-control"})}
+    def __init__(self,*args,**kwargs):
+        company=kwargs.pop("company",None);super().__init__(*args,**kwargs);self.fields["account"].queryset=_company_accounts(company) if company else ChartOfAccount.objects.none()
+
+VendorPaymentAllocationFormSet=inlineformset_factory(VendorPayment,VendorPaymentAllocation,form=VendorPaymentAllocationForm,extra=1,can_delete=True)
+VendorPaymentOtherChargeFormSet=inlineformset_factory(VendorPayment,VendorPaymentOtherCharge,form=VendorPaymentOtherChargeForm,extra=1,can_delete=True)

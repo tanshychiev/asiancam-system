@@ -1,40 +1,37 @@
 from decimal import Decimal, InvalidOperation
+from datetime import date, datetime
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Alignment, Font, PatternFill
 
-from accounting.models import ChartOfAccount, JournalEntry, JournalEntryLine
 from core.models import Company
 
 from .forms import (
-    BankAccountForm,
-    BankDepositForm,
-    BankReconcileForm,
-    BankRuleForm,
-    ImportUploadForm,
-    LandedCostAllocationForm,
+    ChartOfAccountForm,
+    JournalEntryForm,
+    JournalEntryLineFormSet,
 )
-from .importers import process_import
 from .models import (
-    BankAccount,
-    BankDeposit,
-    BankReconcile,
-    BankRule,
-    ImportHistory,
-    LandedCostAllocation,
+    AccountCustomer,
+    AccountItem,
+    BulkImportLog,
+    ChartOfAccount,
+    JournalEntry,
+    JournalEntryLine,
 )
+from .sample_coa import create_sample_coa
 
 
 # =========================================================
-# COMPANY ACCESS
+# HELPERS
 # =========================================================
 
 def get_selected_company(request):
@@ -81,14 +78,6 @@ def require_company_access(request):
     return company, None
 
 
-# =========================================================
-# JOURNAL HELPERS
-# =========================================================
-
-def get_posted_status():
-    return getattr(JournalEntry, "STATUS_POSTED", "posted")
-
-
 def to_decimal(value):
     if value in [None, ""]:
         return Decimal("0.00")
@@ -99,422 +88,219 @@ def to_decimal(value):
         return Decimal("0.00")
 
 
-def create_simple_journal(company, user, entry_date, reference_no, description, debit_account, credit_account, amount):
-    if not debit_account or not credit_account:
-        return None
+def parse_excel_date(value):
+    if not value:
+        return timezone.localdate()
 
-    if amount <= 0:
-        return None
+    if isinstance(value, datetime):
+        return value.date()
 
-    entry = JournalEntry.objects.create(
+    if isinstance(value, date):
+        return value
+
+    try:
+        return datetime.strptime(str(value).strip(), "%Y-%m-%d").date()
+    except ValueError:
+        return timezone.localdate()
+
+
+def get_posted_status():
+    return getattr(JournalEntry, "STATUS_POSTED", "posted")
+
+
+def get_draft_status():
+    return getattr(JournalEntry, "STATUS_DRAFT", "draft")
+
+
+# =========================================================
+# CHART OF ACCOUNTS
+# =========================================================
+
+@login_required
+def chart_of_accounts(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    query = (request.GET.get("q") or "").strip()
+    account_type = (request.GET.get("account_type") or "").strip()
+    report_type = (request.GET.get("report_type") or "").strip()
+
+    accounts = ChartOfAccount.objects.filter(company=company)
+
+    if query:
+        accounts = accounts.filter(
+            Q(code__icontains=query)
+            | Q(name__icontains=query)
+            | Q(local_name__icontains=query)
+            | Q(description__icontains=query)
+        )
+
+    if account_type:
+        accounts = accounts.filter(account_type=account_type)
+
+    if report_type:
+        accounts = accounts.filter(report_type=report_type)
+
+    accounts = accounts.select_related("parent").order_by("code")
+
+    total_accounts = accounts.count()
+    active_accounts = accounts.filter(is_active=True).count()
+    group_accounts = accounts.filter(is_group=True).count()
+
+    account_type_stats = (
+        ChartOfAccount.objects
+        .filter(company=company, is_active=True)
+        .values("account_type")
+        .annotate(total=Count("id"))
+        .order_by("account_type")
+    )
+
+    has_accounts = ChartOfAccount.objects.filter(company=company).exists()
+
+    return render(request, "accounting/chart_of_accounts.html", {
+        "company": company,
+        "accounts": accounts,
+        "query": query,
+        "account_type": account_type,
+        "report_type": report_type,
+        "total_accounts": total_accounts,
+        "active_accounts": active_accounts,
+        "group_accounts": group_accounts,
+        "account_type_stats": account_type_stats,
+        "has_accounts": has_accounts,
+        "account_type_choices": ChartOfAccount.ACCOUNT_TYPE_CHOICES,
+        "report_type_choices": ChartOfAccount.REPORT_TYPE_CHOICES,
+    })
+
+
+@login_required
+def setup_sample_coa(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    if request.method == "POST":
+        created_count = create_sample_coa(company)
+
+        if created_count > 0:
+            messages.success(request, f"Sample Chart of Accounts created: {created_count} accounts.")
+        else:
+            messages.warning(request, "Sample Chart of Accounts already exists for this company.")
+
+        return redirect("chart_of_accounts")
+
+    return render(request, "accounting/setup_sample_coa.html", {
+        "company": company,
+    })
+
+
+@login_required
+def account_create(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    if request.method == "POST":
+        form = ChartOfAccountForm(request.POST, company=company)
+
+        if form.is_valid():
+            account = form.save(commit=False)
+            account.company = company
+            account.save()
+
+            messages.success(request, f"Account {account.code} - {account.name} created successfully.")
+            return redirect("chart_of_accounts")
+    else:
+        form = ChartOfAccountForm(
+            company=company,
+            initial={
+                "is_active": True,
+                "normal_balance": "debit",
+            },
+        )
+
+    return render(request, "accounting/account_form.html", {
+        "form": form,
+        "company": company,
+        "page_title": "Create Account",
+        "button_text": "Create Account",
+    })
+
+
+@login_required
+def account_edit(request, account_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    account = get_object_or_404(
+        ChartOfAccount,
+        id=account_id,
         company=company,
-        entry_date=entry_date,
-        reference_no=reference_no,
-        description=description,
-        status=get_posted_status(),
-        created_by=user,
     )
 
-    JournalEntryLine.objects.create(
-        journal_entry=entry,
-        account=debit_account,
-        description=description,
-        debit=amount,
-        credit=Decimal("0.00"),
-    )
-
-    JournalEntryLine.objects.create(
-        journal_entry=entry,
-        account=credit_account,
-        description=description,
-        debit=Decimal("0.00"),
-        credit=amount,
-    )
-
-    return entry
-
-
-def create_bank_deposit_journal(deposit, user):
-    if deposit.status != BankDeposit.STATUS_POSTED:
-        return None
-
-    with transaction.atomic():
-        old_entry = deposit.journal_entry
-
-        if old_entry:
-            old_entry.delete()
-
-        entry = create_simple_journal(
-            company=deposit.company,
-            user=user,
-            entry_date=deposit.deposit_date,
-            reference_no=deposit.number,
-            description=f"Bank Deposit - {deposit.deposit_to.name}",
-            debit_account=deposit.deposit_to.chart_account,
-            credit_account=deposit.source_account,
-            amount=deposit.amount,
+    if request.method == "POST":
+        form = ChartOfAccountForm(
+            request.POST,
+            instance=account,
+            company=company,
         )
 
-        deposit.journal_entry = entry
-        deposit.save(update_fields=["journal_entry"])
-
-        return entry
-
-
-def create_landed_cost_journal(allocation, user):
-    if allocation.status != LandedCostAllocation.STATUS_POSTED:
-        return None
-
-    with transaction.atomic():
-        old_entry = allocation.journal_entry
-
-        if old_entry:
-            old_entry.delete()
-
-        entry = create_simple_journal(
-            company=allocation.company,
-            user=user,
-            entry_date=allocation.allocation_date,
-            reference_no=allocation.number,
-            description=f"Landed Cost Allocation - {allocation.bill_no}",
-            debit_account=allocation.landed_cost_account,
-            credit_account=allocation.clearing_account,
-            amount=allocation.amount,
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Account {account.code} updated successfully.")
+            return redirect("chart_of_accounts")
+    else:
+        form = ChartOfAccountForm(
+            instance=account,
+            company=company,
         )
 
-        allocation.journal_entry = entry
-        allocation.save(update_fields=["journal_entry"])
+    return render(request, "accounting/account_form.html", {
+        "form": form,
+        "company": company,
+        "account": account,
+        "page_title": "Edit Account",
+        "button_text": "Save Changes",
+    })
 
-        return entry
+
+@login_required
+def account_toggle_active(request, account_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    account = get_object_or_404(
+        ChartOfAccount,
+        id=account_id,
+        company=company,
+    )
+
+    account.is_active = not account.is_active
+    account.save(update_fields=["is_active"])
+
+    if account.is_active:
+        messages.success(request, f"{account.code} is now active.")
+    else:
+        messages.warning(request, f"{account.code} is now inactive.")
+
+    return redirect("chart_of_accounts")
 
 
 # =========================================================
-# BANK ACCOUNT
+# JOURNAL / ACCOUNTING DATA
 # =========================================================
 
 @login_required
-def bank_account_list(request):
+def journal_list(request):
     company, response = require_company_access(request)
     if response:
         return response
 
     query = (request.GET.get("q") or "").strip()
-
-    rows = BankAccount.objects.filter(company=company).select_related("chart_account")
-
-    if query:
-        rows = rows.filter(
-            Q(name__icontains=query)
-            | Q(bank_name__icontains=query)
-            | Q(account_number__icontains=query)
-            | Q(chart_account__name__icontains=query)
-            | Q(chart_account__code__icontains=query)
-        )
-
-    rows = rows.order_by("name")
-
-    return render(request, "accounting_ops/bank_account_list.html", {
-        "company": company,
-        "rows": rows,
-        "query": query,
-    })
-
-
-@login_required
-def bank_account_create(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    if request.method == "POST":
-        form = BankAccountForm(request.POST, company=company)
-
-        if form.is_valid():
-            obj = form.save(commit=False)
-            obj.company = company
-            obj.save()
-
-            messages.success(request, "Bank account saved successfully.")
-            return redirect("ops_bank_account_list")
-    else:
-        form = BankAccountForm(
-            company=company,
-            initial={"is_active": True},
-        )
-
-    return render(request, "accounting_ops/form.html", {
-        "company": company,
-        "form": form,
-        "page_title": "Create Bank Account",
-        "button_text": "Save",
-    })
-
-
-# =========================================================
-# BANK DEPOSIT
-# =========================================================
-
-@login_required
-def bank_deposit_list(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    query = (request.GET.get("q") or "").strip()
-    date_from = (request.GET.get("date_from") or "").strip()
-    date_to = (request.GET.get("date_to") or "").strip()
-
-    if not date_from and not date_to:
-        today = timezone.localdate()
-        date_from = today.replace(day=1).strftime("%Y-%m-%d")
-        date_to = today.strftime("%Y-%m-%d")
-
-    rows = BankDeposit.objects.filter(company=company).select_related(
-        "deposit_to",
-        "source_account",
-        "journal_entry",
-    )
-
-    if query:
-        rows = rows.filter(
-            Q(number__icontains=query)
-            | Q(memo__icontains=query)
-            | Q(deposit_to__name__icontains=query)
-        )
-
-    if date_from:
-        rows = rows.filter(deposit_date__gte=date_from)
-
-    if date_to:
-        rows = rows.filter(deposit_date__lte=date_to)
-
-    rows = rows.order_by("-deposit_date", "-id")
-
-    return render(request, "accounting_ops/bank_deposit_list.html", {
-        "company": company,
-        "rows": rows,
-        "query": query,
-        "date_from": date_from,
-        "date_to": date_to,
-    })
-
-
-@login_required
-def bank_deposit_create(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    if request.method == "POST":
-        form = BankDepositForm(request.POST, company=company)
-
-        if form.is_valid():
-            with transaction.atomic():
-                obj = form.save(commit=False)
-                obj.company = company
-                obj.created_by = request.user
-                obj.save()
-                create_bank_deposit_journal(obj, request.user)
-
-            messages.success(request, "Bank deposit saved and journal generated.")
-            return redirect("ops_bank_deposit_list")
-    else:
-        form = BankDepositForm(
-            company=company,
-            initial={
-                "deposit_date": timezone.localdate(),
-                "status": BankDeposit.STATUS_POSTED,
-            },
-        )
-
-    return render(request, "accounting_ops/form.html", {
-        "company": company,
-        "form": form,
-        "page_title": "Create Bank Deposit",
-        "button_text": "Save & Generate Journal",
-    })
-
-
-# =========================================================
-# BANK RULE
-# =========================================================
-
-@login_required
-def bank_rule_list(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    query = (request.GET.get("q") or "").strip()
-
-    rows = BankRule.objects.filter(company=company).select_related("target_account")
-
-    if query:
-        rows = rows.filter(
-            Q(name__icontains=query)
-            | Q(keyword__icontains=query)
-            | Q(memo__icontains=query)
-        )
-
-    rows = rows.order_by("priority_order", "name")
-
-    return render(request, "accounting_ops/bank_rule_list.html", {
-        "company": company,
-        "rows": rows,
-        "query": query,
-    })
-
-
-@login_required
-def bank_rule_create(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    if request.method == "POST":
-        form = BankRuleForm(request.POST, company=company)
-
-        if form.is_valid():
-            obj = form.save(commit=False)
-            obj.company = company
-            obj.save()
-
-            messages.success(request, "Bank rule saved successfully.")
-            return redirect("ops_bank_rule_list")
-    else:
-        form = BankRuleForm(
-            company=company,
-            initial={"is_active": True},
-        )
-
-    return render(request, "accounting_ops/form.html", {
-        "company": company,
-        "form": form,
-        "page_title": "Create Bank Rule",
-        "button_text": "Save",
-    })
-
-
-# =========================================================
-# BANK RECONCILE
-# =========================================================
-
-@login_required
-def bank_reconcile_list(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    rows = BankReconcile.objects.filter(company=company).select_related("bank_account")
-    rows = rows.order_by("-reconcile_date", "-id")
-
-    return render(request, "accounting_ops/bank_reconcile_list.html", {
-        "company": company,
-        "rows": rows,
-    })
-
-
-@login_required
-def bank_reconcile_create(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    if request.method == "POST":
-        form = BankReconcileForm(request.POST, company=company)
-
-        if form.is_valid():
-            obj = form.save(commit=False)
-            obj.company = company
-            obj.created_by = request.user
-            obj.save()
-
-            messages.success(request, "Bank reconcile saved successfully.")
-            return redirect("ops_bank_reconcile_list")
-    else:
-        form = BankReconcileForm(
-            company=company,
-            initial={"reconcile_date": timezone.localdate()},
-        )
-
-    return render(request, "accounting_ops/form.html", {
-        "company": company,
-        "form": form,
-        "page_title": "Create Bank Reconcile",
-        "button_text": "Save",
-    })
-
-
-# =========================================================
-# LANDED COST
-# =========================================================
-
-@login_required
-def landed_cost_list(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    rows = LandedCostAllocation.objects.filter(company=company).select_related(
-        "landed_cost_account",
-        "clearing_account",
-        "journal_entry",
-    )
-    rows = rows.order_by("-allocation_date", "-id")
-
-    return render(request, "accounting_ops/landed_cost_list.html", {
-        "company": company,
-        "rows": rows,
-    })
-
-
-@login_required
-def landed_cost_create(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    if request.method == "POST":
-        form = LandedCostAllocationForm(request.POST, company=company)
-
-        if form.is_valid():
-            with transaction.atomic():
-                obj = form.save(commit=False)
-                obj.company = company
-                obj.created_by = request.user
-                obj.save()
-                create_landed_cost_journal(obj, request.user)
-
-            messages.success(request, "Landed cost saved and journal generated.")
-            return redirect("ops_landed_cost_list")
-    else:
-        form = LandedCostAllocationForm(
-            company=company,
-            initial={
-                "allocation_date": timezone.localdate(),
-                "status": LandedCostAllocation.STATUS_POSTED,
-            },
-        )
-
-    return render(request, "accounting_ops/form.html", {
-        "company": company,
-        "form": form,
-        "page_title": "Create Landed Cost Allocation",
-        "button_text": "Save & Generate Journal",
-    })
-
-
-# =========================================================
-# FIND TRANSACTION / BATCH
-# =========================================================
-
-@login_required
-def find_transaction(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    query = (request.GET.get("q") or "").strip()
+    status = (request.GET.get("status") or "").strip()
     date_from = (request.GET.get("date_from") or "").strip()
     date_to = (request.GET.get("date_to") or "").strip()
 
@@ -522,12 +308,14 @@ def find_transaction(request):
 
     if query:
         entries = entries.filter(
-            Q(entry_no__icontains=query)
-            | Q(reference_no__icontains=query)
+            Q(reference_no__icontains=query)
             | Q(description__icontains=query)
-            | Q(lines__account__code__icontains=query)
             | Q(lines__account__name__icontains=query)
-        ).distinct()
+            | Q(lines__account__code__icontains=query)
+        )
+
+    if status:
+        entries = entries.filter(status=status)
 
     if date_from:
         entries = entries.filter(entry_date__gte=date_from)
@@ -537,126 +325,444 @@ def find_transaction(request):
 
     entries = (
         entries
+        .distinct()
         .prefetch_related("lines", "lines__account")
-        .order_by("-entry_date", "-id")[:200]
+        .order_by("-entry_date", "-id")
     )
 
-    return render(request, "accounting_ops/find_transaction.html", {
+    total_entries = entries.count()
+    posted_entries = entries.filter(status=get_posted_status()).count()
+    draft_entries = entries.filter(status=get_draft_status()).count()
+
+    return render(request, "accounting/journal_list.html", {
         "company": company,
+        "entries": entries,
         "query": query,
+        "status": status,
         "date_from": date_from,
         "date_to": date_to,
-        "entries": entries,
+        "total_entries": total_entries,
+        "posted_entries": posted_entries,
+        "draft_entries": draft_entries,
+        "status_choices": JournalEntry.STATUS_CHOICES,
     })
 
 
 @login_required
-def batch_transaction(request):
+def journal_create(request):
     company, response = require_company_access(request)
     if response:
         return response
 
-    return render(request, "accounting_ops/batch_transaction.html", {
-        "company": company,
-    })
+    has_accounts = ChartOfAccount.objects.filter(
+        company=company,
+        is_active=True,
+        is_group=False,
+    ).exists()
 
+    if not has_accounts:
+        messages.warning(request, "Please create Chart of Accounts first.")
+        return redirect("chart_of_accounts")
 
-# =========================================================
-# IMPORT
-# =========================================================
-
-@login_required
-def import_page(request, import_type):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    form = ImportUploadForm()
+    journal_entry = JournalEntry(company=company, created_by=request.user)
 
     if request.method == "POST":
-        form = ImportUploadForm(request.POST, request.FILES)
+        form = JournalEntryForm(request.POST, instance=journal_entry)
+        formset = JournalEntryLineFormSet(
+            request.POST,
+            instance=journal_entry,
+            form_kwargs={"company": company},
+        )
 
-        if form.is_valid():
-            upload_file = form.cleaned_data["file"]
+        if form.is_valid() and formset.is_valid():
+            total_debit = Decimal("0.00")
+            total_credit = Decimal("0.00")
+            valid_lines = 0
 
-            if not upload_file.name.lower().endswith(".xlsx"):
-                messages.error(request, "Wrong file type. Please upload .xlsx file only.")
-                return redirect(request.path)
+            for line_form in formset:
+                cleaned = getattr(line_form, "cleaned_data", None)
 
-            try:
-                success_rows, total_rows, errors = process_import(
-                    company=company,
-                    user=request.user,
-                    import_type=import_type,
-                    excel_file=upload_file,
+                if not cleaned:
+                    continue
+
+                if cleaned.get("DELETE", False):
+                    continue
+
+                account = cleaned.get("account")
+                debit = cleaned.get("debit") or Decimal("0.00")
+                credit = cleaned.get("credit") or Decimal("0.00")
+
+                if account and (debit > 0 or credit > 0):
+                    total_debit += debit
+                    total_credit += credit
+                    valid_lines += 1
+
+                if debit > 0 and credit > 0:
+                    messages.error(request, "One line cannot have both debit and credit.")
+                    return redirect("journal_create")
+
+            if valid_lines < 2:
+                messages.error(request, "Journal entry must have at least 2 lines.")
+            elif total_debit != total_credit:
+                messages.error(
+                    request,
+                    f"Debit and Credit must be equal. Debit: {total_debit}, Credit: {total_credit}.",
                 )
+            elif total_debit <= 0:
+                messages.error(request, "Total debit and credit must be more than zero.")
+            else:
+                with transaction.atomic():
+                    entry = form.save(commit=False)
+                    entry.company = company
+                    entry.created_by = request.user
+                    entry.save()
 
-                upload_file.seek(0)
+                    formset.instance = entry
+                    formset.save()
 
-                ImportHistory.objects.create(
-                    company=company,
-                    import_type=import_type,
-                    file=upload_file,
-                    total_rows=total_rows,
-                    success_rows=success_rows,
-                    error_rows=len(errors),
-                    created_by=request.user,
-                    note="\n".join(errors[:30]) if errors else "Import completed successfully.",
-                )
+                messages.success(request, f"Journal Entry {entry.entry_no} created successfully.")
+                return redirect("journal_detail", entry_id=entry.id)
 
-                if errors:
-                    for error in errors[:10]:
-                        messages.error(request, error)
+    else:
+        form = JournalEntryForm(instance=journal_entry)
+        formset = JournalEntryLineFormSet(
+            instance=journal_entry,
+            form_kwargs={"company": company},
+        )
 
-                    messages.warning(
-                        request,
-                        f"Import finished with errors. Success: {success_rows}, Error: {len(errors)}.",
-                    )
-                else:
-                    messages.success(
-                        request,
-                        f"Import completed successfully. {success_rows} rows imported.",
-                    )
-
-                return redirect(request.path)
-
-            except Exception as e:
-                messages.error(request, f"Import failed: {e}")
-                return redirect(request.path)
-
-    title_map = {
-        ImportHistory.TYPE_STOCK_BALANCE: "Import Stock Balance",
-        ImportHistory.TYPE_ITEM: "Import Item",
-        ImportHistory.TYPE_VENDOR: "Import Vendor",
-        ImportHistory.TYPE_CUSTOMER: "Import Customer",
-        ImportHistory.TYPE_COA: "Import Chart of Account",
-        ImportHistory.TYPE_BATCH_TRANSACTION: "Batch Transaction Import",
-
-        ImportHistory.TYPE_TRIAL_BALANCE: "Import Trial Balance Full",
-        ImportHistory.TYPE_JOURNAL_OPENING: "Import Journal Opening Balance",
-        ImportHistory.TYPE_OUTSTANDING_AP: "Import Outstanding AP",
-        ImportHistory.TYPE_OUTSTANDING_AR: "Import Outstanding AR",
-    }
-
-    histories = ImportHistory.objects.filter(
-        company=company,
-        import_type=import_type,
-    )[:20]
-
-    return render(request, "accounting_ops/import_page.html", {
+    return render(request, "accounting/journal_form.html", {
         "company": company,
         "form": form,
-        "import_type": import_type,
-        "page_title": title_map.get(import_type, "Import"),
-        "histories": histories,
+        "formset": formset,
+        "page_title": "Create Journal Entry",
+        "button_text": "Save Journal Entry",
+    })
+
+
+@login_required
+def journal_detail(request, entry_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    entry = get_object_or_404(
+        JournalEntry.objects.prefetch_related("lines", "lines__account"),
+        id=entry_id,
+        company=company,
+    )
+
+    return render(request, "accounting/journal_detail.html", {
+        "company": company,
+        "entry": entry,
+    })
+
+
+@login_required
+def journal_edit(request, entry_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    entry = get_object_or_404(
+        JournalEntry,
+        id=entry_id,
+        company=company,
+    )
+
+    if request.method == "POST":
+        form = JournalEntryForm(request.POST, instance=entry)
+        formset = JournalEntryLineFormSet(
+            request.POST,
+            instance=entry,
+            form_kwargs={"company": company},
+        )
+
+        if form.is_valid() and formset.is_valid():
+            total_debit = Decimal("0.00")
+            total_credit = Decimal("0.00")
+            valid_lines = 0
+
+            for line_form in formset:
+                cleaned = getattr(line_form, "cleaned_data", None)
+
+                if not cleaned:
+                    continue
+
+                if cleaned.get("DELETE", False):
+                    continue
+
+                account = cleaned.get("account")
+                debit = cleaned.get("debit") or Decimal("0.00")
+                credit = cleaned.get("credit") or Decimal("0.00")
+
+                if account and (debit > 0 or credit > 0):
+                    total_debit += debit
+                    total_credit += credit
+                    valid_lines += 1
+
+                if debit > 0 and credit > 0:
+                    messages.error(request, "One line cannot have both debit and credit.")
+                    return redirect("journal_edit", entry_id=entry.id)
+
+            if valid_lines < 2:
+                messages.error(request, "Journal entry must have at least 2 lines.")
+            elif total_debit != total_credit:
+                messages.error(
+                    request,
+                    f"Debit and Credit must be equal. Debit: {total_debit}, Credit: {total_credit}.",
+                )
+            elif total_debit <= 0:
+                messages.error(request, "Total debit and credit must be more than zero.")
+            else:
+                with transaction.atomic():
+                    form.save()
+                    formset.save()
+
+                messages.success(request, f"Journal Entry {entry.entry_no} updated successfully.")
+                return redirect("journal_detail", entry_id=entry.id)
+
+    else:
+        form = JournalEntryForm(instance=entry)
+        formset = JournalEntryLineFormSet(
+            instance=entry,
+            form_kwargs={"company": company},
+        )
+
+    return render(request, "accounting/journal_form.html", {
+        "company": company,
+        "form": form,
+        "formset": formset,
+        "entry": entry,
+        "page_title": "Edit Journal Entry",
+        "button_text": "Save Changes",
+    })
+
+
+@login_required
+def journal_delete(request, entry_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    entry = get_object_or_404(
+        JournalEntry,
+        id=entry_id,
+        company=company,
+    )
+
+    if request.method == "POST":
+        entry_no = entry.entry_no
+        entry.delete()
+        messages.success(request, f"Journal Entry {entry_no} deleted successfully.")
+        return redirect("journal_list")
+
+    return render(request, "accounting/journal_delete.html", {
+        "company": company,
+        "entry": entry,
     })
 
 
 # =========================================================
-# DOWNLOAD SAMPLE EXCEL
+# ACCOUNTING DATA SHORTCUT PAGES
 # =========================================================
 
-def style_sample_sheet(ws):
+@login_required
+def accounting_data_list(request):
+    return journal_list(request)
+
+
+@login_required
+def accounting_data_create(request):
+    return journal_create(request)
+
+
+# =========================================================
+# EXCEL IMPORT - JOURNAL
+# =========================================================
+
+@login_required
+def accounting_import_excel(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    has_accounts = ChartOfAccount.objects.filter(
+        company=company,
+        is_active=True,
+        is_group=False,
+    ).exists()
+
+    if not has_accounts:
+        messages.warning(request, "Please create Chart of Accounts first.")
+        return redirect("chart_of_accounts")
+
+    if request.method == "POST":
+        excel_file = request.FILES.get("file")
+
+        if not excel_file:
+            messages.error(request, "Please choose an Excel file.")
+            return redirect("accounting_import_excel")
+
+        if not excel_file.name.lower().endswith(".xlsx"):
+            messages.error(request, "Please upload .xlsx file only.")
+            return redirect("accounting_import_excel")
+
+        try:
+            wb = load_workbook(excel_file, data_only=True)
+            ws = wb.active
+
+            created_entries = 0
+            created_lines = 0
+            errors = []
+            grouped_rows = {}
+
+            for row_number, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                entry_date = parse_excel_date(row[0] if len(row) > 0 else None)
+                reference_no = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+                account_code = str(row[2]).strip() if len(row) > 2 and row[2] else ""
+                line_description = str(row[3]).strip() if len(row) > 3 and row[3] else ""
+                debit = to_decimal(row[4] if len(row) > 4 else 0)
+                credit = to_decimal(row[5] if len(row) > 5 else 0)
+                entry_description = str(row[6]).strip() if len(row) > 6 and row[6] else ""
+
+                if not account_code and debit == 0 and credit == 0:
+                    continue
+
+                if not account_code:
+                    errors.append(f"Row {row_number}: account code is missing.")
+                    continue
+
+                try:
+                    account = ChartOfAccount.objects.get(
+                        company=company,
+                        code=account_code,
+                        is_active=True,
+                        is_group=False,
+                    )
+                except ChartOfAccount.DoesNotExist:
+                    errors.append(f"Row {row_number}: account code {account_code} not found.")
+                    continue
+
+                if debit > 0 and credit > 0:
+                    errors.append(f"Row {row_number}: cannot have both debit and credit.")
+                    continue
+
+                if debit == 0 and credit == 0:
+                    errors.append(f"Row {row_number}: debit and credit are both zero.")
+                    continue
+
+                group_key = f"{entry_date}|{reference_no}|{entry_description}"
+
+                if group_key not in grouped_rows:
+                    grouped_rows[group_key] = {
+                        "entry_date": entry_date,
+                        "reference_no": reference_no,
+                        "description": entry_description,
+                        "lines": [],
+                    }
+
+                grouped_rows[group_key]["lines"].append({
+                    "account": account,
+                    "description": line_description,
+                    "debit": debit,
+                    "credit": credit,
+                    "row_number": row_number,
+                })
+
+            with transaction.atomic():
+                for group_key, data in grouped_rows.items():
+                    lines = data["lines"]
+                    total_debit = sum((line["debit"] for line in lines), Decimal("0.00"))
+                    total_credit = sum((line["credit"] for line in lines), Decimal("0.00"))
+
+                    if len(lines) < 2:
+                        row_numbers = ", ".join(str(line["row_number"]) for line in lines)
+                        errors.append(f"Rows {row_numbers}: journal must have at least 2 lines.")
+                        continue
+
+                    if total_debit != total_credit:
+                        row_numbers = ", ".join(str(line["row_number"]) for line in lines)
+                        errors.append(
+                            f"Rows {row_numbers}: debit and credit not equal. "
+                            f"Debit {total_debit}, Credit {total_credit}."
+                        )
+                        continue
+
+                    entry = JournalEntry.objects.create(
+                        company=company,
+                        entry_date=data["entry_date"],
+                        reference_no=data["reference_no"],
+                        description=data["description"],
+                        status=get_posted_status(),
+                        created_by=request.user,
+                    )
+
+                    for line in lines:
+                        JournalEntryLine.objects.create(
+                            journal_entry=entry,
+                            account=line["account"],
+                            description=line["description"],
+                            debit=line["debit"],
+                            credit=line["credit"],
+                        )
+                        created_lines += 1
+
+                    created_entries += 1
+
+            for err in errors[:15]:
+                messages.warning(request, err)
+
+            if created_entries:
+                messages.success(
+                    request,
+                    f"Imported {created_entries} journal entries and {created_lines} lines successfully.",
+                )
+                return redirect("journal_list")
+
+            messages.warning(request, "No journal entries imported. Please check your Excel file.")
+            return redirect("accounting_import_excel")
+
+        except Exception as e:
+            messages.error(request, f"Import failed: {e}")
+            return redirect("accounting_import_excel")
+
+    return render(request, "accounting/accounting_import_excel.html", {
+        "company": company,
+    })
+
+
+@login_required
+def download_journal_import_sample(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Journal Import"
+
+    headers = [
+        "Date",
+        "Reference No",
+        "Account Code",
+        "Line Description",
+        "Debit",
+        "Credit",
+        "Entry Description",
+    ]
+
+    rows = [
+        ["2026-05-16", "INV-001", "111500", "Cash received", 100, 0, "Sale income"],
+        ["2026-05-16", "INV-001", "410000", "Sale revenue", 0, 100, "Sale income"],
+        ["2026-05-16", "EXP-001", "650100", "Rental expense", 50, 0, "Office rent"],
+        ["2026-05-16", "EXP-001", "111500", "Cash payment", 0, 50, "Office rent"],
+    ]
+
+    ws.append(headers)
+
+    for row in rows:
+        ws.append(row)
+
     blue_fill = PatternFill("solid", fgColor="0070C0")
     white_font = Font(color="FFFFFF", bold=True)
 
@@ -668,335 +774,1333 @@ def style_sample_sheet(ws):
     ws.freeze_panes = "A2"
 
     for column_cells in ws.columns:
-        length = 12
-
+        length = 14
         for cell in column_cells:
             if cell.value:
                 length = max(length, len(str(cell.value)) + 2)
-
         ws.column_dimensions[column_cells[0].column_letter].width = min(length, 35)
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="Journal_Import_Template.xlsx"'
+
+    wb.save(response)
+    return response
+
+
+# =========================================================
+# BULK UPDATE - VENDOR / ITEM / CUSTOMER
+# =========================================================
+
+ITEM_BULK_COLUMNS = [
+    "ITEM", "ITEM_NAME", "ITEM_CODE", "LOCAL_NAME", "ITEM_GROUP", "ITEM_BRAND", "DESCRIPTION",
+    "NEGATIVE_SALE", "FOR_PURCHASE", "FOR_SALE", "ALARM_QTY", "COST",
+    "ACCOUNT_ASSET_CODE", "ACCOUNT_COGS_CODE", "ACCOUNT_REVENUE_CODE",
+    "MEMO", "DETAIL_MEMO", "ACTIVE", "UNITSET_NAME",
+    "PRICE_1", "BARCODE_1", "PRICE_2", "BARCODE_2", "PRICE_3", "BARCODE_3",
+]
+
+CUSTOMER_BULK_COLUMNS = [
+    "CUSTOMER", "CUSTOMER_NAME", "CUSTOMER_CODE", "LOCAL_CUSTOMER_NAME", "CUSTOMER_TYPE",
+    "SALE_PERSON", "REGION", "CURRENCY", "PRICE_LEVEL", "INVOICE_TYPE", "CREDIT_LIMIT",
+    "CREDIT_TERM", "EMAIL", "PHONE", "VATTIN", "IS_ALLOW_OVER_CREDIT", "ACTIVE",
+    "HOUSE_NO", "STREET", "COMMUNE", "DISTRICT", "CITY",
+    "LOCAL_HOUSE_NO", "LOCAL_STREET", "LOCAL_COMMUNE", "LOCAL_DISTRICT", "LOCAL_CITY",
+    "ADDRESS", "MEMO", "CONTACT_NAME", "CONTACT_PHONE", "CONTACT_EMAIL", "BRANCHES", "GRADE",
+]
+
+# Vendor is template only until vendor model is connected.
+VENDOR_BULK_COLUMNS = [
+    "VENDOR", "VENDOR_NAME", "VENDOR_CODE", "LOCAL_VENDOR_NAME",
+    "REGION", "CURRENCY", "EMAIL", "PHONE", "VATTIN",
+    "ACTIVE", "ADDRESS", "MEMO",
+]
+
+
+def bulk_clean_text(value):
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def bulk_clean_decimal(value):
+    if value is None or str(value).strip() == "":
+        return Decimal("0.00")
+
+    try:
+        return Decimal(str(value).replace(",", "").strip()).quantize(Decimal("0.01"))
+    except Exception:
+        raise ValueError("must be number")
+
+
+def bulk_clean_int(value):
+    if value is None or str(value).strip() == "":
+        return 0
+
+    try:
+        return int(float(str(value).replace(",", "").strip()))
+    except Exception:
+        raise ValueError("must be integer")
+
+
+def bulk_clean_bool(value):
+    if value is None or str(value).strip() == "":
+        return False
+
+    text = str(value).strip().lower()
+
+    if text in ["true", "yes", "1", "y", "active"]:
+        return True
+
+    if text in ["false", "no", "0", "n", "inactive"]:
+        return False
+
+    raise ValueError("must be TRUE or FALSE")
+
+
+def bulk_get_headers(sheet):
+    return [bulk_clean_text(cell.value) for cell in sheet[1]]
+
+
+def bulk_validate_columns(sheet, expected_columns, sheet_name):
+    headers = bulk_get_headers(sheet)
+    errors = []
+
+    for col in expected_columns:
+        if col not in headers:
+            errors.append({
+                "row": 1,
+                "type": f"{sheet_name} Column",
+                "code": "-",
+                "error": f"Missing column: {col}",
+            })
+
+    for col in headers:
+        if col and col not in expected_columns:
+            errors.append({
+                "row": 1,
+                "type": f"{sheet_name} Column",
+                "code": "-",
+                "error": f"Wrong column: {col}",
+            })
+
+    return errors
+
+
+def bulk_row_to_dict(sheet, row_number, expected_columns):
+    headers = bulk_get_headers(sheet)
+    row_cells = list(sheet[row_number])
+
+    data = {}
+
+    for col in expected_columns:
+        if col in headers:
+            index = headers.index(col)
+            data[col] = row_cells[index].value if index < len(row_cells) else None
+        else:
+            data[col] = None
+
+    return data
+
+
+def get_bulk_page_data(bulk_type):
+    if bulk_type == "vendors":
+        return {
+            "bulk_type": "vendors",
+            "page_title": "Update Vendors",
+            "page_icon": "🏪",
+            "page_note": "Vendor bulk update page. Vendor Excel import will be connected after vendor model is connected.",
+            "download_label": "Download Vendor Sample",
+            "upload_label": "Upload Vendor Excel",
+            "upload_enabled": False,
+            "sample_type": "vendors",
+        }
+
+    if bulk_type == "customers":
+        return {
+            "bulk_type": "customers",
+            "page_title": "Update Customers",
+            "page_icon": "👥",
+            "page_note": "Download customer sample, upload Excel, check columns, then update customer data.",
+            "download_label": "Download Customer Sample",
+            "upload_label": "Upload Customer Excel",
+            "upload_enabled": True,
+            "sample_type": "customers",
+        }
+
+    return {
+        "bulk_type": "items",
+        "page_title": "Update Items",
+        "page_icon": "📦",
+        "page_note": "Download item sample, upload Excel, check columns, then update item data.",
+        "download_label": "Download Item Sample",
+        "upload_label": "Upload Item Excel",
+        "upload_enabled": True,
+        "sample_type": "items",
+    }
 
 
 @login_required
-def download_sample(request, import_type):
+def bulk_update_vendors(request):
+    return bulk_update_menu(request, bulk_type="vendors")
+
+
+@login_required
+def bulk_update_items(request):
+    return bulk_update_menu(request, bulk_type="items")
+
+
+@login_required
+def bulk_update_customers(request):
+    return bulk_update_menu(request, bulk_type="customers")
+
+
+@login_required
+def bulk_update_menu(request, bulk_type="items"):
     company, response = require_company_access(request)
     if response:
         return response
 
+    page_data = get_bulk_page_data(bulk_type)
+
+    logs = BulkImportLog.objects.filter(company=company).order_by("-created_at")[:30]
+    total_items = AccountItem.objects.filter(company=company).count()
+    total_customers = AccountCustomer.objects.filter(company=company).count()
+
+    return render(request, "accounting/bulk_update_menu.html", {
+        "company": company,
+        "logs": logs,
+        "total_items": total_items,
+        "total_customers": total_customers,
+        "bulk_type": page_data["bulk_type"],
+        "page_title": page_data["page_title"],
+        "page_icon": page_data["page_icon"],
+        "page_note": page_data["page_note"],
+        "download_label": page_data["download_label"],
+        "upload_label": page_data["upload_label"],
+        "upload_enabled": page_data["upload_enabled"],
+        "sample_type": page_data["sample_type"],
+    })
+
+
+def style_bulk_workbook(wb):
+    blue_fill = PatternFill("solid", fgColor="1D4ED8")
+    white_font = Font(color="FFFFFF", bold=True)
+
+    for sheet in wb.worksheets:
+        sheet.freeze_panes = "A2"
+
+        for cell in sheet[1]:
+            cell.fill = blue_fill
+            cell.font = white_font
+            cell.alignment = Alignment(horizontal="center")
+
+        for col in sheet.columns:
+            max_length = 12
+            col_letter = col[0].column_letter
+
+            for cell in col:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)) + 2)
+
+            sheet.column_dimensions[col_letter].width = min(max_length, 30)
+
+
+@login_required
+def download_bulk_update_sample(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    bulk_type = (request.GET.get("type") or "all").strip().lower()
+
     wb = Workbook()
+
+    # Items sheet
     ws = wb.active
+    ws.title = "Items"
+    ws.append(ITEM_BULK_COLUMNS)
 
-    filename = "sample.xlsx"
+    item_rows = [
+        [
+            "fanta", "fanta", "F-001", "", "ទឹកក្រូច", "", "",
+            True, True, True, 100, 1,
+            "131000", "510000", "410000",
+            "", "", True, "case/2L",
+            1, "", 12, "", 24, "",
+        ],
+        [
+            "cocacola", "cocacola", "CO-001", "", "ទឹកក្រូច", "", "",
+            True, True, True, 100, 1,
+            "131000", "510000", "410000",
+            "", "", True, "case/2L",
+            1.5, "", 12, "", 36, "",
+        ],
+    ]
 
-    if import_type == ImportHistory.TYPE_STOCK_BALANCE:
-        filename = "Item_Open_Balance_Template.xlsx"
-        ws.title = "Stock Balance"
-        headers = ["* ITEM", "* BASE_QTY", "* AMOUNT", "MEMO"]
-        rows = [
-            ["fanta", 100, 100, "open stock"],
-            ["cocacola", 100, 150, "open stock"],
-            ["Olate", 100, 100, "open stock"],
-            ["Bacas", 100, 120, "open stock"],
-            ["Anchor", 100, 150, "open stock"],
-            ["Angkor", 100, 200, "open stock"],
-        ]
-
-    elif import_type == ImportHistory.TYPE_ITEM:
-        filename = "Item_Template.xlsx"
-        ws.title = "Item"
-        headers = [
-            "ITEM_CODE",
-            "* ITEM_NAME",
-            "LOCAL_NAME",
-            "* ITEM_TYPE",
-            "* ITEM_GROUP",
-            "ITEM_BRAND",
-            "DESCRIPTION",
-            "NEGATIVE_SALE",
-            "* ALARM_QTY",
-            "SEPARATE_REVENUE_EXPENSE_ACCOUNT",
-            "FOR_PURCHASE",
-            "FOR_SALE",
-            "IS_HAVE_UNITSET",
-            "* UNITSET_NAME",
-            "* BASE_UNIT_1",
-            "* BASE_PRICE_1",
-            "BASE_BARCODE_1",
-            "UNIT_2",
-            "MULTIPLIER_2",
-            "PRICE_2",
-            "BARCODE_2",
-            "UNIT_3",
-            "MULTIPLIER_3",
-            "PRICE_3",
-            "BARCODE_3",
-            "* COST",
-            "ACCOUNT_ASSET_CODE",
-            "ACCOUNT_COGS_CODE",
-            "ACCOUNT_REVENUE_CODE",
-            "MEMO",
-            "DETAIL_MEMO",
-        ]
-        rows = [
-            ["F-001", "fanta", "", "STOCK_PART", "ទឹកក្រូច", "", "", "FALSE", 0, "", "TRUE", "TRUE", "TRUE", "case/2L", "can", 1.00, "", "12can", 12, 12.00, "", "កេស", 24, 24.00, "", 0.6, "131000", "510000", "410000", "", ""],
-            ["Co-001", "cocacola", "", "STOCK_PART", "ទឹកក្រូច", "", "", "FALSE", 0, "", "TRUE", "TRUE", "TRUE", "case/2L", "can", 1.50, "", "12can", 12, 18.00, "", "កេស", 24, 36.00, "", 1, "131000", "510000", "410000", "", ""],
-            ["OL-001", "Olate", "", "STOCK_PART", "ទឹកក្រូច", "", "", "FALSE", 0, "", "TRUE", "TRUE", "TRUE", "case/2L", "can", 1.00, "", "12can", 12, 12.00, "", "កេស", 24, 24.00, "", 0.5, "131000", "510000", "410000", "", ""],
-        ]
-
-    elif import_type == ImportHistory.TYPE_VENDOR:
-        filename = "Vendor_Template.xlsx"
-        ws.title = "Vendor"
-        headers = [
-            "VENDOR_CODE",
-            "* VENDOR_NAME",
-            "LOCAL_VENDOR_NAME",
-            "EMAIL",
-            "PHONE",
-            "CURRENCY",
-            "VATTIN",
-            "HOUSE_NO",
-            "STREET",
-            "COMMUNE",
-            "DISTRICT",
-            "CITY",
-            "LOCAL_HOUSE_NO",
-            "LOCAL_STREET",
-            "LOCAL_COMMUNE",
-            "LOCAL_DISTRICT",
-            "LOCAL_CITY",
-            "ADDRESS",
-            "MEMO",
-            "BRANCHES",
-        ]
-        rows = [
-            ["V1", "Vendor 1", "អ្នកផ្គត់ផ្គង់ទី១", "", "", "Dollar USD", "K001-123456789", "E1122", "#2004", "Commune", "District", "City", "House Number", "#2004", "Khmer Commune", "Khmer District", "Phnom Penh", "Phnom Penh", "memo", "PP ; KD"],
-            ["V2", "Vendor 2", "អ្នកផ្គត់ផ្គង់ទី២", "", "", "Dollar USD", "K001-123456790", "E1122", "#2004", "Commune", "District", "City", "House Number", "#2004", "Khmer Commune", "Khmer District", "Phnom Penh", "Phnom Penh", "memo", "PP"],
-        ]
-
-    elif import_type == ImportHistory.TYPE_CUSTOMER:
-        filename = "Customer_Template.xlsx"
-        ws.title = "Customer"
-        headers = [
-            "CUSTOMER_CODE",
-            "* CUSTOMER_NAME",
-            "SUB_OF",
-            "LOCAL_CUSTOMER_NAME",
-            "CUSTOMER_TYPE",
-            "SALE_PERSON",
-            "REGION",
-            "GRADE",
-            "CURRENCY",
-            "PRICE_LEVEL",
-            "INVOICE_TYPE",
-            "IS_ALLOW_OVER_CREDIT",
-            "CREDIT_LIMIT",
-            "CREDIT_TERM",
-            "EMAIL",
-            "PHONE",
-            "VATTIN",
-            "HOUSE_NO",
-            "STREET",
-            "COMMUNE",
-            "DISTRICT",
-            "CITY",
-            "LOCAL_HOUSE_NO",
-            "LOCAL_STREET",
-            "LOCAL_COMMUNE",
-            "LOCAL_DISTRICT",
-            "LOCAL_CITY",
-            "ADDRESS",
-            "MEMO",
-            "CONTACT_NAME",
-            "CONTACT_PHONE",
-            "CONTACT_EMAIL",
-            "BRANCHES",
-        ]
-        rows = [
-            ["C1", "Customer 1", "", "អតិថិន១", "", "", "phnom penh", "", "Dollar USD", "", "TAX_INVOICE", "TRUE", 0, 0, "", "", "K001-123456789", "E1122", "#2004", "Commune", "District", "City", "House Number", "#2004", "Khmer Commune", "Khmer District", "Phnom Penh", "", "", "", "", "", "PP"],
-            ["C2", "Customer 2", "", "អតិថិន២", "", "", "phnom penh", "", "Riel", "", "TAX_INVOICE", "TRUE", 0, 0, "", "", "K001-123456790", "E1123", "#2005", "Commune", "District", "City", "House Number", "#2005", "Khmer Commune", "Khmer District", "Phnom Penh", "", "", "", "", "", "KD"],
-            ["C3", "Customer 3", "", "អតិថិន៣", "", "", "phnom penh", "", "Dollar USD", "", "TAX_INVOICE", "TRUE", 200, 0, "", "", "K001-123456791", "E1124", "#2006", "Commune", "District", "City", "House Number", "#2006", "Khmer Commune", "Khmer District", "Phnom Penh", "", "", "", "", "", ""],
-        ]
-
-    elif import_type == ImportHistory.TYPE_COA:
-        filename = "Chart_Of_Account_Template.xlsx"
-        ws.title = "Chart Of Account"
-        headers = [
-            "ACCOUNT_CODE",
-            "* ACCOUNT_NAME",
-            "LOCAL_ACCOUNT_NAME",
-            "* ACCOUNT_TYPE",
-            "SUB_OF",
-            "DESCRIPTION",
-            "ACTIVE",
-        ]
-        rows = [
-            ["111000", "Cash and Cash Equivalents", "សាច់ប្រាក់ និងសាច់ប្រាក់សមមូល", "Bank", "", "", "TRUE"],
-            ["111101", "Cash in Bank", "សាច់ប្រាក់នៅធនាគារ", "Bank", "Cash and Cash Equivalents", "Cash deposit in bank and Expense for big Amount", "TRUE"],
-            ["111500", "Cash on Hand", "សាច់ប្រាក់នៅក្នុងបេឡា", "Bank", "Cash and Cash Equivalents", "for office pay in small amount", "TRUE"],
-            ["120000", "Accounts Receivable", "គណនីត្រូវទទួល ឬ អតិថិជនជំពាក់", "Account Receivable", "", "Receivable due from customers", "TRUE"],
-            ["131000", "Inventory Asset", "សន្និធិ", "Inventory", "", "Inventory purchase", "TRUE"],
-            ["200000", "Accounts Payable", "គណនីត្រូវសង ឬ ជំពាក់អ្នកផ្គត់ផ្គង់", "Account Payable", "", "Payable to suppliers", "TRUE"],
-            ["399999", "Opening Balance Equity", "បើកសមតុល្យដើមគ្រា", "Equity", "", "Opening Balance", "TRUE"],
-            ["410000", "Sale Revenues", "ចំណូលពីការលក់", "Income", "", "Revenue from sales", "TRUE"],
-            ["510000", "Cost Of Sales", "ថ្លៃដើមនៃការលក់", "Cost of Goods Sold", "", "COGS", "TRUE"],
-        ]
-
-    elif import_type == ImportHistory.TYPE_TRIAL_BALANCE:
-        filename = "Batch_Trial_Balance_Full_Template.xlsx"
-        ws.title = "Trial Balance Full"
-        headers = [
-            "* DATE",
-            "BRANCH_CODE",
-            "CLASS",
-            "NUMBER",
-            "MEMO",
-            "ADJUST_ENTRY",
-            "MEMO_DETAIL",
-            "* DEBIT",
-            "* CREDIT",
-            "* ACCOUNT_CODE",
-            "NAME",
-            "BRANCH_CODE_DETAIL",
-            "CLASS_DETAIL",
-        ]
-        rows = [
-            ["31/12/2023", "", "", "OPEN-2023", "Opening Balance", "TRUE", "Opening Balance - Cash in Bank", 5760.59, "-", "111000", "", "", ""],
-            ["", "", "", "", "", "", "Opening Balance - Accounts Receivable", 35392.50, "-", "150100", "", "", ""],
-            ["", "", "", "", "", "", "Opening Balance - Accounts Payable", "-", 24948.00, "290100", "", "", ""],
-            ["", "", "", "", "", "", "Opening Balance Equity", "-", 16205.09, "399999", "", "", ""],
-        ]
-
-    elif import_type == ImportHistory.TYPE_JOURNAL_OPENING:
-        filename = "Journal_Opening_Balance_Template.xlsx"
-        ws.title = "Journal Opening"
-        headers = [
-            "* DATE",
-            "BRANCH_CODE",
-            "CLASS",
-            "NUMBER",
-            "MEMO",
-            "ADJUST_ENTRY",
-            "MEMO_DETAIL",
-            "* DEBIT",
-            "* CREDIT",
-            "* ACCOUNT_CODE",
-            "NAME",
-            "BRANCH_CODE_DETAIL",
-            "CLASS_DETAIL",
-        ]
-        rows = [
-            ["12/31/2023", "", "", "JV-23-001", "Opening Balance Clearing", "TRUE", "Accounts Receivable - Old", "-", 35392.50, "150100", "", "", ""],
-            ["", "", "", "", "", "", "Football Inventory", "-", 730, "131100", "", "", ""],
-            ["", "", "", "", "", "", "Accounts Payable - Old", 24948.00, "-", "290100", "", "", ""],
-            ["", "", "", "", "", "", "Opening balance", 11174.50, "-", "399999", "", "", ""],
-        ]
-
-    elif import_type == ImportHistory.TYPE_OUTSTANDING_AP:
-        filename = "Batch_Outstanding_AP_Template.xlsx"
-        ws.title = "Outstanding AP"
-        headers = [
-            "* TRAN_TYPE",
-            "* VENDOR",
-            "BRANCH_CODE",
-            "LOCATION",
-            "* DATE",
-            "BILL_NO",
-            "DISCOUNT_ACCOUNT_CODE",
-            "CLASS",
-            "EXCHANGE_RATE",
-            "DISPLAY_TAX_EXCHANGE_RATE",
-            "MEMO",
-            "ITEM_CODE",
-            "* ITEM_NAME",
-            "DESCRIPTION",
-            "* UNIT_NAME",
-            "* QTY",
-            "COST",
-            "AMOUNT",
-            "DISCOUNT_AMOUNT",
-            "VAT",
-            "WHT",
-            "GROSS_NET",
-            "BRANCH_CODE_DETAIL",
-            "CLASS_ITEM",
-            "MEMO_EXPENSE",
-            "AMOUNT_EXPENSE",
-            "ACCOUNT_CODE_EXPENSE",
-            "VAT_EXPENSE",
-            "WHT_EXPENSE",
-            "GROSS_NET_EXPENSE",
-            "CUSTOMER_PROJECT_EXPENSE",
-            "BRANCH_CODE_EXPENSE",
-            "CLASS_EXPENSE",
-        ]
-        rows = [
-            ["PURCHASE", "MPT Co.,", "", "", "10/02/2023", "Inv# M306", "", "", 4000, "", "Opening AP Balance", "Co-001", "Opening Balance", "", "N/A", 1, 4455, 4455, "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-            ["PURCHASE_RETURN", "Sam Shop", "", "", "31/03/2023", "Inv# M513", "", "", 4000, "", "Opening AP Balance", "", "Opening Balance", "", "N/A", 1, 1782, 1782, "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-        ]
-
-    elif import_type == ImportHistory.TYPE_OUTSTANDING_AR:
-        filename = "Batch_Outstanding_AR_Template.xlsx"
-        ws.title = "Outstanding AR"
-        headers = [
-            "* TRAN_TYPE",
-            "* INVOICE_TYPE",
-            "BRANCH_CODE",
-            "CLASS",
-            "LOCATION",
-            "SALE_PERSON",
-            "TRUCK_NO",
-            "* DATE",
-            "DUE_DATE",
-            "NUMBER",
-            "* CUSTOMER",
-            "DISCOUNT_ACCOUNT_CODE",
-            "EXCHANGE_RATE",
-            "DISPLAY_TAX_EXCHANGE_RATE",
-            "MEMO",
-            "ITEM_CODE",
-            "* ITEM_NAME",
-            "DESCRIPTION",
-            "* UNIT_NAME",
-            "* QTY",
-            "PRICE",
-            "AMOUNT",
-            "VAT",
-            "DISCOUNT_AMOUNT",
-            "CLASS_ITEM",
-        ]
-        rows = [
-            ["INVOICE", "COMMERCIAL_INVOICE", "", "", "", "", "", "23/03/2023", "23/03/2023", "Inv #SS23-034", "APK", "", 4000, 4000, "Opening AR Balance", "", "Opening Balance", "", "N/A", 1, 1815, 1815, "", "", ""],
-            ["INVOICE", "COMMERCIAL_INVOICE", "", "", "", "", "", "06/03/2023", "06/03/2023", "Inv #SS23-026", "Cams Sport", "", 4000, 4000, "Opening AR Balance", "", "Opening Balance", "", "N/A", 1, 1815, 1815, "", "", ""],
-        ]
-
-    else:
-        filename = "Batch_Transaction_Template.xlsx"
-        ws.title = "Batch Transaction"
-        headers = [
-            "DATE",
-            "NUMBER",
-            "DEBIT_ACCOUNT_CODE",
-            "CREDIT_ACCOUNT_CODE",
-            "AMOUNT",
-            "MEMO",
-        ]
-        rows = [
-            ["2026-05-16", "JV-001", "650100", "111500", 100, "Rental expense"],
-            ["2026-05-16", "JV-002", "650200", "111500", 50, "Utility expense"],
-        ]
-
-    ws.append(headers)
-
-    for row in rows:
+    for row in item_rows:
         ws.append(row)
 
-    style_sample_sheet(ws)
+    # Customers sheet
+    ws2 = wb.create_sheet("Customers")
+    ws2.append(CUSTOMER_BULK_COLUMNS)
+
+    customer_rows = [
+        [
+            "Customer 1", "Customer 1", "C1", "អតិថិន១", "",
+            "", "phnom penh", "Dollar USD", "", "TAX_INVOICE", 0,
+            0, "", "", "K001-123456789", True, True,
+            "E1122", "#2004", "Commune", "District", "City",
+            "House Number", "#2004", "Khmer Commune", "Khmer District", "Phnom Penh",
+            "", "", "", "", "", "PP", "",
+        ],
+        [
+            "Customer 2", "Customer 2", "C2", "អតិថិន២", "",
+            "", "phnom penh", "Riel", "", "TAX_INVOICE", 0,
+            0, "", "", "K001-123456790", True, True,
+            "E1123", "#2005", "Commune", "District", "City",
+            "House Number", "#2005", "Khmer Commune", "Khmer District", "Phnom Penh",
+            "", "", "", "", "", "KD", "",
+        ],
+    ]
+
+    for row in customer_rows:
+        ws2.append(row)
+
+    # Vendors placeholder sheet
+    ws3 = wb.create_sheet("Vendors")
+    ws3.append(VENDOR_BULK_COLUMNS)
+    ws3.append([
+        "Vendor 1", "Vendor 1", "V1", "អ្នកផ្គត់ផ្គង់១",
+        "phnom penh", "Dollar USD", "", "012345678", "K001-123456789",
+        True, "Phnom Penh", "",
+    ])
+
+    if bulk_type == "items":
+        del wb["Customers"]
+        del wb["Vendors"]
+        filename = "Bulk_Update_Items_Template.xlsx"
+    elif bulk_type == "customers":
+        del wb["Items"]
+        del wb["Vendors"]
+        filename = "Bulk_Update_Customers_Template.xlsx"
+    elif bulk_type == "vendors":
+        del wb["Items"]
+        del wb["Customers"]
+        filename = "Bulk_Update_Vendors_Template.xlsx"
+    else:
+        filename = "Bulk_Update_Item_Customer_Template.xlsx"
+
+    style_bulk_workbook(wb)
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
     wb.save(response)
     return response
 
+
+@login_required
+def upload_bulk_update(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    if request.method != "POST":
+        return redirect("bulk_update_items")
+
+    bulk_type = (request.POST.get("bulk_type") or "items").strip().lower()
+
+    if bulk_type == "vendors":
+        messages.warning(request, "Vendor bulk upload is not connected yet. Add vendor model first.")
+        return redirect("bulk_update_vendors")
+
+    excel_file = request.FILES.get("excel_file")
+
+    if not excel_file:
+        messages.error(request, "Please choose Excel file first.")
+        if bulk_type == "customers":
+            return redirect("bulk_update_customers")
+        return redirect("bulk_update_items")
+
+    if not excel_file.name.lower().endswith(".xlsx"):
+        messages.error(request, "Only .xlsx Excel file is allowed.")
+        if bulk_type == "customers":
+            return redirect("bulk_update_customers")
+        return redirect("bulk_update_items")
+
+    errors = []
+    item_created = 0
+    item_updated = 0
+    customer_created = 0
+    customer_updated = 0
+
+    try:
+        wb = load_workbook(excel_file, data_only=True)
+    except Exception:
+        messages.error(request, "Cannot read Excel file. Please download sample and fill again.")
+        if bulk_type == "customers":
+            return redirect("bulk_update_customers")
+        return redirect("bulk_update_items")
+
+    # Check sheet by type
+    if bulk_type == "items":
+        if "Items" not in wb.sheetnames:
+            errors.append({
+                "row": "-",
+                "type": "Sheet",
+                "code": "-",
+                "error": "Missing sheet: Items",
+            })
+        else:
+            item_sheet = wb["Items"]
+            errors.extend(bulk_validate_columns(item_sheet, ITEM_BULK_COLUMNS, "Item"))
+
+    elif bulk_type == "customers":
+        if "Customers" not in wb.sheetnames:
+            errors.append({
+                "row": "-",
+                "type": "Sheet",
+                "code": "-",
+                "error": "Missing sheet: Customers",
+            })
+        else:
+            customer_sheet = wb["Customers"]
+            errors.extend(bulk_validate_columns(customer_sheet, CUSTOMER_BULK_COLUMNS, "Customer"))
+
+    else:
+        if "Items" not in wb.sheetnames:
+            errors.append({
+                "row": "-",
+                "type": "Sheet",
+                "code": "-",
+                "error": "Missing sheet: Items",
+            })
+
+        if "Customers" not in wb.sheetnames:
+            errors.append({
+                "row": "-",
+                "type": "Sheet",
+                "code": "-",
+                "error": "Missing sheet: Customers",
+            })
+
+        if not errors:
+            item_sheet = wb["Items"]
+            customer_sheet = wb["Customers"]
+            errors.extend(bulk_validate_columns(item_sheet, ITEM_BULK_COLUMNS, "Item"))
+            errors.extend(bulk_validate_columns(customer_sheet, CUSTOMER_BULK_COLUMNS, "Customer"))
+
+    if errors:
+        log = BulkImportLog.objects.create(
+            company=company,
+            uploaded_by=request.user,
+            file_name=excel_file.name,
+            status=BulkImportLog.STATUS_FAILED,
+            error_count=len(errors),
+            error_report=errors,
+        )
+
+        messages.error(request, "Upload failed. Excel sheet or column is wrong.")
+        return render(request, "accounting/bulk_update_result.html", {
+            "company": company,
+            "log": log,
+            "errors": errors,
+            "item_created": item_created,
+            "item_updated": item_updated,
+            "customer_created": customer_created,
+            "customer_updated": customer_updated,
+            "status": BulkImportLog.STATUS_FAILED,
+            "bulk_type": bulk_type,
+        })
+
+    with transaction.atomic():
+        # Import items only for item/all
+        if bulk_type in ["items", "all"]:
+            item_sheet = wb["Items"]
+
+            for row_number in range(2, item_sheet.max_row + 1):
+                data = bulk_row_to_dict(item_sheet, row_number, ITEM_BULK_COLUMNS)
+
+                item_code = bulk_clean_text(data.get("ITEM_CODE"))
+                item_name = bulk_clean_text(data.get("ITEM_NAME"))
+
+                if not item_code and not item_name:
+                    continue
+
+                try:
+                    if not item_code:
+                        raise ValueError("ITEM_CODE is required")
+
+                    if not item_name:
+                        raise ValueError("ITEM_NAME is required")
+
+                    obj, created = AccountItem.objects.update_or_create(
+                        company=company,
+                        item_code=item_code,
+                        defaults={
+                            "item": bulk_clean_text(data.get("ITEM")) or item_name,
+                            "item_name": item_name,
+                            "local_name": bulk_clean_text(data.get("LOCAL_NAME")),
+                            "item_group": bulk_clean_text(data.get("ITEM_GROUP")),
+                            "item_brand": bulk_clean_text(data.get("ITEM_BRAND")),
+                            "description": bulk_clean_text(data.get("DESCRIPTION")),
+                            "negative_sale": bulk_clean_bool(data.get("NEGATIVE_SALE")),
+                            "for_purchase": bulk_clean_bool(data.get("FOR_PURCHASE")),
+                            "for_sale": bulk_clean_bool(data.get("FOR_SALE")),
+                            "alarm_qty": bulk_clean_decimal(data.get("ALARM_QTY")),
+                            "cost": bulk_clean_decimal(data.get("COST")),
+                            "account_asset_code": bulk_clean_text(data.get("ACCOUNT_ASSET_CODE")),
+                            "account_cogs_code": bulk_clean_text(data.get("ACCOUNT_COGS_CODE")),
+                            "account_revenue_code": bulk_clean_text(data.get("ACCOUNT_REVENUE_CODE")),
+                            "memo": bulk_clean_text(data.get("MEMO")),
+                            "detail_memo": bulk_clean_text(data.get("DETAIL_MEMO")),
+                            "active": bulk_clean_bool(data.get("ACTIVE")),
+                            "unitset_name": bulk_clean_text(data.get("UNITSET_NAME")),
+                            "price_1": bulk_clean_decimal(data.get("PRICE_1")),
+                            "barcode_1": bulk_clean_text(data.get("BARCODE_1")),
+                            "price_2": bulk_clean_decimal(data.get("PRICE_2")),
+                            "barcode_2": bulk_clean_text(data.get("BARCODE_2")),
+                            "price_3": bulk_clean_decimal(data.get("PRICE_3")),
+                            "barcode_3": bulk_clean_text(data.get("BARCODE_3")),
+                        },
+                    )
+
+                    if created:
+                        item_created += 1
+                    else:
+                        item_updated += 1
+
+                except Exception as e:
+                    errors.append({
+                        "row": row_number,
+                        "type": "Item",
+                        "code": item_code or "-",
+                        "error": str(e),
+                    })
+
+        # Import customers only for customer/all
+        if bulk_type in ["customers", "all"]:
+            customer_sheet = wb["Customers"]
+
+            for row_number in range(2, customer_sheet.max_row + 1):
+                data = bulk_row_to_dict(customer_sheet, row_number, CUSTOMER_BULK_COLUMNS)
+
+                customer_code = bulk_clean_text(data.get("CUSTOMER_CODE"))
+                customer_name = bulk_clean_text(data.get("CUSTOMER_NAME"))
+
+                if not customer_code and not customer_name:
+                    continue
+
+                try:
+                    if not customer_code:
+                        raise ValueError("CUSTOMER_CODE is required")
+
+                    if not customer_name:
+                        raise ValueError("CUSTOMER_NAME is required")
+
+                    obj, created = AccountCustomer.objects.update_or_create(
+                        company=company,
+                        customer_code=customer_code,
+                        defaults={
+                            "customer": bulk_clean_text(data.get("CUSTOMER")) or customer_name,
+                            "customer_name": customer_name,
+                            "local_customer_name": bulk_clean_text(data.get("LOCAL_CUSTOMER_NAME")),
+                            "customer_type": bulk_clean_text(data.get("CUSTOMER_TYPE")),
+                            "sale_person": bulk_clean_text(data.get("SALE_PERSON")),
+                            "region": bulk_clean_text(data.get("REGION")),
+                            "currency": bulk_clean_text(data.get("CURRENCY")),
+                            "price_level": bulk_clean_text(data.get("PRICE_LEVEL")),
+                            "invoice_type": bulk_clean_text(data.get("INVOICE_TYPE")),
+                            "credit_limit": bulk_clean_decimal(data.get("CREDIT_LIMIT")),
+                            "credit_term": bulk_clean_int(data.get("CREDIT_TERM")),
+                            "email": bulk_clean_text(data.get("EMAIL")),
+                            "phone": bulk_clean_text(data.get("PHONE")),
+                            "vattin": bulk_clean_text(data.get("VATTIN")),
+                            "is_allow_over_credit": bulk_clean_bool(data.get("IS_ALLOW_OVER_CREDIT")),
+                            "active": bulk_clean_bool(data.get("ACTIVE")),
+                            "house_no": bulk_clean_text(data.get("HOUSE_NO")),
+                            "street": bulk_clean_text(data.get("STREET")),
+                            "commune": bulk_clean_text(data.get("COMMUNE")),
+                            "district": bulk_clean_text(data.get("DISTRICT")),
+                            "city": bulk_clean_text(data.get("CITY")),
+                            "local_house_no": bulk_clean_text(data.get("LOCAL_HOUSE_NO")),
+                            "local_street": bulk_clean_text(data.get("LOCAL_STREET")),
+                            "local_commune": bulk_clean_text(data.get("LOCAL_COMMUNE")),
+                            "local_district": bulk_clean_text(data.get("LOCAL_DISTRICT")),
+                            "local_city": bulk_clean_text(data.get("LOCAL_CITY")),
+                            "address": bulk_clean_text(data.get("ADDRESS")),
+                            "memo": bulk_clean_text(data.get("MEMO")),
+                            "contact_name": bulk_clean_text(data.get("CONTACT_NAME")),
+                            "contact_phone": bulk_clean_text(data.get("CONTACT_PHONE")),
+                            "contact_email": bulk_clean_text(data.get("CONTACT_EMAIL")),
+                            "branches": bulk_clean_text(data.get("BRANCHES")),
+                            "grade": bulk_clean_text(data.get("GRADE")),
+                        },
+                    )
+
+                    if created:
+                        customer_created += 1
+                    else:
+                        customer_updated += 1
+
+                except Exception as e:
+                    errors.append({
+                        "row": row_number,
+                        "type": "Customer",
+                        "code": customer_code or "-",
+                        "error": str(e),
+                    })
+
+        status = BulkImportLog.STATUS_FAILED if errors else BulkImportLog.STATUS_SUCCESS
+
+        log = BulkImportLog.objects.create(
+            company=company,
+            uploaded_by=request.user,
+            file_name=excel_file.name,
+            status=status,
+            item_created=item_created,
+            item_updated=item_updated,
+            customer_created=customer_created,
+            customer_updated=customer_updated,
+            error_count=len(errors),
+            error_report=errors,
+        )
+
+    if errors:
+        messages.error(request, f"Import finished with {len(errors)} error(s). Please check report.")
+    else:
+        messages.success(request, "Bulk update imported successfully.")
+
+    return render(request, "accounting/bulk_update_result.html", {
+        "company": company,
+        "log": log,
+        "errors": errors,
+        "item_created": item_created,
+        "item_updated": item_updated,
+        "customer_created": customer_created,
+        "customer_updated": customer_updated,
+        "status": status,
+        "bulk_type": bulk_type,
+    })
+
+
+@login_required
+def bulk_update_report(request, log_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    log = get_object_or_404(
+        BulkImportLog,
+        id=log_id,
+        company=company,
+    )
+
+    return render(request, "accounting/bulk_update_report.html", {
+        "company": company,
+        "log": log,
+        "errors": log.error_report or [],
+    })
+
+
+# =========================================================
+# AUTO REPORTS
+# =========================================================
+
+@login_required
+def accounting_reports(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    today = timezone.localdate()
+    date_from = (request.GET.get("date_from") or today.replace(day=1).strftime("%Y-%m-%d")).strip()
+    date_to = (request.GET.get("date_to") or today.strftime("%Y-%m-%d")).strip()
+    posted_status = get_posted_status()
+
+    try:
+        as_of_date = datetime.strptime(date_to, "%Y-%m-%d").date() if date_to else today
+    except Exception:
+        as_of_date = today
+
+    # =====================================================
+    # Base posted journal lines
+    # =====================================================
+    lines = JournalEntryLine.objects.filter(
+        journal_entry__company=company,
+        journal_entry__status=posted_status,
+    ).select_related("journal_entry", "account")
+
+    if date_from:
+        lines = lines.filter(journal_entry__entry_date__gte=date_from)
+
+    if date_to:
+        lines = lines.filter(journal_entry__entry_date__lte=date_to)
+
+    # =====================================================
+    # Trial Balance / P&L / Balance Sheet
+    # =====================================================
+    account_rows = (
+        lines
+        .values(
+            "account_id",
+            "account__code",
+            "account__name",
+            "account__account_type",
+            "account__report_type",
+            "account__report_section",
+            "account__normal_balance",
+        )
+        .annotate(
+            debit=Sum("debit"),
+            credit=Sum("credit"),
+        )
+        .order_by("account__code")
+    )
+
+    trial_balance_rows = []
+    profit_loss_rows = []
+    balance_sheet_rows = []
+
+    total_debit = Decimal("0.00")
+    total_credit = Decimal("0.00")
+
+    total_revenue = Decimal("0.00")
+    total_cogs = Decimal("0.00")
+    total_expense = Decimal("0.00")
+    total_other_income = Decimal("0.00")
+    total_other_expense = Decimal("0.00")
+
+    total_assets = Decimal("0.00")
+    total_liabilities = Decimal("0.00")
+    total_equity = Decimal("0.00")
+
+    for row in account_rows:
+        debit = row["debit"] or Decimal("0.00")
+        credit = row["credit"] or Decimal("0.00")
+        account_type = row["account__account_type"]
+        report_type = row["account__report_type"]
+
+        total_debit += debit
+        total_credit += credit
+
+        if account_type in ["asset", "expense", "cogs", "other_expense"]:
+            balance = debit - credit
+        else:
+            balance = credit - debit
+
+        data = {
+            "account_id": row["account_id"],
+            "code": row["account__code"],
+            "name": row["account__name"],
+            "account_type": account_type,
+            "report_type": report_type,
+            "report_section": row["account__report_section"],
+            "normal_balance": row["account__normal_balance"],
+            "debit": debit,
+            "credit": credit,
+            "balance": balance,
+        }
+
+        trial_balance_rows.append(data)
+
+        if report_type == ChartOfAccount.REPORT_PROFIT_LOSS:
+            profit_loss_rows.append(data)
+
+            if account_type == ChartOfAccount.ACCOUNT_TYPE_REVENUE:
+                total_revenue += balance
+            elif account_type == ChartOfAccount.ACCOUNT_TYPE_COGS:
+                total_cogs += balance
+            elif account_type == ChartOfAccount.ACCOUNT_TYPE_EXPENSE:
+                total_expense += balance
+            elif account_type == ChartOfAccount.ACCOUNT_TYPE_OTHER_INCOME:
+                total_other_income += balance
+            elif account_type == ChartOfAccount.ACCOUNT_TYPE_OTHER_EXPENSE:
+                total_other_expense += balance
+
+        if report_type == ChartOfAccount.REPORT_BALANCE_SHEET:
+            balance_sheet_rows.append(data)
+
+            if account_type == ChartOfAccount.ACCOUNT_TYPE_ASSET:
+                total_assets += balance
+            elif account_type == ChartOfAccount.ACCOUNT_TYPE_LIABILITY:
+                total_liabilities += balance
+            elif account_type == ChartOfAccount.ACCOUNT_TYPE_EQUITY:
+                total_equity += balance
+
+    gross_profit = total_revenue - total_cogs
+    net_profit = gross_profit - total_expense + total_other_income - total_other_expense
+    balance_check = total_assets - (total_liabilities + total_equity + net_profit)
+
+    # =====================================================
+    # General Ledger / Journal Report preview
+    # =====================================================
+    journal_report_rows = (
+        lines
+        .order_by("journal_entry__entry_date", "journal_entry_id", "id")[:300]
+    )
+
+    general_ledger_rows = journal_report_rows
+
+    # =====================================================
+    # Profit/Loss by Month preview
+    # =====================================================
+    pl_month_rows = []
+    year = today.year
+
+    try:
+        if date_from:
+            year = datetime.strptime(date_from, "%Y-%m-%d").year
+    except Exception:
+        year = today.year
+
+    pl_accounts = ChartOfAccount.objects.filter(
+        company=company,
+        is_active=True,
+        is_group=False,
+        report_type=ChartOfAccount.REPORT_PROFIT_LOSS,
+    ).order_by("code")
+
+    for account in pl_accounts:
+        monthly_amounts = []
+        row_total = Decimal("0.00")
+
+        for month in range(1, 13):
+            month_lines = JournalEntryLine.objects.filter(
+                journal_entry__company=company,
+                journal_entry__status=posted_status,
+                journal_entry__entry_date__year=year,
+                journal_entry__entry_date__month=month,
+                account=account,
+            )
+
+            sums = month_lines.aggregate(
+                debit=Sum("debit"),
+                credit=Sum("credit"),
+            )
+
+            debit = sums["debit"] or Decimal("0.00")
+            credit = sums["credit"] or Decimal("0.00")
+
+            if account.account_type in [
+                ChartOfAccount.ACCOUNT_TYPE_REVENUE,
+                ChartOfAccount.ACCOUNT_TYPE_OTHER_INCOME,
+            ]:
+                amount = credit - debit
+            else:
+                amount = debit - credit
+
+            monthly_amounts.append(amount)
+            row_total += amount
+
+        if row_total != 0:
+            pl_month_rows.append({
+                "account_id": account.id,
+                "code": account.code,
+                "name": account.name,
+                "months": monthly_amounts,
+                "total": row_total,
+            })
+
+    # =====================================================
+    # Aging helpers
+    # =====================================================
+    def get_type_values(model, attr_names, keywords=None):
+        values = []
+
+        for attr in attr_names:
+            value = getattr(model, attr, None)
+            if value and value not in values:
+                values.append(value)
+
+        if keywords:
+            for value, label in getattr(model, "TYPE_CHOICES", []):
+                text = f"{value} {label}".lower()
+                if any(word.lower() in text for word in keywords):
+                    if value not in values:
+                        values.append(value)
+
+        return values
+
+    def get_party_name(obj):
+        if not obj:
+            return "-"
+
+        for field in ["name", "vendor_name", "customer_name", "company_name"]:
+            value = getattr(obj, field, None)
+            if value:
+                return value
+
+        return str(obj)
+
+    def build_aging_row(tx, name, amount, name_key):
+        tx_date = getattr(tx, "transaction_date", None)
+        due_date = getattr(tx, "due_date", None) or tx_date
+
+        aging_days = 0
+        if due_date:
+            aging_days = (as_of_date - due_date).days
+
+        display_type = (
+            tx.get_transaction_type_display()
+            if hasattr(tx, "get_transaction_type_display")
+            else getattr(tx, "transaction_type", "")
+        )
+
+        return {
+            "id": tx.id,
+            name_key: name or "-",
+            "date": tx_date,
+            "number": getattr(tx, "number", None) or getattr(tx, "po_number", None) or "-",
+            "type": display_type,
+            "terms": getattr(tx, "terms", None) or getattr(tx, "payment_terms", None) or "-",
+            "due_date": due_date,
+            "class_name": getattr(tx, "class_name", None) or getattr(tx, "transaction_class", None) or "-",
+            "aging": aging_days if aging_days > 0 else 0,
+            "current": amount if aging_days <= 0 else Decimal("0.00"),
+            "days_1_30": amount if 1 <= aging_days <= 30 else Decimal("0.00"),
+            "days_31_60": amount if 31 <= aging_days <= 60 else Decimal("0.00"),
+            "days_61_90": amount if 61 <= aging_days <= 90 else Decimal("0.00"),
+            "over_90": amount if aging_days > 90 else Decimal("0.00"),
+            "total": amount,
+        }
+
+    # =====================================================
+    # AP Aging
+    # Purchase Bill - Vendor Payment = Open Balance
+    # Fully paid bill disappears.
+    # Partial payment shows remaining balance.
+    # FIFO by vendor.
+    # =====================================================
+    ap_aging_rows = []
+
+    try:
+        from vendors.models import VendorTransaction
+
+        ap_bill_types = get_type_values(
+            VendorTransaction,
+            [
+                "TYPE_PURCHASE_ORDER",
+                "TYPE_BILL",
+                "TYPE_VENDOR_BILL",
+                "TYPE_ADJUSTMENT",
+            ],
+            keywords=["purchase", "bill", "adjustment"],
+        )
+
+        ap_payment_types = get_type_values(
+            VendorTransaction,
+            [
+                "TYPE_VENDOR_PAYMENT",
+                "TYPE_PAYMENT",
+                "TYPE_PAY_BILL",
+            ],
+            keywords=["payment", "pay", "paid"],
+        )
+
+        vendor_payment_pool = {}
+
+        if ap_payment_types:
+            payment_rows = (
+                VendorTransaction.objects
+                .filter(
+                    company=company,
+                    status=VendorTransaction.STATUS_POSTED,
+                    transaction_type__in=ap_payment_types,
+                    transaction_date__lte=as_of_date,
+                )
+                .values("vendor_id")
+                .annotate(total=Sum("amount"))
+            )
+
+            vendor_payment_pool = {
+                row["vendor_id"]: row["total"] or Decimal("0.00")
+                for row in payment_rows
+            }
+
+        if ap_bill_types:
+            ap_bills = (
+                VendorTransaction.objects
+                .filter(
+                    company=company,
+                    status=VendorTransaction.STATUS_POSTED,
+                    transaction_type__in=ap_bill_types,
+                    transaction_date__lte=as_of_date,
+                )
+                .select_related("vendor")
+                .order_by("vendor__name", "transaction_date", "id")
+            )
+
+            for tx in ap_bills:
+                open_amount = tx.amount or Decimal("0.00")
+                vendor_id = getattr(tx, "vendor_id", None)
+                available_payment = vendor_payment_pool.get(vendor_id, Decimal("0.00"))
+
+                if available_payment > 0:
+                    applied_amount = min(open_amount, available_payment)
+                    open_amount -= applied_amount
+                    vendor_payment_pool[vendor_id] = available_payment - applied_amount
+
+                if open_amount <= 0:
+                    continue
+
+                ap_aging_rows.append(
+                    build_aging_row(
+                        tx=tx,
+                        name=get_party_name(getattr(tx, "vendor", None)),
+                        amount=open_amount,
+                        name_key="vendor",
+                    )
+                )
+
+                if len(ap_aging_rows) >= 300:
+                    break
+
+    except Exception as e:
+        print("AP Aging error:", e)
+        ap_aging_rows = []
+
+    # =====================================================
+    # AR Aging
+    # Sale Invoice - Customer Payment = Open Balance
+    # Fully paid invoice disappears.
+    # Partial payment shows remaining balance.
+    # FIFO by customer.
+    # =====================================================
+    ar_aging_rows = []
+
+    try:
+        from customers.models import CustomerTransaction
+
+        ar_invoice_types = get_type_values(
+            CustomerTransaction,
+            [
+                "TYPE_INVOICE",
+                "TYPE_CUSTOMER_INVOICE",
+                "TYPE_SALE_INVOICE",
+                "TYPE_SALE_ORDER",
+                "TYPE_ADJUSTMENT",
+            ],
+            keywords=["invoice", "sale", "adjustment"],
+        )
+
+        ar_payment_types = get_type_values(
+            CustomerTransaction,
+            [
+                "TYPE_CUSTOMER_PAYMENT",
+                "TYPE_PAYMENT",
+                "TYPE_RECEIPT",
+                "TYPE_RECEIVE_PAYMENT",
+                "TYPE_CUSTOMER_RECEIPT",
+            ],
+            keywords=["payment", "receipt", "receive", "paid"],
+        )
+
+        customer_payment_pool = {}
+
+        if ar_payment_types:
+            payment_rows = (
+                CustomerTransaction.objects
+                .filter(
+                    company=company,
+                    status=CustomerTransaction.STATUS_POSTED,
+                    transaction_type__in=ar_payment_types,
+                    transaction_date__lte=as_of_date,
+                )
+                .values("customer_id")
+                .annotate(total=Sum("amount"))
+            )
+
+            customer_payment_pool = {
+                row["customer_id"]: row["total"] or Decimal("0.00")
+                for row in payment_rows
+            }
+
+        if ar_invoice_types:
+            ar_invoices = (
+                CustomerTransaction.objects
+                .filter(
+                    company=company,
+                    status=CustomerTransaction.STATUS_POSTED,
+                    transaction_type__in=ar_invoice_types,
+                    transaction_date__lte=as_of_date,
+                )
+                .select_related("customer")
+                .order_by("customer__name", "transaction_date", "id")
+            )
+
+            for tx in ar_invoices:
+                open_amount = tx.amount or Decimal("0.00")
+                customer_id = getattr(tx, "customer_id", None)
+                available_payment = customer_payment_pool.get(customer_id, Decimal("0.00"))
+
+                if available_payment > 0:
+                    applied_amount = min(open_amount, available_payment)
+                    open_amount -= applied_amount
+                    customer_payment_pool[customer_id] = available_payment - applied_amount
+
+                if open_amount <= 0:
+                    continue
+
+                ar_aging_rows.append(
+                    build_aging_row(
+                        tx=tx,
+                        name=get_party_name(getattr(tx, "customer", None)),
+                        amount=open_amount,
+                        name_key="customer",
+                    )
+                )
+
+                if len(ar_aging_rows) >= 300:
+                    break
+
+    except Exception as e:
+        print("AR Aging error:", e)
+        ar_aging_rows = []
+
+    # =====================================================
+    # Cash Flow preview
+    # =====================================================
+    cash_flow_rows = []
+    cash_accounts = ChartOfAccount.objects.filter(
+        company=company,
+        is_active=True,
+        is_group=False,
+        account_type=ChartOfAccount.ACCOUNT_TYPE_ASSET,
+        name__icontains="cash",
+    ).order_by("code")
+
+    total_cash_change = Decimal("0.00")
+
+    for account in cash_accounts:
+        cash_lines = lines.filter(account=account)
+        sums = cash_lines.aggregate(
+            debit=Sum("debit"),
+            credit=Sum("credit"),
+        )
+
+        debit = sums["debit"] or Decimal("0.00")
+        credit = sums["credit"] or Decimal("0.00")
+        amount = debit - credit
+
+        if amount != 0:
+            total_cash_change += amount
+            cash_flow_rows.append({
+                "account_id": account.id,
+                "code": account.code,
+                "name": account.name,
+                "section": account.report_section,
+                "amount": amount,
+            })
+
+    return render(request, "accounting/accounting_reports.html", {
+        "company": company,
+        "date_from": date_from,
+        "date_to": date_to,
+        "report_year": year,
+
+        "trial_balance_rows": trial_balance_rows,
+        "profit_loss_rows": profit_loss_rows,
+        "balance_sheet_rows": balance_sheet_rows,
+        "pl_month_rows": pl_month_rows,
+        "general_ledger_rows": general_ledger_rows,
+        "journal_report_rows": journal_report_rows,
+        "ap_aging_rows": ap_aging_rows,
+        "ar_aging_rows": ar_aging_rows,
+        "cash_flow_rows": cash_flow_rows,
+
+        "total_debit": total_debit,
+        "total_credit": total_credit,
+
+        "total_revenue": total_revenue,
+        "total_cogs": total_cogs,
+        "gross_profit": gross_profit,
+        "total_expense": total_expense,
+        "total_other_income": total_other_income,
+        "total_other_expense": total_other_expense,
+        "net_profit": net_profit,
+
+        "total_assets": total_assets,
+        "total_liabilities": total_liabilities,
+        "total_equity": total_equity,
+        "balance_check": balance_check,
+
+        "total_cash_change": total_cash_change,
+    })
+
+@login_required
+def report_mapping(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    return render(request, "accounting/report_mapping.html", {
+        "company": company,
+    })
+
+
+@login_required
+def banking_menu(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    return render(request, "accounting/banking_menu.html", {
+        "company": company,
+    })
+
+
+@login_required
+def bank_deposit(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    return render(request, "accounting/bank_deposit.html", {
+        "company": company,
+    })
+
+
+@login_required
+def landed_cost_allocation(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    return render(request, "accounting/landed_cost_allocation.html", {
+        "company": company,
+    })
+
+
+@login_required
+def find_transaction(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    query = (request.GET.get("q") or "").strip()
+
+    entries = JournalEntry.objects.filter(company=company)
+
+    if query:
+        entries = entries.filter(
+            Q(reference_no__icontains=query)
+            | Q(description__icontains=query)
+            | Q(lines__account__code__icontains=query)
+            | Q(lines__account__name__icontains=query)
+        ).distinct()
+
+    entries = entries.prefetch_related("lines", "lines__account").order_by("-entry_date", "-id")[:100]
+
+    return render(request, "accounting/find_transaction.html", {
+        "company": company,
+        "query": query,
+        "entries": entries,
+    })
+
+
+@login_required
+def batch_transaction(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    entries = (
+        JournalEntry.objects
+        .filter(company=company)
+        .prefetch_related("lines", "lines__account")
+        .order_by("-entry_date", "-id")[:100]
+    )
+
+    return render(request, "accounting/batch_transaction.html", {
+        "company": company,
+        "entries": entries,
+    })
+
+
+@login_required
+def import_menu(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    return render(request, "accounting/import_menu.html", {
+        "company": company,
+    })
+
+
+@login_required
+def report_ledger_detail(request, account_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    account = get_object_or_404(
+        ChartOfAccount,
+        id=account_id,
+        company=company,
+    )
+
+    today = timezone.localdate()
+    date_from = (request.GET.get("date_from") or today.replace(day=1).strftime("%Y-%m-%d")).strip()
+    date_to = (request.GET.get("date_to") or today.strftime("%Y-%m-%d")).strip()
+
+    lines = JournalEntryLine.objects.filter(
+        journal_entry__company=company,
+        journal_entry__status=get_posted_status(),
+        account=account,
+    ).select_related(
+        "journal_entry",
+        "account",
+    )
+
+    if date_from:
+        lines = lines.filter(journal_entry__entry_date__gte=date_from)
+
+    if date_to:
+        lines = lines.filter(journal_entry__entry_date__lte=date_to)
+
+    lines = lines.order_by("journal_entry__entry_date", "journal_entry_id", "id")
+
+    ledger_rows = []
+    running_balance = Decimal("0.00")
+    total_debit = Decimal("0.00")
+    total_credit = Decimal("0.00")
+
+    for line in lines:
+        debit = line.debit or Decimal("0.00")
+        credit = line.credit or Decimal("0.00")
+
+        total_debit += debit
+        total_credit += credit
+
+        if account.normal_balance == ChartOfAccount.NORMAL_CREDIT:
+            running_balance += credit - debit
+        else:
+            running_balance += debit - credit
+
+        ledger_rows.append({
+            "line": line,
+            "entry": line.journal_entry,
+            "date": line.journal_entry.entry_date,
+            "entry_no": line.journal_entry.entry_no,
+            "reference_no": line.journal_entry.reference_no,
+            "description": line.description or line.journal_entry.description,
+            "debit": debit,
+            "credit": credit,
+            "balance": running_balance,
+        })
+
+    return render(request, "accounting/report_ledger_detail.html", {
+        "company": company,
+        "account": account,
+        "date_from": date_from,
+        "date_to": date_to,
+        "ledger_rows": ledger_rows,
+        "total_debit": total_debit,
+        "total_credit": total_credit,
+        "running_balance": running_balance,
+    })

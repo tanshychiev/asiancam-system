@@ -324,3 +324,51 @@ class PurchaseBillExpenseLine(models.Model):
             raise ValidationError({"amount": "Amount must be more than zero."})
         if self.vat_amount is not None and self.vat_amount < 0:
             raise ValidationError({"vat_amount": "VAT cannot be negative."})
+# =========================================================
+# CUSTOMER REQUIREMENT PAYMENT (Apply to Invoices / Other Charge)
+# =========================================================
+class VendorPayment(models.Model):
+    STATUS_DRAFT = "draft"
+    STATUS_POSTED = "posted"
+    STATUS_VOID = "void"
+    STATUS_CHOICES = [(STATUS_DRAFT, "Draft"), (STATUS_POSTED, "Posted"), (STATUS_VOID, "Void")]
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="vendor_payments")
+    vendor = models.ForeignKey(Vendor, on_delete=models.PROTECT, related_name="payments")
+    payment_date = models.DateField(default=timezone.localdate)
+    number = models.CharField(max_length=80, blank=True)
+    payment_method = models.CharField(max_length=80, blank=True, default="Cash")
+    payment_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="vendor_payment_cash_accounts")
+    accounts_payable_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="vendor_payment_ap_accounts")
+    currency = models.CharField(max_length=20, default="USD")
+    memo = models.TextField(blank=True)
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_POSTED)
+    journal_entry = models.OneToOneField(JournalEntry, on_delete=models.SET_NULL, null=True, blank=True, related_name="vendor_payment")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-payment_date", "-id"]
+
+    def recalculate_total(self, save=True):
+        allocations = self.allocations.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        charges = self.other_charges.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        self.total_amount = allocations + charges
+        if save:
+            self.save(update_fields=["total_amount"])
+        return self.total_amount
+
+
+class VendorPaymentAllocation(models.Model):
+    payment = models.ForeignKey(VendorPayment, on_delete=models.CASCADE, related_name="allocations")
+    bill = models.ForeignKey(PurchaseBill, on_delete=models.PROTECT, related_name="payment_allocations")
+    discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    memo = models.CharField(max_length=255, blank=True)
+
+
+class VendorPaymentOtherCharge(models.Model):
+    payment = models.ForeignKey(VendorPayment, on_delete=models.CASCADE, related_name="other_charges")
+    memo = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="vendor_payment_other_charges")
