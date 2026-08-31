@@ -1358,23 +1358,510 @@
     {% block extra_css %}{% endblock %}
 
 <style id="customer-reference-style">
-/* Compact green desktop-accounting style requested in the customer reference PDF. */
-:root{--blue:#078a4b;--blue-dark:#066d3d;--blue-deep:#125b3a;--blue-soft:#f2faf6;--cyan:#28a86a;--border:#d8e4dc;--bg:#f7f9f8;--shadow:0 2px 8px rgba(0,0,0,.06);--shadow-soft:0 1px 5px rgba(0,0,0,.05);--green:#078a4b}
-html,body{background:#f6f7f6;font-size:13px}
-.system-topbar{background:#2e3b34;box-shadow:none;height:38px}
-.main-navbar{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);border-bottom:1px solid #d9e1dc;min-height:64px;padding:8px 18px}
-.brand-logo{background:#078a4b;border-radius:4px;box-shadow:none;width:42px;height:42px}.brand-text strong{color:#155c3c}
-.btn,.select-company-btn{background:#078a4b!important;border:1px solid #06773f!important;color:#fff!important;border-radius:3px!important;box-shadow:none!important;min-height:32px!important;padding:5px 12px!important;font-size:12px!important}
-.btn-light{background:#fff!important;color:#11613e!important;border:1px solid #8eb9a2!important}.btn:hover{filter:brightness(.96);transform:none!important}
-.card{border-radius:4px!important;box-shadow:0 1px 5px rgba(0,0,0,.06)!important;border:1px solid #dce5df!important;background:#fff!important;padding:16px!important}
-.card-head h2{font-size:18px!important;color:#155c3c!important}.card-head p{font-size:12px!important}.quick-card{border-radius:4px!important;box-shadow:none!important}
-input,select,textarea,.form-control{border-radius:2px!important;border:1px solid #cdd9d2!important;min-height:31px!important;padding:5px 7px!important;background:#fff!important;font-size:12px!important}
-table{font-size:12px!important}th{background:#f3f7f4!important;color:#355847!important;border-bottom:1px solid #cfdad3!important;padding:7px 6px!important}td{padding:6px!important;border-bottom:1px solid #e3e9e5!important}
-.accounting-sheet{max-width:1500px;margin:0 auto}.account-grid{display:grid;gap:9px 12px;margin:8px 0 14px}.account-grid-4{grid-template-columns:repeat(4,minmax(150px,1fr))}.account-grid label{display:block;font-size:11px;font-weight:700;color:#4d6559;margin-bottom:3px}.span-2{grid-column:span 2}
-.sheet-tabs{display:flex;border-bottom:2px solid #138b52;margin-top:14px;gap:2px}.sheet-tab{border:0;background:#eef5f1;color:#3f5f50;padding:7px 14px;font-weight:700;font-size:12px;cursor:pointer}.sheet-tab.active{background:#078a4b;color:white}.tab-panel{display:none}.tab-panel.active{display:block}
-.line-table select,.line-table input{min-width:85px}.line-table td{padding:3px!important}.delete-cell{width:40px}.totals-box{width:310px;margin:12px 0 12px auto;border:1px solid #d7e0da;background:#fbfcfb}.totals-box div{display:flex;justify-content:space-between;padding:6px 10px;border-bottom:1px solid #e5ebe7}.totals-box .grand{background:#eff7f2;color:#076d3d;font-size:14px}
-.bottom-actions{display:flex;justify-content:flex-end;gap:6px;border-top:1px solid #dde5e0;padding-top:10px;margin-top:14px}.compact-toolbar{display:flex;gap:6px;margin-bottom:10px}.compact-toolbar input{max-width:300px;width:100%}
-@media(max-width:900px){.account-grid-4{grid-template-columns:repeat(2,minmax(140px,1fr))}}@media(max-width:600px){.account-grid-4{grid-template-columns:1fr}.span-2{grid-column:span 1}}
+/*
+    Asi@nCam professional sky-blue accounting theme.
+    Global override so every page that extends base.html keeps the same vibe:
+    modern, clean, business-focused, compact enough for accounting work.
+*/
+:root{
+    --blue:#2aaee8;
+    --blue-dark:#168bc5;
+    --blue-deep:#0b4d78;
+    --blue-soft:#eef8fd;
+    --cyan:#63cbed;
+    --border:#d5e8f2;
+    --bg:#f5f9fc;
+    --shadow:0 8px 24px rgba(14,92,132,.08);
+    --shadow-soft:0 3px 12px rgba(14,92,132,.07);
+    --green:#21a66a;
+    --red:#e94d5f;
+    --orange:#e9a23b;
+    --surface:#ffffff;
+    --surface-soft:#f8fbfd;
+    --text:#173a52;
+    --muted:#6f8798;
+}
+
+html,body{
+    background:#f5f9fc !important;
+    color:var(--text);
+    font-size:13px;
+}
+
+/* ---------- Main header / navigation ---------- */
+.system-topbar{
+    background:#103e5d !important;
+    box-shadow:none !important;
+    height:38px;
+}
+
+.main-navbar{
+    min-height:68px !important;
+    padding:9px 22px !important;
+    background:rgba(255,255,255,.97) !important;
+    border-bottom:1px solid #dceaf2 !important;
+    box-shadow:0 3px 14px rgba(10,70,105,.07) !important;
+    backdrop-filter:blur(14px);
+}
+
+.brand-logo{
+    width:44px !important;
+    height:44px !important;
+    border-radius:10px !important;
+    background:#2aaee8 !important;
+    box-shadow:0 6px 16px rgba(42,174,232,.18) !important;
+    font-size:17px !important;
+}
+
+.brand-text strong{
+    color:#0b4d78 !important;
+    font-size:20px !important;
+    font-weight:750 !important;
+}
+
+.brand-text span{
+    color:#7a91a1 !important;
+}
+
+.nav-left{
+    gap:5px !important;
+}
+
+.nav-link{
+    min-height:40px !important;
+    padding:0 12px !important;
+    border-radius:9px !important;
+    color:#244e68 !important;
+    font-weight:600 !important;
+    box-shadow:none !important;
+}
+
+.nav-link:hover,
+.nav-link.active,
+.nav-item:hover > .nav-link,
+.nav-item.open > .nav-link{
+    background:#2aaee8 !important;
+    color:#fff !important;
+    transform:none !important;
+    box-shadow:0 5px 14px rgba(42,174,232,.18) !important;
+}
+
+.mini-icon{
+    width:27px !important;
+    height:27px !important;
+    border-radius:7px !important;
+    background:#edf7fc !important;
+    color:#168bc5 !important;
+}
+
+.nav-link:hover .mini-icon,
+.nav-link.active .mini-icon,
+.nav-item:hover > .nav-link .mini-icon,
+.nav-item.open > .nav-link .mini-icon{
+    background:rgba(255,255,255,.22) !important;
+    color:#fff !important;
+}
+
+.dropdown-menu{
+    border:1px solid #dceaf2 !important;
+    border-radius:12px !important;
+    box-shadow:0 14px 34px rgba(10,70,105,.13) !important;
+    padding:7px !important;
+}
+
+.dropdown-item{
+    min-height:38px !important;
+    border-radius:8px !important;
+    color:#244e68 !important;
+}
+
+.dropdown-item:hover,
+.dropdown-item.active{
+    background:#eef8fd !important;
+    color:#0c75aa !important;
+}
+
+.right-chip,
+.right-round{
+    background:#eef8fd !important;
+    border:1px solid #cde7f3 !important;
+    color:#174f70 !important;
+    border-radius:9px !important;
+}
+
+.nav-user-chip{
+    border-radius:10px !important;
+    border-color:#d8e8f0 !important;
+    background:#fff !important;
+}
+
+.nav-user-avatar{
+    background:#2aaee8 !important;
+    box-shadow:none !important;
+}
+
+.nav-logout-button{
+    border-radius:9px !important;
+}
+
+/* ---------- Page spacing ---------- */
+.page-content{
+    padding:24px 30px 48px !important;
+}
+
+/* ---------- Cards / panels ---------- */
+.card,
+.quick-card,
+.detail-box,
+.welcome-hero,
+.filter-card,
+.report-card,
+.summary-card{
+    background:#fff !important;
+    border:1px solid #dbe9f1 !important;
+    box-shadow:0 3px 12px rgba(10,70,105,.055) !important;
+}
+
+.card{
+    border-radius:12px !important;
+    padding:20px !important;
+    margin-bottom:20px !important;
+}
+
+.card-head{
+    margin-bottom:15px !important;
+}
+
+.card-head h2{
+    color:#0b4d78 !important;
+    font-size:20px !important;
+    font-weight:750 !important;
+}
+
+.card-head p{
+    color:#748b9c !important;
+    font-size:12px !important;
+}
+
+.quick-card{
+    border-radius:11px !important;
+    padding:18px !important;
+}
+
+.quick-icon{
+    background:#eaf7fd !important;
+    color:#168bc5 !important;
+    border-radius:9px !important;
+    box-shadow:none !important;
+}
+
+/* Remove overly decorative gradients on accounting pages */
+.welcome-hero,
+.report-hero,
+.page-hero,
+.accounting-hero{
+    background:#f4fbfe !important;
+    border-color:#d9edf6 !important;
+    box-shadow:0 4px 16px rgba(10,70,105,.06) !important;
+}
+
+/* ---------- Buttons ---------- */
+.btn,
+.select-company-btn{
+    min-height:36px !important;
+    padding:7px 14px !important;
+    border-radius:8px !important;
+    background:#2aaee8 !important;
+    border:1px solid #2aaee8 !important;
+    color:#fff !important;
+    font-size:12px !important;
+    font-weight:650 !important;
+    box-shadow:none !important;
+}
+
+.btn:hover,
+.select-company-btn:hover{
+    background:#168bc5 !important;
+    border-color:#168bc5 !important;
+    transform:none !important;
+    filter:none !important;
+}
+
+.btn-light{
+    background:#fff !important;
+    color:#126f9e !important;
+    border:1px solid #bcddea !important;
+    box-shadow:none !important;
+}
+
+.btn-light:hover{
+    background:#f0f9fd !important;
+    border-color:#92cde3 !important;
+    color:#0b5f89 !important;
+}
+
+.btn-danger{
+    background:#e94d5f !important;
+    border-color:#e94d5f !important;
+}
+
+.btn-warning{
+    background:#e9a23b !important;
+    border-color:#e9a23b !important;
+}
+
+/* ---------- Forms ---------- */
+input,
+select,
+textarea,
+.form-control{
+    min-height:36px !important;
+    padding:7px 10px !important;
+    border-radius:7px !important;
+    border:1px solid #cfdfe8 !important;
+    background:#fff !important;
+    color:#173a52 !important;
+    font-size:12.5px !important;
+    box-shadow:none !important;
+}
+
+textarea{
+    min-height:96px !important;
+}
+
+input:hover,
+select:hover,
+textarea:hover{
+    border-color:#add4e5 !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus{
+    border-color:#2aaee8 !important;
+    box-shadow:0 0 0 3px rgba(42,174,232,.10) !important;
+}
+
+.form-group label,
+.account-grid label{
+    color:#315d76 !important;
+    font-weight:650 !important;
+}
+
+/* ---------- Tables ---------- */
+.table-wrap{
+    border:1px solid #d9e8f0 !important;
+    border-radius:10px !important;
+    background:#fff !important;
+}
+
+table{
+    background:#fff !important;
+    font-size:12.5px !important;
+}
+
+th{
+    padding:10px 9px !important;
+    background:#eef7fb !important;
+    color:#28536c !important;
+    border-bottom:1px solid #d5e5ed !important;
+    font-size:11px !important;
+    letter-spacing:.35px !important;
+    font-weight:700 !important;
+}
+
+td{
+    padding:9px !important;
+    border-top:1px solid #e9f0f4 !important;
+    border-bottom:0 !important;
+}
+
+tbody tr:hover td{
+    background:#f9fcfe !important;
+}
+
+/* ---------- Status / badges ---------- */
+.badge{
+    border-radius:7px !important;
+    background:#eaf7fd !important;
+    color:#1178aa !important;
+    padding:5px 9px !important;
+}
+
+.badge.green{
+    background:#e8f8f0 !important;
+    color:#168354 !important;
+}
+
+.badge.orange{
+    background:#fff5e7 !important;
+    color:#ac6b15 !important;
+}
+
+.badge.red{
+    background:#fff0f2 !important;
+    color:#ca3f52 !important;
+}
+
+/* ---------- Purchase Bill / accounting sheet ---------- */
+.accounting-sheet{
+    max-width:1560px;
+    margin:0 auto;
+}
+
+.account-grid{
+    display:grid;
+    gap:12px 14px;
+    margin:8px 0 16px;
+}
+
+.account-grid-4{
+    grid-template-columns:repeat(4,minmax(150px,1fr));
+}
+
+.span-2{
+    grid-column:span 2;
+}
+
+.sheet-tabs{
+    display:flex;
+    gap:5px;
+    margin-top:16px;
+    border-bottom:1px solid #cfe3ed !important;
+}
+
+.sheet-tab{
+    padding:9px 15px !important;
+    border:1px solid #d4e6ef !important;
+    border-bottom:0 !important;
+    border-radius:8px 8px 0 0 !important;
+    background:#f7fbfd !important;
+    color:#456b80 !important;
+    font-size:12px !important;
+    font-weight:650 !important;
+}
+
+.sheet-tab.active{
+    background:#2aaee8 !important;
+    border-color:#2aaee8 !important;
+    color:#fff !important;
+}
+
+.tab-panel{
+    display:none;
+}
+
+.tab-panel.active{
+    display:block;
+}
+
+.line-table td{
+    padding:5px !important;
+}
+
+.line-table input,
+.line-table select{
+    min-width:82px;
+}
+
+.delete-cell{
+    width:58px !important;
+}
+
+.totals-box{
+    width:320px;
+    margin:14px 0 14px auto;
+    border:1px solid #d5e5ed !important;
+    background:#fff !important;
+    border-radius:8px !important;
+    overflow:hidden;
+}
+
+.totals-box div{
+    display:flex;
+    justify-content:space-between;
+    padding:8px 11px;
+    border-bottom:1px solid #e7eff3 !important;
+}
+
+.totals-box .grand{
+    background:#edf8fd !important;
+    color:#0b5d86 !important;
+    font-size:14px;
+    font-weight:750;
+}
+
+.bottom-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:7px;
+    padding-top:12px;
+    margin-top:15px;
+    border-top:1px solid #dce9ef !important;
+}
+
+.compact-toolbar{
+    display:flex;
+    gap:7px;
+    margin-bottom:11px;
+}
+
+.compact-toolbar input{
+    max-width:320px;
+    width:100%;
+}
+
+/* ---------- Utility consistency ---------- */
+.message{
+    border-radius:8px !important;
+    background:#eef8fd !important;
+    border-color:#d4e8f2 !important;
+    color:#176b94 !important;
+}
+
+.message.success{
+    background:#eaf8f1 !important;
+    border-color:#ccebdc !important;
+    color:#187c52 !important;
+}
+
+.message.warning{
+    background:#fff7ea !important;
+    border-color:#f2dfbb !important;
+    color:#9b681c !important;
+}
+
+.message.error{
+    background:#fff1f3 !important;
+    border-color:#f1ccd2 !important;
+    color:#bb4050 !important;
+}
+
+/* Keep screens professional: less pill-shaped / playful */
+.form-actions{
+    gap:8px !important;
+}
+
+.empty-state .emoji{
+    font-size:32px !important;
+}
+
+/* Responsive */
+@media(max-width:1100px){
+    .main-navbar{padding:8px 14px !important}
+    .nav-link{padding:0 9px !important}
+}
+
+@media(max-width:900px){
+    .account-grid-4{grid-template-columns:repeat(2,minmax(140px,1fr))}
+    .page-content{padding:18px 16px 40px !important}
+}
+
+@media(max-width:600px){
+    .account-grid-4{grid-template-columns:1fr}
+    .span-2{grid-column:span 1}
+    .card{padding:15px !important}
+}
 </style>
 </head>
 
