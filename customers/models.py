@@ -127,10 +127,24 @@ class Customer(models.Model):
 
     @property
     def ar_balance(self):
-        transactions = self.transactions.filter(status=CustomerTransaction.STATUS_POSTED)
+        transactions = self.transactions.filter(
+            status=CustomerTransaction.STATUS_POSTED,
+            company=self.company,
+        )
 
-        debit = transactions.aggregate(total=models.Sum("debit_amount"))["total"] or Decimal("0.00")
-        credit = transactions.aggregate(total=models.Sum("credit_amount"))["total"] or Decimal("0.00")
+        debit = transactions.filter(
+            transaction_type__in=[
+                CustomerTransaction.TYPE_INVOICE,
+                CustomerTransaction.TYPE_ADJUSTMENT,
+            ]
+        ).aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+
+        credit = transactions.filter(
+            transaction_type__in=[
+                CustomerTransaction.TYPE_RECEIVE_PAYMENT,
+                CustomerTransaction.TYPE_CREDIT_NOTE,
+            ]
+        ).aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
 
         return self.opening_balance + debit - credit
 

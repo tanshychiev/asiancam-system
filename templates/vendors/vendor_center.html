@@ -1,66 +1,41 @@
 {% extends "base.html" %}
-
 {% block title %}Vendor Center{% endblock %}
-
 {% block content %}
-
 <div class="card">
     <div class="card-head">
         <div>
             <h2>Vendor Center</h2>
-            <p>Manage vendor records and A/P balance for {{ company.name }}.</p>
+            <p>Manage vendors and A/P for {{ company.name }}.</p>
         </div>
-
         <div class="form-actions">
-            <a href="{% url 'vendor_create' %}" class="btn">➕ New Vendor</a>
-            <a href="{% url 'purchase_order_create' %}" class="btn btn-light">🧾 Purchase Order</a>
-            <a href="{% url 'cash_expense_create' %}" class="btn btn-light">💵 Cash Expense</a>
+            <a href="{% url 'vendor_create' %}" class="btn">➕ Add Vendor</a>
+            <a href="{% url 'purchase_bill_create' %}" class="btn btn-light">🧾 Purchase Bill</a>
+            <a href="{% url 'vendor_export_excel' %}" class="btn btn-light">📥 List Excel</a>
+            <a href="{% url 'vendor_import_excel' %}" class="btn btn-light">📤 Import Excel</a>
         </div>
     </div>
 
     <div class="quick-grid">
-        <div class="quick-card">
-            <div class="quick-icon">🏪</div>
-            <span>Total Vendors</span>
-            <h3>{{ total_vendors }}</h3>
-        </div>
-
-        <div class="quick-card">
-            <div class="quick-icon">✅</div>
-            <span>Active Vendors</span>
-            <h3>{{ active_vendors }}</h3>
-        </div>
-
-        <div class="quick-card">
-            <div class="quick-icon">📦</div>
-            <span>Total Purchase</span>
-            <h3>${{ total_purchase }}</h3>
-        </div>
-
-        <div class="quick-card">
-            <div class="quick-icon">💳</div>
-            <span>A/P Balance</span>
-            <h3>${{ ap_balance }}</h3>
-        </div>
+        <div class="quick-card"><div class="quick-icon">🏪</div><span>Total Vendors</span><h3>{{ total_vendors }}</h3></div>
+        <div class="quick-card"><div class="quick-icon">✅</div><span>Active Vendors</span><h3>{{ active_vendors }}</h3></div>
+        <div class="quick-card"><div class="quick-icon">📦</div><span>Total Purchase</span><h3>${{ total_purchase }}</h3></div>
+        <div class="quick-card"><div class="quick-icon">💳</div><span>A/P Balance</span><h3>${{ ap_balance }}</h3></div>
     </div>
 </div>
 
 <div class="card">
     <div class="card-head">
-        <div>
-            <h2>Vendor List</h2>
-            <p>Search and view vendor balances.</p>
-        </div>
+        <div><h2>Vendor List</h2><p>Search by vendor name, Vendor ID/code, phone, contact or email.</p></div>
+        <a href="{% url 'purchase_bill_list' %}" class="btn btn-light">View Purchase Bills</a>
     </div>
 
     <form method="get" class="card" style="box-shadow:none;">
         <div class="form-grid">
             <div class="form-group">
                 <label>Search Vendor</label>
-                <input type="text" name="q" value="{{ query }}" placeholder="Vendor name, phone, email...">
+                <input type="text" name="q" value="{{ query }}" placeholder="Vendor name or Vendor ID/code...">
             </div>
         </div>
-
         <div class="form-actions">
             <button type="submit" class="btn">🔍 Search</button>
             <a href="{% url 'vendor_center' %}" class="btn btn-light">Reset</a>
@@ -69,54 +44,25 @@
 
     <div class="table-wrap">
         <table>
-            <thead>
-                <tr>
-                    <th>Vendor</th>
-                    <th>Phone</th>
-                    <th>Contact</th>
-                    <th>Email</th>
-                    <th>Opening Balance</th>
-                    <th>A/P Balance</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-
+            <thead><tr><th>Vendor ID</th><th>Vendor</th><th>Phone</th><th>Contact</th><th>Email</th><th>Opening Balance</th><th>A/P Balance</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>
-                {% for vendor in vendors %}
-                    <tr>
-                        <td><strong>{{ vendor.name }}</strong></td>
-                        <td>{{ vendor.phone|default:"-" }}</td>
-                        <td>{{ vendor.contact_person|default:"-" }}</td>
-                        <td>{{ vendor.email|default:"-" }}</td>
-                        <td>${{ vendor.opening_balance }}</td>
-                        <td>${{ vendor.ap_balance }}</td>
-                        <td>
-                            {% if vendor.is_active %}
-                                <span class="badge green">Active</span>
-                            {% else %}
-                                <span class="badge gray">Inactive</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{% url 'vendor_edit' vendor.id %}" class="btn btn-light">Edit</a>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="8">
-                            <div class="empty-state">
-                                <div class="emoji">🏪</div>
-                                No vendors yet.
-                                <br><br>
-                                <a href="{% url 'vendor_create' %}" class="btn">Create First Vendor</a>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
+            {% for vendor in vendors %}
+                <tr>
+                    <td>{{ vendor.code|default:"-" }}</td>
+                    <td><strong>{{ vendor.name }}</strong></td>
+                    <td>{{ vendor.phone|default:"-" }}</td>
+                    <td>{{ vendor.contact_person|default:"-" }}</td>
+                    <td>{{ vendor.email|default:"-" }}</td>
+                    <td>${{ vendor.opening_balance }}</td>
+                    <td><strong>${{ vendor.ap_balance }}</strong></td>
+                    <td>{% if vendor.is_active %}<span class="badge green">Active</span>{% else %}<span class="badge gray">Inactive</span>{% endif %}</td>
+                    <td><a href="{% url 'vendor_edit' vendor.id %}" class="btn btn-light">Edit</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="9"><div class="empty-state"><div class="emoji">🏪</div>No vendors yet.<br><br><a href="{% url 'vendor_create' %}" class="btn">Create First Vendor</a></div></td></tr>
+            {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
-
 {% endblock %}

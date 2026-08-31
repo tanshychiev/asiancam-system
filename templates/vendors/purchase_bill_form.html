@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<style>
+.pb-head-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.pb-tabs{display:flex;gap:8px;margin:18px 0 10px}.pb-tab{border:1px solid #d7dde5;background:#fff;padding:9px 14px;border-radius:8px;cursor:pointer;font-weight:700}.pb-tab.active{background:#153d6f;color:#fff}.pb-panel{display:none}.pb-panel.active{display:block}.pb-line-table input,.pb-line-table select{min-width:105px;width:100%}.pb-line-table .desc{min-width:180px}.pb-line-table .item{min-width:210px}.pb-summary{display:flex;justify-content:flex-end;margin-top:15px}.pb-summary-box{min-width:320px}.pb-summary-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e8edf3}.pb-summary-row.total{font-size:18px;font-weight:800}.vendor-search{margin-bottom:6px}.delete-cell{text-align:center}.delete-cell input{width:auto;min-width:auto}@media(max-width:900px){.pb-head-grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.pb-head-grid{grid-template-columns:1fr}}
+</style>
+<div class="card">
+  <div class="card-head">
+    <div><h2>{{ page_title }}</h2><p>Item / Inventory and Expense lines in one Purchase Bill for {{ company.name }}.</p></div>
+    <a href="{% url 'purchase_bill_list' %}" class="btn btn-light">✕ Close</a>
+  </div>
+
+  <form method="post" id="purchaseBillForm">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="message error">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="pb-head-grid">
+      <div class="form-group">
+        <label>Vendor *</label>
+        <input type="text" id="vendorSearch" class="form-control vendor-search" placeholder="Type Vendor name or code to search...">
+        {{ form.vendor }}{{ form.vendor.errors }}
+      </div>
+      <div class="form-group"><label>Date *</label>{{ form.bill_date }}{{ form.bill_date.errors }}</div>
+      <div class="form-group"><label>Due Date</label>{{ form.due_date }}{{ form.due_date.errors }}</div>
+      <div class="form-group"><label>Bill No.</label>{{ form.number }}{{ form.number.errors }}</div>
+      <div class="form-group"><label>PO Number</label>{{ form.po_number }}{{ form.po_number.errors }}</div>
+      <div class="form-group"><label>A/P Account *</label>{{ form.accounts_payable_account }}{{ form.accounts_payable_account.errors }}<small>Normally Accounts Payable.</small></div>
+      <div class="form-group"><label>VAT Input Tax Account</label>{{ form.input_vat_account }}{{ form.input_vat_account.errors }}<small>Only needed when a VAT amount is entered.</small></div>
+      <div class="form-group"><label>Memo</label>{{ form.memo }}{{ form.memo.errors }}</div>
+    </div>
+
+    <div class="pb-tabs">
+      <button type="button" class="pb-tab active" data-tab="itemsPanel">Item / Inventory</button>
+      <button type="button" class="pb-tab" data-tab="expensesPanel">Expense</button>
+    </div>
+
+    <div id="itemsPanel" class="pb-panel active">
+      {{ item_formset.management_form }}
+      {% if item_formset.non_form_errors %}<div class="message error">{{ item_formset.non_form_errors }}</div>{% endif %}
+      <div class="table-wrap"><table class="pb-line-table">
+        <thead><tr><th>Item</th><th>Item Code / Description</th><th>Qty</th><th>Unit</th><th>Cost</th><th>Amount</th><th>Account</th><th>VAT Input</th><th>Delete</th></tr></thead>
+        <tbody id="itemRows">
+        {% for line in item_formset %}
+          <tr class="item-row">
+            <td class="item">{{ line.id }}{{ line.item }}{{ line.item.errors }}</td>
+            <td class="desc">{{ line.description }}{{ line.description.errors }}</td>
+            <td>{{ line.qty }}{{ line.qty.errors }}</td>
+            <td>{{ line.unit_name }}{{ line.unit_name.errors }}</td>
+            <td>{{ line.unit_cost }}{{ line.unit_cost.errors }}</td>
+            <td><strong class="js-line-amount">0.00</strong></td>
+            <td>{{ line.account }}{{ line.account.errors }}</td>
+            <td>{{ line.vat_amount }}{{ line.vat_amount.errors }}</td>
+            <td class="delete-cell">{{ line.DELETE }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      <button type="button" class="btn btn-light" id="addItemRow">＋ Add Item Row</button>
+    </div>
+
+    <div id="expensesPanel" class="pb-panel">
+      {{ expense_formset.management_form }}
+      {% if expense_formset.non_form_errors %}<div class="message error">{{ expense_formset.non_form_errors }}</div>{% endif %}
+      <div class="table-wrap"><table class="pb-line-table">
+        <thead><tr><th>Description</th><th>Amount ($)</th><th>Account</th><th>VAT Input</th><th>Delete</th></tr></thead>
+        <tbody id="expenseRows">
+        {% for line in expense_formset %}
+          <tr class="expense-row">
+            <td class="desc">{{ line.id }}{{ line.description }}{{ line.description.errors }}</td>
+            <td>{{ line.amount }}{{ line.amount.errors }}</td>
+            <td>{{ line.account }}{{ line.account.errors }}</td>
+            <td>{{ line.vat_amount }}{{ line.vat_amount.errors }}</td>
+            <td class="delete-cell">{{ line.DELETE }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      <button type="button" class="btn btn-light" id="addExpenseRow">＋ Add Expense Row</button>
+    </div>
+
+    <div class="pb-summary"><div class="pb-summary-box">
+      <div class="pb-summary-row"><span>Sub Total</span><strong>$<span id="subTotal">0.00</span></strong></div>
+      <div class="pb-summary-row"><span>VAT Input Tax</span><strong>$<span id="vatTotal">0.00</span></strong></div>
+      <div class="pb-summary-row total"><span>Grand Total</span><strong>$<span id="grandTotal">0.00</span></strong></div>
+    </div></div>
+
+    <div class="form-actions" style="margin-top:18px;justify-content:flex-end;">
+      <button type="submit" name="save_action" value="save_new" class="btn btn-light">💾 Save & New</button>
+      <button type="submit" name="save_action" value="save_close" class="btn">💾 Save & Close</button>
+      <a href="{% url 'purchase_bill_list' %}" class="btn btn-light">✕ Close</a>
+    </div>
+  </form>
+</div>
+
+<template id="itemEmptyForm"><tr class="item-row">
+  <td class="item">{{ item_formset.empty_form.id }}{{ item_formset.empty_form.item }}</td>
+  <td class="desc">{{ item_formset.empty_form.description }}</td>
+  <td>{{ item_formset.empty_form.qty }}</td><td>{{ item_formset.empty_form.unit_name }}</td><td>{{ item_formset.empty_form.unit_cost }}</td>
+  <td><strong class="js-line-amount">0.00</strong></td><td>{{ item_formset.empty_form.account }}</td><td>{{ item_formset.empty_form.vat_amount }}</td><td class="delete-cell">{{ item_formset.empty_form.DELETE }}</td>
+</tr></template>
+<template id="expenseEmptyForm"><tr class="expense-row">
+  <td class="desc">{{ expense_formset.empty_form.id }}{{ expense_formset.empty_form.description }}</td><td>{{ expense_formset.empty_form.amount }}</td><td>{{ expense_formset.empty_form.account }}</td><td>{{ expense_formset.empty_form.vat_amount }}</td><td class="delete-cell">{{ expense_formset.empty_form.DELETE }}</td>
+</tr></template>
+
+<script>
+(function(){
+  const money=v=>{const n=parseFloat(v||0);return Number.isFinite(n)?n:0};
+  function recalc(){let sub=0,vat=0;
+    document.querySelectorAll('#itemRows .item-row').forEach(r=>{if(r.querySelector('input[type=checkbox][name$="-DELETE"]')?.checked)return;const q=money(r.querySelector('.js-qty')?.value),c=money(r.querySelector('.js-unit-cost')?.value),a=q*c;sub+=a;vat+=money(r.querySelector('.js-vat')?.value);const out=r.querySelector('.js-line-amount');if(out)out.textContent=a.toFixed(2)});
+    document.querySelectorAll('#expenseRows .expense-row').forEach(r=>{if(r.querySelector('input[type=checkbox][name$="-DELETE"]')?.checked)return;sub+=money(r.querySelector('.js-expense-amount')?.value);vat+=money(r.querySelector('.js-vat')?.value)});
+    document.getElementById('subTotal').textContent=sub.toFixed(2);document.getElementById('vatTotal').textContent=vat.toFixed(2);document.getElementById('grandTotal').textContent=(sub+vat).toFixed(2)
+  }
+  document.addEventListener('input',e=>{if(e.target.matches('.js-qty,.js-unit-cost,.js-expense-amount,.js-vat'))recalc()});document.addEventListener('change',e=>{if(e.target.name?.endsWith('-DELETE'))recalc()});
+  document.querySelectorAll('.pb-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.pb-tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pb-panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.tab).classList.add('active')}));
+  function addRow(prefix,tbodyId,tplId){const total=document.getElementById(`id_${prefix}-TOTAL_FORMS`);const idx=parseInt(total.value,10);let html=document.getElementById(tplId).innerHTML.replaceAll('__prefix__',idx);document.getElementById(tbodyId).insertAdjacentHTML('beforeend',html);total.value=idx+1;recalc()}
+  document.getElementById('addItemRow').addEventListener('click',()=>addRow('items','itemRows','itemEmptyForm'));document.getElementById('addExpenseRow').addEventListener('click',()=>addRow('expenses','expenseRows','expenseEmptyForm'));
+  const vendorSearch=document.getElementById('vendorSearch'),vendorSelect=document.getElementById('id_vendor');if(vendorSearch&&vendorSelect){vendorSearch.addEventListener('input',()=>{const q=vendorSearch.value.toLowerCase().trim();Array.from(vendorSelect.options).forEach((o,i)=>{if(i===0)return;o.hidden=!!q&&!o.text.toLowerCase().includes(q)})})}
+  recalc();
+})();
+</script>
+{% endblock %}

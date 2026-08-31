@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Import Vendors{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <div><h2>Import Vendor Excel</h2><p>Bulk add or update vendors for {{ company.name }}.</p></div>
+    <a href="{% url 'vendor_center' %}" class="btn btn-light">✕ Close</a>
+  </div>
+  <div class="message">
+    Required column: <strong>Vendor Name</strong>. Optional columns: Vendor Code, Phone, Email, Contact Person, Address, Opening Balance, Memo, Active.
+    <br>Use the exported Vendor List Excel as a template if needed.
+  </div>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="form-group"><label>Excel File (.xlsx)</label><input type="file" name="excel_file" accept=".xlsx" required></div>
+    <div class="form-actions"><button class="btn" type="submit">📤 Import Excel</button><a class="btn btn-light" href="{% url 'vendor_export_excel' %}">📥 Download Current List</a></div>
+  </form>
+</div>
+{% endblock %}

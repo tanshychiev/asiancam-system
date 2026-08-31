@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Purchase Bills{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-head"><div><h2>Purchase Bills</h2><p>Multi-line Item / Inventory and Expense bills for {{ company.name }}.</p></div><div class="form-actions"><a href="{% url 'purchase_bill_create' %}" class="btn">➕ New Purchase Bill</a><a href="{% url 'vendor_center' %}" class="btn btn-light">Vendor Center</a></div></div>
+  <form method="get" class="card" style="box-shadow:none;"><div class="form-grid"><div class="form-group"><label>Search</label><input name="q" value="{{ query }}" placeholder="Vendor, code, bill no, PO no..."></div><div class="form-group"><label>Date From</label><input type="date" name="date_from" value="{{ date_from }}"></div><div class="form-group"><label>Date To</label><input type="date" name="date_to" value="{{ date_to }}"></div></div><div class="form-actions"><button class="btn">🔍 Search</button><a href="{% url 'purchase_bill_list' %}" class="btn btn-light">Reset</a></div></form>
+  <div class="message">Total result amount: <strong>${{ total_amount }}</strong></div>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Bill No.</th><th>PO No.</th><th>Vendor</th><th>Subtotal</th><th>VAT</th><th>Grand Total</th><th>Journal</th><th>Action</th></tr></thead><tbody>
+  {% for bill in bills %}<tr><td>{{ bill.bill_date }}</td><td>{{ bill.number|default:"-" }}</td><td>{{ bill.po_number|default:"-" }}</td><td><strong>{{ bill.vendor }}</strong></td><td>${{ bill.subtotal }}</td><td>${{ bill.vat_total }}</td><td><strong>${{ bill.total_amount }}</strong></td><td>{% if bill.journal_entry %}<span class="badge green">Generated</span>{% else %}<span class="badge orange">No Journal</span>{% endif %}</td><td><a href="{% url 'purchase_bill_detail' bill.id %}" class="btn btn-light">View</a> <a href="{% url 'purchase_bill_edit' bill.id %}" class="btn btn-light">Edit</a></td></tr>
+  {% empty %}<tr><td colspan="9"><div class="empty-state">No Purchase Bills yet.</div></td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}
