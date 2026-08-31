@@ -1462,7 +1462,7 @@
         </div>
 
         <div class="nav-item">
-            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'chart_of_accounts' or request.resolver_match.url_name == 'report_mapping' or request.resolver_match.url_name == 'journal_list' or request.resolver_match.url_name == 'journal_create' or request.resolver_match.url_name == 'journal_detail' or request.resolver_match.url_name == 'journal_edit' or request.resolver_match.url_name == 'accounting_import_excel' or request.resolver_match.url_name == 'banking_menu' or request.resolver_match.url_name == 'bank_deposit' or request.resolver_match.url_name == 'landed_cost_allocation' or request.resolver_match.url_name == 'find_transaction' or request.resolver_match.url_name == 'batch_transaction' or request.resolver_match.url_name == 'import_menu' or request.resolver_match.url_name == 'bulk_update_menu' or request.resolver_match.url_name == 'bulk_update_vendors' or request.resolver_match.url_name == 'bulk_update_items' or request.resolver_match.url_name == 'bulk_update_customers' or request.resolver_match.url_name == 'bulk_update_report' or request.resolver_match.url_name == 'ops_import_stock_balance' or request.resolver_match.url_name == 'ops_import_item' or request.resolver_match.url_name == 'ops_import_vendor' or request.resolver_match.url_name == 'ops_import_customer' or request.resolver_match.url_name == 'ops_import_coa' or request.resolver_match.url_name == 'ops_import_batch_transaction' or request.resolver_match.url_name == 'ops_import_trial_balance' or request.resolver_match.url_name == 'ops_import_journal_opening' or request.resolver_match.url_name == 'ops_import_outstanding_ap' or request.resolver_match.url_name == 'ops_import_outstanding_ar' %}active{% endif %}">
+            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'chart_of_accounts' or request.resolver_match.url_name == 'report_mapping' or request.resolver_match.url_name == 'journal_list' or request.resolver_match.url_name == 'journal_create' or request.resolver_match.url_name == 'journal_detail' or request.resolver_match.url_name == 'journal_edit' or request.resolver_match.url_name == 'accounting_import_excel' or request.resolver_match.url_name == 'bulk_update_menu' or request.resolver_match.url_name == 'bulk_update_vendors' or request.resolver_match.url_name == 'bulk_update_items' or request.resolver_match.url_name == 'bulk_update_customers' or request.resolver_match.url_name == 'bulk_update_report' %}active{% endif %}">
                 <span class="mini-icon"><span class="ui-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h3M14 12h3M7 16h3M14 16h3"/></svg></span></span>
                 Accounting ▾
             </button>
@@ -1471,47 +1471,8 @@
                 <a href="{% url 'chart_of_accounts' %}" class="dropdown-item">Chart of Accounts</a>
                 <a href="{% url 'report_mapping' %}" class="dropdown-item">Report Mapping</a>
 
-                <div class="submenu-wrap">
-                    <div class="dropdown-item has-sub js-submenu-toggle">Banking</div>
-                    <div class="dropdown-menu submenu">
-                        <a href="{% url 'ops_bank_account_list' %}" class="dropdown-item">Bank Account</a>
-                        <a href="{% url 'ops_bank_deposit_list' %}" class="dropdown-item">Bank Deposit</a>
-                        <a href="{% url 'ops_bank_rule_list' %}" class="dropdown-item">Rule</a>
-                        <a href="{% url 'ops_bank_reconcile_list' %}" class="dropdown-item">Bank Reconcile</a>
-                    </div>
-                </div>
-
                 <a href="{% url 'journal_list' %}" class="dropdown-item">Journal Entry</a>
-                <a href="{% url 'ops_bank_deposit_list' %}" class="dropdown-item">Bank Deposit</a>
-                <a href="{% url 'ops_landed_cost_list' %}" class="dropdown-item">Landed Cost Allocation</a>
-                <a href="{% url 'ops_find_transaction' %}" class="dropdown-item">Find Transaction</a>
-                <a href="{% url 'ops_batch_transaction' %}" class="dropdown-item">Batch Transaction</a>
-
-                <div class="submenu-wrap import-center-wrap">
-                    <div class="dropdown-item has-sub js-submenu-toggle">Import Center</div>
-                    <div class="dropdown-menu submenu import-center-menu">
-                        <div class="dropdown-label">Master Data</div>
-                        <a href="{% url 'ops_import_coa' %}" class="dropdown-item">Chart of Account</a>
-                        <a href="{% url 'ops_import_item' %}" class="dropdown-item">Item</a>
-                        <a href="{% url 'ops_import_vendor' %}" class="dropdown-item">Vendor</a>
-                        <a href="{% url 'ops_import_customer' %}" class="dropdown-item">Customer</a>
-
-                        <div class="dropdown-divider"></div>
-
-                        <div class="dropdown-label">Opening Balance</div>
-                        <a href="{% url 'ops_import_trial_balance' %}" class="dropdown-item">Trial Balance Full</a>
-                        <a href="{% url 'ops_import_journal_opening' %}" class="dropdown-item">Journal Opening Balance</a>
-                        <a href="{% url 'ops_import_outstanding_ap' %}" class="dropdown-item">Outstanding AP</a>
-                        <a href="{% url 'ops_import_outstanding_ar' %}" class="dropdown-item">Outstanding AR</a>
-
-                        <div class="dropdown-divider"></div>
-
-                        <div class="dropdown-label">Stock / Transaction</div>
-                        <a href="{% url 'ops_import_stock_balance' %}" class="dropdown-item">Stock Balance</a>
-                        <a href="{% url 'ops_import_batch_transaction' %}" class="dropdown-item">Batch Transaction</a>
-                        <a href="{% url 'accounting_import_excel' %}" class="dropdown-item">Simple Journal Excel</a>
-                    </div>
-                </div>
+                <a href="{% url 'accounting_import_excel' %}" class="dropdown-item">Simple Journal Excel</a>
 
                 <div class="submenu-wrap">
                     <div class="dropdown-item has-sub js-submenu-toggle">Bulk Update</div>
