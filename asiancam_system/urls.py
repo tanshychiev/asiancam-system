@@ -6,6 +6,7 @@ from django.urls import path, include
 
 from dashboard import views as dashboard_views
 
+
 urlpatterns = [
     path("admin/", admin.site.urls),
 
@@ -16,6 +17,7 @@ urlpatterns = [
         ),
         name="login",
     ),
+
     path(
         "logout/",
         auth_views.LogoutView.as_view(
@@ -32,6 +34,11 @@ urlpatterns = [
     path("stock/", include("stock.urls")),
     path("customers/", include("customers.urls")),
     path("workspaces/", include("workspaces.urls")),
-
-    path("accounting-ops/", include("accounting_ops.urls")),
 ]
+
+
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT,
+    )

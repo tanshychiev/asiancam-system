@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     "vendors",
     "stock",
     "customers",
-    "accounting_ops",
 ]
 
 
@@ -146,6 +145,7 @@ USE_TZ = True
 # =========================
 
 STATIC_URL = "/static/"
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_DIRS = [
@@ -153,6 +153,7 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_URL = "/media/"
+
 MEDIA_ROOT = BASE_DIR / "media"
 
 
@@ -168,5 +169,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # =========================
 
 LOGIN_URL = "login"
+
 LOGIN_REDIRECT_URL = "dashboard_home"
+
 LOGOUT_REDIRECT_URL = "login"
