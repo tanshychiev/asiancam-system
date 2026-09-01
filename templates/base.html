@@ -1322,6 +1322,43 @@
     }
 }
 
+
+/* Full AsianCam logo is the brand — no duplicate text beside it */
+.brand{
+    gap:0!important;
+    min-width:auto!important;
+}
+.brand-logo{
+    width:128px!important;
+    height:46px!important;
+    min-width:128px!important;
+    display:flex!important;
+    align-items:center!important;
+}
+.brand-logo img{
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+    object-position:left center!important;
+}
+.brand-text,.brand-copy{
+    display:none!important;
+}
+@media (max-width:900px){
+    .brand-logo{
+        width:108px!important;
+        min-width:108px!important;
+        height:42px!important;
+    }
+}
+@media (max-width:650px){
+    .brand-logo{
+        width:92px!important;
+        min-width:92px!important;
+        height:38px!important;
+    }
+}
+
 </style>
 
 
@@ -1618,14 +1655,7 @@
                  onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
             <span class="brand-logo-fallback" style="display:none;">AC</span>
         </div>
-        <div class="brand-text">
-            <strong>Asi@nCam</strong>
-            {% if request.session.selected_company_id %}
-                <span>Accounting workspace for {{ request.session.selected_company_name }}</span>
-            {% else %}
-                <span>Accounting and company management portal</span>
-            {% endif %}
-        </div>
+        
     </a>
 
     <div class="nav-left">
