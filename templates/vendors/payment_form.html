@@ -147,7 +147,7 @@ function clearClonedRow(row){
 
 function addFormsetRow(kind){
   const tbody = document.getElementById(kind === 'allocation' ? 'allocationRows' : 'chargeRows');
-  const prefix = kind === 'allocation' ? 'allocation' : 'charge';
+  const prefix = kind === 'allocation' ? 'alloc' : 'charge';
   const totalInput = document.querySelector(`input[name="${prefix}-TOTAL_FORMS"]`);
   if(!tbody || !totalInput) return;
 
