@@ -2,7 +2,7 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
 <div class="record-page customer-record">
-<div class="record-banner"><div class="record-banner-main"><div class="record-icon">C</div><div><div class="record-eyebrow">Customer setup</div><h1>{{ page_title }}</h1><p>Customer module master setup for {{ company.name }}.</p></div></div><a href="{% url 'customer_center' %}" class="btn btn-light">← Customer Center</a></div>
+<div class="record-banner"><div class="record-banner-main"><div class="record-icon">C</div><div><div class="record-eyebrow">Customer setup</div><h1>{{ page_title }}</h1><p>Customer module master setup for {{ company.name }}.</p></div></div></div>
 <form method="post" class="card">{% csrf_token %}
 <div class="record-section"><div class="record-section-title">Setup details</div><div class="record-section-body form-grid">
 {% for field in form %}

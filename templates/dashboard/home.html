@@ -452,7 +452,7 @@
                     </p>
 
                     <div class="actions">
-                        <a href="{% url 'company_list' %}" class="btn-home primary"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg> View Companies</a>
+                        
                         <a href="/users/" class="btn-home secondary"><svg class="inline-svg" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2"/></svg> View Users</a>
                         <a href="/roles/" class="btn-home secondary"><svg class="inline-svg" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> View Roles</a>
                         <a href="/companies/create/" class="btn-home secondary"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Create Company</a>
@@ -474,7 +474,7 @@
                     </p>
 
                     <div class="actions">
-                        <a href="{% url 'company_list' %}" class="btn-home primary"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg> Select Company</a>
+                        
                     </div>
                 {% endif %}
             </div>
@@ -566,11 +566,7 @@
                     <h3>Chart of Accounts</h3>
                 </a>
 
-                <a href="{% url 'journal_create' %}" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M8 8h8M8 12h8"/></svg></div>
-                    <span>Manual Input</span>
-                    <h3>Accounting Data</h3>
-                </a>
+                
 
                 <a href="{% url 'accounting_import_excel' %}" class="quick-card">
                     <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m8 7 4-4 4 4"/><path d="M5 15v5h14v-5"/></svg></div>
@@ -578,11 +574,7 @@
                     <h3>Documents</h3>
                 </a>
 
-                <a href="{% url 'accounting_reports' %}" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
-                    <span>Output</span>
-                    <h3>Reports</h3>
-                </a>
+                
             </div>
         </section>
 
@@ -594,41 +586,17 @@
             </div>
 
             <div class="quick-grid">
-                <a href="{% url 'company_list' %}" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg></div>
-                    <span>View</span>
-                    <h3>Company List</h3>
-                </a>
+                
 
-                <a href="/users/" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2"/></svg></div>
-                    <span>View</span>
-                    <h3>User List</h3>
-                </a>
+                
 
-                <a href="/roles/" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
-                    <span>View</span>
-                    <h3>Role List</h3>
-                </a>
+                
 
-                <a href="/companies/assign-staff/" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1 1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1-1"/></svg></div>
-                    <span>Access Control</span>
-                    <h3>Assign Staff</h3>
-                </a>
+                
 
-                <a href="/companies/create/" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
-                    <span>Create</span>
-                    <h3>Create Company</h3>
-                </a>
+                
 
-                <a href="/users/create/" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></div>
-                    <span>Create</span>
-                    <h3>Create User</h3>
-                </a>
+                
 
                 <a href="/roles/create/" class="quick-card">
                     <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-2.9 8.2-7 10-4.1-1.8-7-5.5-7-10V6l7-3Z"/></svg></div>
@@ -636,11 +604,7 @@
                     <h3>Create Role</h3>
                 </a>
 
-                <a href="{% url 'company_list' %}" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></div>
-                    <span>Work</span>
-                    <h3>Select Company</h3>
-                </a>
+                
             </div>
         </section>
 
@@ -689,11 +653,7 @@
             </div>
 
             <div class="quick-grid">
-                <a href="{% url 'company_list' %}" class="quick-card">
-                    <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg></div>
-                    <span>Step 1</span>
-                    <h3>Select Company</h3>
-                </a>
+                
 
                 <div class="quick-card">
                     <div class="quick-icon"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M8 8h8M8 12h8"/></svg></div>

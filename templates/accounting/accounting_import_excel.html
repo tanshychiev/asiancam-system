@@ -12,8 +12,8 @@
         </div>
 
         <div class="form-actions">
-            <a href="{% url 'journal_list' %}" class="btn btn-light">← Accounting Data</a>
-            <a href="{% url 'download_journal_import_sample' %}" class="btn btn-light">⬇ Download Format</a>
+            
+            
             <a href="{% url 'journal_create' %}" class="btn">➕ Manual Input</a>
         </div>
     </div>
@@ -30,9 +30,7 @@
                 <p>Use this format exactly. Same Date + Reference No + Entry Description will become one journal entry.</p>
             </div>
 
-            <a href="{% url 'download_journal_import_sample' %}" class="btn btn-light">
-                ⬇ Download Format
-            </a>
+
         </div>
 
         <div class="table-wrap">
@@ -124,7 +122,7 @@
 
         <div class="form-actions">
             <button type="submit" class="btn">📥 Import Excel</button>
-            <a href="{% url 'download_journal_import_sample' %}" class="btn btn-light">⬇ Download Format</a>
+            <a href="{% url 'download_journal_import_sample' %}" class="btn btn-light">⬇ Get Sample Excel</a>
             <a href="{% url 'journal_list' %}" class="btn btn-light">Cancel</a>
         </div>
     </form>

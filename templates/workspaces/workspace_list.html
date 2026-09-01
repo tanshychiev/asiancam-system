@@ -657,20 +657,7 @@
 
                                     {% if can_create %}
                                         <br>
-                                        <form method="post" action="{% url 'workspace_generate_month' %}" class="generate-form" style="justify-content:center;">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="year" value="{{ year }}">
-                                            <input type="hidden" name="month" value="{{ month }}">
-
-                                            <label>
-                                                Deadline Day
-                                                <input type="number" name="due_day" value="25" min="1" max="28">
-                                            </label>
-
-                                            <button type="submit" class="hero-btn">
-                                                ⚡ Generate {{ month }}/{{ year }} Workspaces
-                                            </button>
-                                        </form>
+                                        <p class="small-note">Use the Generate Workspaces action at the top of this page.</p>
                                     {% endif %}
                                 </div>
                             </td>

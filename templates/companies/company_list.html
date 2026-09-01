@@ -615,13 +615,13 @@
             {% if query %}
                 <p>No result for: <strong>{{ query }}</strong></p>
                 <br>
-                <a href="{% url 'company_list' %}" class="select-btn">Show All Companies</a>
+                
             {% else %}
                 <p>Please create a company or assign staff to a company.</p>
 
                 {% if request.user.is_superuser %}
                     <br>
-                    <a href="{% url 'company_create' %}" class="select-btn">Create Company</a>
+                    
                 {% endif %}
             {% endif %}
         </div>

@@ -507,9 +507,7 @@
                         <p>Upload the correct template for {{ page_title }}.</p>
                     </div>
 
-                    <a href="{% url 'ops_download_sample' import_type %}" class="btn btn-light">
-                        ⬇ Download Sample
-                    </a>
+
                 </div>
 
                 {% if import_type == 'trial_balance' or import_type == 'journal_opening' %}
@@ -550,7 +548,7 @@
 
                     <div class="import-actions">
                         <button class="btn" type="submit">⬆ Import Now</button>
-                        <a href="{% url 'ops_download_sample' import_type %}" class="btn btn-light">Download Sample</a>
+                        <a href="{% url 'ops_download_sample' import_type %}" class="btn btn-light">Get Sample Excel</a>
                         <a href="{% url 'dashboard_home' %}" class="btn btn-light">Close</a>
                     </div>
                 </form>
@@ -563,7 +561,7 @@
                     </div>
                     <div class="flow-step">
                         <div class="flow-no">2</div>
-                        <strong>Download Sample</strong>
+                        <strong>Get Sample Excel</strong>
                         <span>Use the correct column format.</span>
                     </div>
                     <div class="flow-step">

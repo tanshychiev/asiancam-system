@@ -4,6 +4,6 @@
   <form method="post" enctype="multipart/form-data">{% csrf_token %}
     <div class="form-group"><label>Excel file (.xlsx)</label><input type="file" name="file" accept=".xlsx" required></div>
     <p class="muted">Columns supported: Customer ID, Customer Name, Local Name, Phone, Email, Telegram, Address.</p>
-    <div class="form-actions"><button class="btn" type="submit">Import Excel</button><a class="btn btn-light" href="{% url 'customer_center' %}">Close</a></div>
+    <div class="form-actions"><a class="btn btn-light" href="{% url 'customer_import_sample' %}">⬇ Get Sample Excel</a><button class="btn" type="submit">📤 Import Excel</button><a class="btn btn-light" href="{% url 'customer_center' %}">Close</a></div>
   </form>
 </div>{% endblock %}

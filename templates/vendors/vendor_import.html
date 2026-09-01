@@ -8,12 +8,12 @@
   </div>
   <div class="message">
     Required column: <strong>Vendor Name</strong>. Optional columns: Vendor Code, Phone, Email, Contact Person, Address, Opening Balance, Memo, Active.
-    <br>Use the exported Vendor List Excel as a template if needed.
+    <br>Download the sample first, keep the same column names, then upload your completed Excel file.
   </div>
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <div class="form-group"><label>Excel File (.xlsx)</label><input type="file" name="excel_file" accept=".xlsx" required></div>
-    <div class="form-actions"><button class="btn" type="submit">📤 Import Excel</button><a class="btn btn-light" href="{% url 'vendor_export_excel' %}">📥 Download Current List</a></div>
+    <div class="form-actions"><a class="btn btn-light" href="{% url 'vendor_import_sample' %}">⬇ Get Sample Excel</a><a class="btn btn-light" href="{% url 'vendor_export_excel' %}">📥 Download Current List</a><button class="btn" type="submit">📤 Import Excel</button></div>
   </form>
 </div>
 {% endblock %}
