@@ -666,6 +666,27 @@
             gap: 10px;
             margin-top: 20px;
             flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        /* System-wide placement for primary actions: Save, Close, Search, Reset, Import/Export. */
+        .bottom-actions,
+        .compact-toolbar,
+        .table-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .bottom-actions { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .compact-toolbar { margin: 12px 0; }
+        .compact-toolbar input { flex: 1 1 260px; max-width: 520px; }
+        @media (max-width: 640px) {
+            .form-actions,.bottom-actions,.compact-toolbar,.table-actions { justify-content: stretch; }
+            .form-actions .btn,.bottom-actions .btn,.compact-toolbar .btn,.table-actions .btn { width: 100%; }
+            .compact-toolbar input { max-width: none; width: 100%; }
         }
 
         .empty-state {
@@ -1371,6 +1392,81 @@
         .status-toggle{display:inline-grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;background:#edf2f5;border-radius:10px}.status-choice{border:0;border-radius:7px;padding:8px 15px;min-width:84px;font-weight:800;font-size:12px;cursor:pointer;background:transparent;color:#6b7d89;transition:.15s ease}.status-choice[data-value="1"].selected{background:#178a4b;color:#fff;box-shadow:0 3px 8px rgba(23,138,75,.22)}.status-choice[data-value="0"].selected{background:#d64545;color:#fff;box-shadow:0 3px 8px rgba(214,69,69,.22)}
         .record-compact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.record-compact-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.record-span-2{grid-column:1/-1}
         @media(max-width:760px){.record-banner{align-items:flex-start}.record-banner-main{align-items:flex-start}.record-compact-grid,.record-compact-grid.three{grid-template-columns:1fr}.status-field{align-items:flex-start;flex-direction:column}.status-toggle{width:100%}.status-choice{min-width:0}.record-span-2{grid-column:auto}}
+
+        /* FINAL ACTION ALIGNMENT STANDARD
+           Important page actions are consistently placed on the right.
+           This applies to save/close, search/filter, import/export and add-row controls. */
+        .form-actions,
+        .bottom-actions,
+        .table-actions,
+        .header-actions,
+        .page-actions,
+        .search-actions,
+        .filter-actions,
+        .permission-toolbar,
+        .coa-actions {
+            justify-content: flex-end !important;
+        }
+
+        .form-actions,
+        .bottom-actions,
+        .table-actions {
+            width: 100%;
+        }
+
+        .bottom-actions,
+        .table-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Custom setup/create pages use .actions for their primary save/cancel footer. */
+        form > .actions,
+        .form-card > .actions,
+        .setup-card > .actions,
+        .create-card > .actions,
+        .edit-card > .actions {
+            display: flex;
+            justify-content: flex-end !important;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Search/filter forms: keep fields on the left and push action buttons to the far right. */
+        .filter-form > .search-btn,
+        .filter-form > .filter-btn,
+        .search-form > .search-btn,
+        .compact-toolbar > button[type="submit"],
+        .compact-toolbar > .btn {
+            margin-left: auto !important;
+        }
+
+        .compact-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end !important;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Transaction add-row buttons belong at the table's right edge. */
+        .table-actions > .btn,
+        .table-actions > button,
+        .table-actions > a {
+            margin-left: 0;
+        }
+
+        @media (max-width: 640px) {
+            .form-actions,
+            .bottom-actions,
+            .table-actions,
+            form > .actions {
+                justify-content: flex-end !important;
+            }
+        }
 </style>
 
     {% block extra_css %}{% endblock %}

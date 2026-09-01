@@ -40,21 +40,25 @@
                         <th>Qty</th>
                         <th>Unit Cost</th>
                         <th>Memo</th>
-                        <th>Delete</th>
+                        <th style="width:100px;text-align:right;">Action</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="stockLinesBody">
                     {% for line_form in formset %}
                     <tr>
                         <td>{{ line_form.id }}{{ line_form.item }}{{ line_form.item.errors }}</td>
                         <td>{{ line_form.qty }}{{ line_form.qty.errors }}</td>
                         <td>{{ line_form.unit_cost }}{{ line_form.unit_cost.errors }}</td>
                         <td>{{ line_form.memo }}{{ line_form.memo.errors }}</td>
-                        <td>{% if line_form.DELETE %}{{ line_form.DELETE }}{% endif %}</td>
+                        <td style="text-align:right;"><span class="js-delete-field" style="display:none;">{% if line_form.DELETE %}{{ line_form.DELETE }}{% endif %}</span><button type="button" class="btn btn-light js-remove-row">Remove</button></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <div class="table-actions" style="margin-top:10px;">
+            <button type="button" class="btn btn-light" id="addStockRow">＋ Add Stock Row</button>
         </div>
 
         <div class="form-actions">
@@ -66,4 +70,16 @@
 </div>
 </div>
 
+<script>
+(function(){
+  const body=document.getElementById('stockLinesBody');
+  const add=document.getElementById('addStockRow');
+  const total=document.querySelector('input[name$="-TOTAL_FORMS"]');
+  if(!body||!add||!total) return;
+  const prefix=total.name.replace('-TOTAL_FORMS','');
+  function wire(scope=document){scope.querySelectorAll('.js-remove-row').forEach(btn=>{if(btn.dataset.wired)return;btn.dataset.wired='1';btn.onclick=()=>{const row=btn.closest('tr'),del=row.querySelector('input[name$="-DELETE"]');if(del){del.checked=true;row.style.display='none'}else row.remove();};});}
+  add.onclick=()=>{const rows=body.querySelectorAll('tr');if(!rows.length)return;const idx=parseInt(total.value||'0',10),row=rows[rows.length-1].cloneNode(true);row.innerHTML=row.innerHTML.replace(new RegExp(prefix+'-(\\d+)-','g'),prefix+'-'+idx+'-').replace(new RegExp('id_'+prefix+'-(\\d+)-','g'),'id_'+prefix+'-'+idx+'-');row.style.display='';row.querySelectorAll('input,select,textarea').forEach(el=>{if(el.type==='hidden'){if(el.name&&el.name.endsWith('-id'))el.value='';}else if(el.type==='checkbox'||el.type==='radio')el.checked=false;else if(el.tagName==='SELECT')el.selectedIndex=0;else el.value='';});row.querySelectorAll('.js-remove-row').forEach(b=>delete b.dataset.wired);body.appendChild(row);total.value=idx+1;wire(row);};
+  wire();
+})();
+</script>
 {% endblock %}

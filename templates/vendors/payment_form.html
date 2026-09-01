@@ -42,10 +42,15 @@
 .cash-mode .cash-ap-field{opacity:.58}
 .cash-mode .cash-ap-field label:after{content:" (used only for vendor bill allocation)";font-weight:400;color:#94a3b8}
 .secondary-choice{opacity:.72}
+.table-actions{display:flex;justify-content:flex-end;margin:8px 0 0}
+.add-row-btn{border:1px solid #b9d9ec;background:#fff;color:#1478b8;border-radius:8px;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer}
+.add-row-btn:hover{background:#eef8fd}
+.cash-mode .add-row-btn{border-color:#f6cf8b;color:#b45309}
+.cash-mode .add-row-btn:hover{background:#fffbeb}
 .delete-box{display:none}
 .remove-line{border:1px solid #fecaca;background:#fff5f5;color:#dc2626;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer}
 .remove-line:hover{background:#fee2e2}
-.bottom-actions{margin-top:12px;display:flex;gap:8px;align-items:center}
+.bottom-actions{margin-top:14px;display:flex;gap:8px;align-items:center;justify-content:flex-end;width:100%}
 .cash-mode .bottom-actions .btn:not(.btn-light){background:#d97706;border-color:#d97706}
 
 @media(max-width:800px){
@@ -88,9 +93,9 @@
   <button type="button" class="sheet-tab{% if "cash-expense" in request.path %} active{% endif %}" data-tab="charge">Expense / Other Charge</button>
 </div>
 <div id="pay" class="tab-panel{% if "cash-expense" not in request.path %} active{% endif %}">
-<div class="section-caption"><strong>Vendor bill allocation</strong><span>Select bills and enter how much you are paying.</span></div>{{ allocation_formset.management_form }}<div class="table-wrap"><table><thead><tr><th>Bill</th><th>Discount</th><th>Payment</th><th>Memo</th><th class="action-col">Action</th></tr></thead><tbody>{% for f in allocation_formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.bill }}</td><td>{{ f.discount }}</td><td class="payment-amount">{{ f.amount }}</td><td>{{ f.memo }}</td><td class="action-col"><span class="delete-box">{{ f.DELETE }}</span><button type="button" class="remove-line">Remove</button></td></tr>{% endfor %}</tbody></table></div></div>
+<div class="section-caption"><strong>Vendor bill allocation</strong><span>Select bills and enter how much you are paying.</span></div>{{ allocation_formset.management_form }}<div class="table-wrap"><table><thead><tr><th>Bill</th><th>Discount</th><th>Payment</th><th>Memo</th><th class="action-col">Action</th></tr></thead><tbody id="allocationRows">{% for f in allocation_formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.bill }}</td><td>{{ f.discount }}</td><td class="payment-amount">{{ f.amount }}</td><td>{{ f.memo }}</td><td class="action-col"><span class="delete-box">{{ f.DELETE }}</span><button type="button" class="remove-line">Remove</button></td></tr>{% endfor %}</tbody></table></div><div class="table-actions"><button type="button" class="add-row-btn" data-formset="allocation">+ Add Bill Row</button></div></div>
 <div id="charge" class="tab-panel{% if "cash-expense" in request.path %} active{% endif %}">
-<div class="section-caption"><strong>Expense details</strong><span>Enter each expense and the account to charge.</span></div>{{ charge_formset.management_form }}<div class="table-wrap"><table><thead><tr><th>Description</th><th>Amount($)</th><th>Account</th><th class="action-col">Action</th></tr></thead><tbody>{% for f in charge_formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.memo }}</td><td class="charge-amount">{{ f.amount }}</td><td>{{ f.account }}</td><td class="action-col"><span class="delete-box">{{ f.DELETE }}</span><button type="button" class="remove-line">Remove</button></td></tr>{% endfor %}</tbody></table></div></div>
+<div class="section-caption"><strong>Expense details</strong><span>Enter each expense and the account to charge.</span></div>{{ charge_formset.management_form }}<div class="table-wrap"><table><thead><tr><th>Description</th><th>Amount($)</th><th>Account</th><th class="action-col">Action</th></tr></thead><tbody id="chargeRows">{% for f in charge_formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.memo }}</td><td class="charge-amount">{{ f.amount }}</td><td>{{ f.account }}</td><td class="action-col"><span class="delete-box">{{ f.DELETE }}</span><button type="button" class="remove-line">Remove</button></td></tr>{% endfor %}</tbody></table></div><div class="table-actions"><button type="button" class="add-row-btn" data-formset="charge">+ Add Expense Row</button></div></div>
 <div class="bottom-actions"><button class="btn" name="save_action" value="save_new">Save & New</button><button class="btn" name="save_action" value="save_close">Save & Close</button><a class="btn btn-light" href="{% url 'vendor_center' %}">Close</a></div></form></div>
 <script>
 document.querySelectorAll('.sheet-tab').forEach(b=>b.onclick=()=>{
@@ -109,18 +114,67 @@ function total(){
   document.getElementById('paymentTotal').value=x.toFixed(2);
 }
 
-document.querySelectorAll('.remove-line').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    const row=btn.closest('tr');
-    const del=row.querySelector('input[type="checkbox"][name$="-DELETE"]');
-    if(del){
-      del.checked=true;
-      row.style.display='none';
+function wireRemoveButtons(scope=document){
+  scope.querySelectorAll('.remove-line').forEach(btn=>{
+    if(btn.dataset.wired) return;
+    btn.dataset.wired='1';
+    btn.addEventListener('click',()=>{
+      const row=btn.closest('tr');
+      const del=row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+      if(del){
+        del.checked=true;
+        row.style.display='none';
+      }else{
+        row.remove();
+      }
       total();
-    }
+    });
   });
+}
+
+function clearClonedRow(row){
+  row.style.display='';
+  row.querySelectorAll('input,select,textarea').forEach(el=>{
+    if(el.type==='hidden'){
+      if(el.name && el.name.endsWith('-id')) el.value='';
+      return;
+    }
+    if(el.type==='checkbox' || el.type==='radio') el.checked=false;
+    else if(el.tagName==='SELECT') el.selectedIndex=0;
+    else el.value='';
+  });
+}
+
+function addFormsetRow(kind){
+  const tbody = document.getElementById(kind === 'allocation' ? 'allocationRows' : 'chargeRows');
+  const prefix = kind === 'allocation' ? 'allocation' : 'charge';
+  const totalInput = document.querySelector(`input[name="${prefix}-TOTAL_FORMS"]`);
+  if(!tbody || !totalInput) return;
+
+  const rows = tbody.querySelectorAll('tr');
+  if(!rows.length) return;
+
+  const index = parseInt(totalInput.value,10);
+  const source = rows[rows.length-1];
+  const row = source.cloneNode(true);
+
+  row.innerHTML = row.innerHTML
+    .replace(new RegExp(`${prefix}-(\\d+)-`, 'g'), `${prefix}-${index}-`)
+    .replace(new RegExp(`id_${prefix}-(\\d+)-`, 'g'), `id_${prefix}-${index}-`);
+
+  clearClonedRow(row);
+  row.querySelectorAll('.remove-line').forEach(b=>delete b.dataset.wired);
+  tbody.appendChild(row);
+  totalInput.value = index + 1;
+  wireRemoveButtons(row);
+  total();
+}
+
+document.querySelectorAll('.add-row-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>addFormsetRow(btn.dataset.formset));
 });
 
+wireRemoveButtons();
 document.addEventListener('input',total);
 total();
 </script></div>{% endblock %}
