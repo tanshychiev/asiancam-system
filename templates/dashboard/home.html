@@ -52,6 +52,38 @@
         background:#eaf6fc!important;
         color:#0f8fcb!important;
     }
+
+    .hero-company-title{
+        display:flex;
+        align-items:center;
+        gap:13px;
+        margin:8px 0 6px;
+    }
+    .hero-company-logo{
+        width:52px;
+        height:52px;
+        border-radius:13px;
+        object-fit:contain;
+        background:#fff;
+        border:1px solid #d7edf8;
+        padding:4px;
+        box-shadow:0 8px 20px rgba(0,95,150,.09);
+        flex:0 0 52px;
+    }
+    .hero-company-fallback{
+        width:52px;
+        height:52px;
+        border-radius:13px;
+        display:grid;
+        place-items:center;
+        color:#fff;
+        font-size:22px;
+        font-weight:800;
+        background:linear-gradient(135deg,#087bb8,#54c9ee);
+        flex:0 0 52px;
+    }
+    .hero-company-title h1{margin:0!important}
+
 </style>
 
 
@@ -421,10 +453,17 @@
                 {% if request.session.selected_company_id %}
                     <div class="badge"><svg class="inline-svg" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M2 21h20"/></svg> Company Workspace Active</div>
 
-                    <h1>
-                        Work on
-                        <span>{{ request.session.selected_company_name }}</span>
-                    </h1>
+                    <div class="hero-company-title">
+                        {% if selected_company_global and selected_company_global.logo %}
+                            <img class="hero-company-logo" src="{{ selected_company_global.logo.url }}" alt="{{ selected_company_global.name }}">
+                        {% else %}
+                            <span class="hero-company-fallback">{{ request.session.selected_company_name|first|upper }}</span>
+                        {% endif %}
+                        <h1>
+                            Work on
+                            <span>{{ request.session.selected_company_name }}</span>
+                        </h1>
+                    </div>
 
                     <p class="desc">
                         You are now inside one company workspace. Input accounting data, import Excel files,
@@ -497,7 +536,12 @@
                     {% if request.session.selected_company_id %}
                         <div class="task-row">
                             <span>Selected Company</span>
-                            <strong>{{ request.session.selected_company_name }}</strong>
+                            <strong style="display:flex;align-items:center;gap:7px;">
+                                {% if selected_company_global and selected_company_global.logo %}
+                                    <img src="{{ selected_company_global.logo.url }}" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:6px;border:1px solid #dcecf5;background:#fff;padding:2px;">
+                                {% endif %}
+                                {{ request.session.selected_company_name }}
+                            </strong>
                         </div>
                         <div class="task-row">
                             <span>Data Input</span>

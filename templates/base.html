@@ -1186,7 +1186,105 @@
                 border-radius: 22px;
             }
         }
-    </style>
+    
+        /* SYSTEM + WORKING COMPANY IDENTITY */
+        .brand-logo{
+            overflow:hidden;
+            padding:0;
+            background:#fff!important;
+            box-shadow:none!important;
+            border:0!important;
+        }
+        .brand-logo img{
+            width:100%;
+            height:100%;
+            object-fit:contain;
+            display:block;
+        }
+        .brand-logo-fallback{
+            width:100%;
+            height:100%;
+            border-radius:14px;
+            display:grid;
+            place-items:center;
+            background:linear-gradient(135deg,var(--blue),var(--cyan));
+            color:#fff;
+            font-weight:800;
+            font-size:18px;
+        }
+        .company-chip{
+            min-height:38px!important;
+            padding:4px 10px 4px 5px!important;
+            gap:8px!important;
+            border:1px solid #bfe7f7!important;
+            background:#f3fbff!important;
+        }
+        .working-company-logo{
+            width:28px;
+            height:28px;
+            border-radius:8px;
+            object-fit:contain;
+            background:#fff;
+            border:1px solid #d8edf7;
+            padding:2px;
+            flex:0 0 28px;
+        }
+        .working-company-fallback{
+            width:28px;
+            height:28px;
+            border-radius:8px;
+            display:grid;
+            place-items:center;
+            color:#fff;
+            font-size:11px;
+            font-weight:800;
+            background:linear-gradient(135deg,#0b7fbe,#56c7ec);
+            flex:0 0 28px;
+        }
+        .company-chip-copy{
+            display:flex;
+            flex-direction:column;
+            align-items:flex-start;
+            line-height:1.08;
+            min-width:0;
+        }
+        .company-chip-copy small{
+            font-size:8px;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+            color:#5d8299;
+            font-weight:800;
+            margin-bottom:2px;
+        }
+        .company-chip-copy strong{
+            max-width:125px;
+            overflow:hidden;
+            white-space:nowrap;
+            text-overflow:ellipsis;
+            color:#073763;
+            font-size:11px;
+        }
+        .workspace-strip{
+            display:none;
+        }
+        @media (min-width:900px){
+            .workspace-strip{
+                display:flex;
+                align-items:center;
+                gap:7px;
+                padding:5px 10px;
+                border-radius:10px;
+                background:#ecf9ff;
+                border:1px solid #caecfa;
+                color:#075985;
+                font-size:10px;
+                font-weight:700;
+                white-space:nowrap;
+            }
+            .workspace-strip b{color:#073763}
+        }
+
+</style>
 
 
     <style>
@@ -1477,7 +1575,11 @@
 <nav class="main-navbar">
 
     <a href="{% url 'dashboard_home' %}" class="brand">
-        <div class="brand-logo">AC</div>
+        <div class="brand-logo">
+            <img src="{% static 'images/asiancam_logo.png' %}" alt="AsianCam"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
+            <span class="brand-logo-fallback" style="display:none;">AC</span>
+        </div>
         <div class="brand-text">
             <strong>Asi@nCam</strong>
             {% if request.session.selected_company_id %}
@@ -1668,17 +1770,24 @@
         {% endif %}
     </div>
 
+    {% if request.session.selected_company_id %}
+    <div class="workspace-strip" title="All accounting entries are being recorded for this company">
+        Working company: <b>{{ request.session.selected_company_name }}</b>
+    </div>
+    {% endif %}
+
     <div class="nav-right">
         {% if request.session.selected_company_id %}
-            <a href="{% url 'company_list' %}" class="right-chip company-chip" title="Change company">
-                <span class="ui-icon">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M4 21V4h10v17"/>
-                        <path d="M14 9h6v12"/>
-                        <path d="M2 21h20"/>
-                    </svg>
+            <a href="{% url 'company_list' %}" class="right-chip company-chip" title="Working company — click to change">
+                {% if selected_company_global and selected_company_global.logo %}
+                    <img class="working-company-logo" src="{{ selected_company_global.logo.url }}" alt="{{ selected_company_global.name }}">
+                {% else %}
+                    <span class="working-company-fallback">{{ request.session.selected_company_name|first|upper }}</span>
+                {% endif %}
+                <span class="company-chip-copy">
+                    <small>Working on</small>
+                    <strong>{{ request.session.selected_company_name }}</strong>
                 </span>
-                <span class="right-chip-label">{{ request.session.selected_company_name }}</span>
                 <span>▾</span>
             </a>
         {% else %}
