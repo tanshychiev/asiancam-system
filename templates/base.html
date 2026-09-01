@@ -1359,6 +1359,54 @@
     }
 }
 
+
+/* FINAL LOGO-ONLY BRAND */
+.brand-logo-only{
+    display:flex!important;
+    align-items:center!important;
+    flex:0 0 auto!important;
+    width:138px!important;
+    min-width:138px!important;
+    height:50px!important;
+    padding:0!important;
+    margin:0 14px 0 0!important;
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+    text-decoration:none!important;
+}
+.asiancam-main-logo{
+    display:block!important;
+    width:138px!important;
+    max-width:138px!important;
+    height:46px!important;
+    object-fit:contain!important;
+    object-position:left center!important;
+    background:transparent!important;
+    border:0!important;
+    border-radius:0!important;
+    padding:0!important;
+    margin:0!important;
+    box-shadow:none!important;
+}
+.brand-logo-only .brand-logo,
+.brand-logo-only .brand-text,
+.brand-logo-only .brand-copy,
+.brand-logo-only strong,
+.brand-logo-only small,
+.brand-logo-only span{
+    display:none!important;
+}
+@media(max-width:1000px){
+    .brand-logo-only{width:118px!important;min-width:118px!important;margin-right:8px!important}
+    .asiancam-main-logo{width:118px!important;max-width:118px!important;height:42px!important}
+}
+@media(max-width:720px){
+    .brand-logo-only{width:96px!important;min-width:96px!important}
+    .asiancam-main-logo{width:96px!important;max-width:96px!important;height:38px!important}
+}
+
 </style>
 
 
@@ -1649,13 +1697,10 @@
 
 <nav class="main-navbar">
 
-    <a href="{% url 'dashboard_home' %}" class="brand">
-        <div class="brand-logo">
-            <img src="{% static 'images/asiancam_logo.png' %}" alt="AsianCam"
-                 onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
-            <span class="brand-logo-fallback" style="display:none;">AC</span>
-        </div>
-        
+    <a href="{% url 'dashboard_home' %}" class="brand brand-logo-only" aria-label="AsianCam Home">
+        <img class="asiancam-main-logo"
+             src="{% static 'images/asiancam_logo.png' %}"
+             alt="AsianCam">
     </a>
 
     <div class="nav-left">
