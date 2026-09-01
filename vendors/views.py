@@ -21,7 +21,7 @@ from .forms import (
     VendorForm,
     VendorTransactionForm,
 )
-from .models import PurchaseBill, Vendor, VendorTransaction
+from .models import PurchaseBill, Vendor, VendorPayment, VendorTransaction
 
 
 # =========================================================
@@ -253,52 +253,104 @@ def vendor_center(request):
     if response:
         return response
 
+    # Sample-style toolbar actions: bulk status, safe delete, and merge.
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+        selected_ids = [int(x) for x in request.POST.getlist("selected") if str(x).isdigit()]
+        selected = Vendor.objects.filter(company=company, id__in=selected_ids)
+
+        if action in {"activate", "deactivate"}:
+            if not selected_ids:
+                messages.error(request, "Select at least one vendor first.")
+            else:
+                selected.update(is_active=(action == "activate"))
+                messages.success(request, f"{selected.count()} vendor(s) updated.")
+            return redirect("vendor_center")
+
+        if action == "delete":
+            if not selected_ids:
+                messages.error(request, "Select at least one vendor first.")
+            else:
+                deleted = deactivated = 0
+                for vendor in selected:
+                    has_history = (
+                        vendor.transactions.exists()
+                        or vendor.purchase_bills.exists()
+                        or vendor.payments.exists()
+                    )
+                    if has_history:
+                        vendor.is_active = False
+                        vendor.save(update_fields=["is_active"])
+                        deactivated += 1
+                    else:
+                        vendor.delete()
+                        deleted += 1
+                messages.success(request, f"Deleted {deleted}; deactivated {deactivated} vendor(s) with accounting history.")
+            return redirect("vendor_center")
+
+        if action == "merge":
+            target_id = request.POST.get("merge_target")
+            source_ids = [x for x in selected_ids if str(x) != str(target_id)]
+            target = Vendor.objects.filter(company=company, id=target_id).first()
+            if not target or not source_ids:
+                messages.error(request, "Choose a target vendor and at least one other vendor to merge.")
+            else:
+                with transaction.atomic():
+                    sources = Vendor.objects.filter(company=company, id__in=source_ids)
+                    for source in sources:
+                        VendorTransaction.objects.filter(company=company, vendor=source).update(vendor=target)
+                        PurchaseBill.objects.filter(company=company, vendor=source).update(vendor=target)
+                        VendorPayment.objects.filter(company=company, vendor=source).update(vendor=target)
+                        target.opening_balance = (target.opening_balance or Decimal("0")) + (source.opening_balance or Decimal("0"))
+                        source.delete()
+                    target.save(update_fields=["opening_balance"])
+                messages.success(request, "Vendor records merged successfully; transaction history was preserved.")
+            return redirect(f"{request.path}?vendor={target_id}" if target else "vendor_center")
+
     query = (request.GET.get("q") or "").strip()
     vendors = Vendor.objects.filter(company=company)
-
     if query:
         vendors = vendors.filter(
-            Q(code__icontains=query)
-            | Q(name__icontains=query)
-            | Q(phone__icontains=query)
-            | Q(email__icontains=query)
-            | Q(contact_person__icontains=query)
+            Q(code__icontains=query) | Q(name__icontains=query) | Q(phone__icontains=query)
+            | Q(email__icontains=query) | Q(contact_person__icontains=query)
         )
-
     vendors = vendors.order_by("name")
+
     total_vendors = vendors.count()
     active_vendors = vendors.filter(is_active=True).count()
-
     posted_transactions = VendorTransaction.objects.filter(company=company, status=VendorTransaction.STATUS_POSTED)
-    legacy_purchase = posted_transactions.filter(
-        transaction_type=VendorTransaction.TYPE_PURCHASE_ORDER
-    ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-    total_cash_expense = posted_transactions.filter(
-        transaction_type=VendorTransaction.TYPE_CASH_EXPENSE
-    ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-    total_payment = posted_transactions.filter(
-        transaction_type=VendorTransaction.TYPE_VENDOR_PAYMENT
-    ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-
-    new_purchase = PurchaseBill.objects.filter(
-        company=company,
-        status=PurchaseBill.STATUS_POSTED,
-    ).aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
-
+    legacy_purchase = posted_transactions.filter(transaction_type=VendorTransaction.TYPE_PURCHASE_ORDER).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+    total_cash_expense = posted_transactions.filter(transaction_type=VendorTransaction.TYPE_CASH_EXPENSE).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+    total_payment = posted_transactions.filter(transaction_type=VendorTransaction.TYPE_VENDOR_PAYMENT).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+    new_purchase = PurchaseBill.objects.filter(company=company, status=PurchaseBill.STATUS_POSTED).aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
     opening_total = Vendor.objects.filter(company=company).aggregate(total=Sum("opening_balance"))["total"] or Decimal("0.00")
     total_purchase = legacy_purchase + new_purchase
     ap_balance = opening_total + total_purchase - total_payment
 
+    selected_vendor = None
+    selected_vendor_id = request.GET.get("vendor")
+    if selected_vendor_id:
+        selected_vendor = Vendor.objects.filter(company=company, id=selected_vendor_id).first()
+    if selected_vendor is None:
+        selected_vendor = vendors.first()
+
+    recent_activity = []
+    if selected_vendor:
+        for bill in selected_vendor.purchase_bills.filter(company=company).order_by("-bill_date", "-id")[:30]:
+            recent_activity.append({"date": bill.bill_date, "type": "Bill", "number": bill.number or f"BILL-{bill.id}", "amount": bill.total_amount, "status": bill.get_status_display(), "memo": bill.memo, "url_name": "purchase_bill_detail", "pk": bill.pk})
+        for pay in selected_vendor.payments.filter(company=company).order_by("-payment_date", "-id")[:30]:
+            recent_activity.append({"date": pay.payment_date, "type": "Payment", "number": pay.number or f"PAY-{pay.id}", "amount": -pay.total_amount, "status": pay.get_status_display(), "memo": pay.memo, "url_name": "", "pk": pay.pk})
+        for txn in selected_vendor.transactions.filter(company=company).order_by("-transaction_date", "-id")[:30]:
+            recent_activity.append({"date": txn.transaction_date, "type": txn.get_transaction_type_display(), "number": txn.number or f"TXN-{txn.id}", "amount": txn.credit_amount - txn.debit_amount, "status": txn.get_status_display(), "memo": txn.memo, "url_name": "vendor_transaction_detail", "pk": txn.pk})
+        recent_activity.sort(key=lambda x: (x["date"], x["pk"]), reverse=True)
+        recent_activity = recent_activity[:50]
+
     return render(request, "vendors/vendor_center.html", {
-        "company": company,
-        "vendors": vendors,
-        "query": query,
-        "total_vendors": total_vendors,
-        "active_vendors": active_vendors,
-        "total_purchase": total_purchase,
-        "total_cash_expense": total_cash_expense,
-        "total_payment": total_payment,
-        "ap_balance": ap_balance,
+        "company": company, "vendors": vendors, "query": query,
+        "total_vendors": total_vendors, "active_vendors": active_vendors,
+        "total_purchase": total_purchase, "total_cash_expense": total_cash_expense,
+        "total_payment": total_payment, "ap_balance": ap_balance,
+        "selected_vendor": selected_vendor, "recent_activity": recent_activity,
     })
 
 
