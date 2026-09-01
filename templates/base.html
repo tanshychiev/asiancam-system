@@ -1187,102 +1187,140 @@
             }
         }
     
-        /* SYSTEM + WORKING COMPANY IDENTITY */
-        .brand-logo{
-            overflow:hidden;
-            padding:0;
-            background:#fff!important;
-            box-shadow:none!important;
-            border:0!important;
-        }
-        .brand-logo img{
-            width:100%;
-            height:100%;
-            object-fit:contain;
-            display:block;
-        }
-        .brand-logo-fallback{
-            width:100%;
-            height:100%;
-            border-radius:14px;
-            display:grid;
-            place-items:center;
-            background:linear-gradient(135deg,var(--blue),var(--cyan));
-            color:#fff;
-            font-weight:800;
-            font-size:18px;
-        }
-        .company-chip{
-            min-height:38px!important;
-            padding:4px 10px 4px 5px!important;
-            gap:8px!important;
-            border:1px solid #bfe7f7!important;
-            background:#f3fbff!important;
-        }
-        .working-company-logo{
-            width:28px;
-            height:28px;
-            border-radius:8px;
-            object-fit:contain;
-            background:#fff;
-            border:1px solid #d8edf7;
-            padding:2px;
-            flex:0 0 28px;
-        }
-        .working-company-fallback{
-            width:28px;
-            height:28px;
-            border-radius:8px;
-            display:grid;
-            place-items:center;
-            color:#fff;
-            font-size:11px;
-            font-weight:800;
-            background:linear-gradient(135deg,#0b7fbe,#56c7ec);
-            flex:0 0 28px;
-        }
-        .company-chip-copy{
-            display:flex;
-            flex-direction:column;
-            align-items:flex-start;
-            line-height:1.08;
-            min-width:0;
-        }
-        .company-chip-copy small{
-            font-size:8px;
-            text-transform:uppercase;
-            letter-spacing:.08em;
-            color:#5d8299;
-            font-weight:800;
-            margin-bottom:2px;
-        }
-        .company-chip-copy strong{
-            max-width:125px;
-            overflow:hidden;
-            white-space:nowrap;
-            text-overflow:ellipsis;
-            color:#073763;
-            font-size:11px;
-        }
-        .workspace-strip{
-            display:none;
-        }
-        @media (min-width:900px){
-            .workspace-strip{
-                display:flex;
-                align-items:center;
-                gap:7px;
-                padding:5px 10px;
-                border-radius:10px;
-                background:#ecf9ff;
-                border:1px solid #caecfa;
-                color:#075985;
-                font-size:10px;
-                font-weight:700;
-                white-space:nowrap;
-            }
-            .workspace-strip b{color:#073763}
-        }
+        
+/* ===== CURRENT TOP NAVBAR — clearer working-company identity ===== */
+.brand-logo{
+    overflow:hidden;
+    padding:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    border:0!important;
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+}
+.brand-logo img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+}
+.brand-logo-fallback{
+    width:42px;
+    height:42px;
+    border-radius:11px;
+    display:grid;
+    place-items:center;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    color:#fff;
+    font-weight:800;
+    font-size:16px;
+}
+
+/* Make the selected company impossible to miss without changing navbar structure */
+.workspace-strip{
+    display:flex!important;
+    align-items:center!important;
+    gap:7px!important;
+    padding:7px 11px!important;
+    margin-left:auto!important;
+    border-radius:10px!important;
+    background:#ecf9ff!important;
+    border:1px solid #bce8f9!important;
+    color:#075985!important;
+    font-size:10px!important;
+    font-weight:800!important;
+    white-space:nowrap!important;
+    box-shadow:0 2px 8px rgba(5,116,169,.05)!important;
+}
+.workspace-strip .workspace-label{
+    opacity:.7;
+    font-size:8px;
+    text-transform:uppercase;
+    letter-spacing:.07em;
+}
+.workspace-strip b{
+    color:#073763!important;
+    font-size:12px!important;
+    max-width:125px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+/* Main clickable working-company chip on the right */
+.company-chip{
+    min-height:42px!important;
+    padding:5px 10px 5px 5px!important;
+    gap:8px!important;
+    border:1.5px solid #34c77b!important;
+    background:#f2fff8!important;
+    box-shadow:0 3px 10px rgba(22,163,74,.10)!important;
+    border-radius:11px!important;
+}
+.working-company-logo{
+    width:32px!important;
+    height:32px!important;
+    min-width:32px!important;
+    border-radius:8px!important;
+    object-fit:contain!important;
+    background:#fff!important;
+    border:1px solid #d7eee2!important;
+    padding:2px!important;
+}
+.working-company-fallback{
+    width:32px!important;
+    height:32px!important;
+    min-width:32px!important;
+    border-radius:8px!important;
+    display:grid!important;
+    place-items:center!important;
+    color:#fff!important;
+    font-size:13px!important;
+    font-weight:900!important;
+    background:linear-gradient(135deg,#078043,#29c76f)!important;
+}
+.company-chip-copy{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:flex-start!important;
+    line-height:1.05!important;
+    min-width:0!important;
+}
+.company-chip-copy small{
+    font-size:8px!important;
+    text-transform:uppercase!important;
+    letter-spacing:.08em!important;
+    color:#159455!important;
+    font-weight:900!important;
+    margin-bottom:3px!important;
+}
+.company-chip-copy strong{
+    max-width:140px!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+    text-overflow:ellipsis!important;
+    color:#065f46!important;
+    font-size:12px!important;
+    font-weight:900!important;
+}
+.company-chip:hover{
+    background:#e9fff3!important;
+    border-color:#20b968!important;
+}
+
+/* Keep current horizontal navbar compact on smaller desktop widths */
+@media (max-width:1180px){
+    .workspace-strip{display:none!important;}
+    .company-chip-copy strong{max-width:95px!important;}
+}
+@media (max-width:800px){
+    .company-chip-copy small{display:none!important;}
+    .company-chip-copy strong{max-width:72px!important;}
+    .working-company-logo,.working-company-fallback{
+        width:28px!important;height:28px!important;min-width:28px!important;
+    }
+}
 
 </style>
 
@@ -1771,8 +1809,9 @@
     </div>
 
     {% if request.session.selected_company_id %}
-    <div class="workspace-strip" title="All accounting entries are being recorded for this company">
-        Working company: <b>{{ request.session.selected_company_name }}</b>
+    <div class="workspace-strip" title="All entries are being recorded for this company">
+        <span class="workspace-label">Working company</span>
+        <b>{{ request.session.selected_company_name }}</b>
     </div>
     {% endif %}
 
