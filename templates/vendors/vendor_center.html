@@ -2,83 +2,1090 @@
 {% block title %}Vendor Center{% endblock %}
 {% block content %}
 <style>
-.vendor-center{--vc:#0f9f63}.vc-toolbar,.vc-actions,.vc-filter-actions{display:flex;gap:7px;align-items:center;justify-content:flex-end;flex-wrap:wrap}.vc-toolbar{padding:9px 0;border-bottom:1px solid #e5edf3}.vc-toolbar .btn{padding:7px 10px}.vc-search{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:8px;align-items:end}.vc-layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:12px;margin-top:12px}.vc-side,.vc-main{border:1px solid #dbe9f2;border-radius:12px;background:#fff;overflow:hidden}.vc-side-head{padding:10px;border-bottom:1px solid #e7eef4}.vc-list{max-height:650px;overflow:auto}.vc-vendor{position:relative;display:block;padding:10px 12px;border-bottom:1px solid #edf2f6;text-decoration:none;color:inherit;cursor:pointer;transition:.16s ease}.vc-vendor:hover{background:#f5fbff}.vc-vendor.active{background:#effcf6;border-left:3px solid var(--vc)}.vc-vendor.selected{background:#e8f7ff;box-shadow:inset 3px 0 #25aee4}.vc-vendor small{display:block;color:#718096;margin-top:2px;padding-right:26px}.vendor-check{position:absolute;opacity:0;pointer-events:none}.vc-select-dot{position:absolute;right:11px;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:50%;border:1.5px solid #b9d7e8;background:#fff;display:grid;place-items:center;color:transparent;font-size:12px;font-weight:900;transition:.16s ease}.vc-vendor.selected .vc-select-dot{background:#25aee4;border-color:#25aee4;color:#fff;box-shadow:0 0 0 3px #dff5ff}.vc-vendor-main{display:block;text-decoration:none;color:inherit;padding-right:26px}.vc-profile{display:grid;grid-template-columns:1fr auto;gap:12px;padding:16px;border-bottom:1px solid #e7eef4}.vc-profile h2{margin:0 0 5px;color:#087a4d}.vc-balance{text-align:right}.vc-balance strong{display:block;font-size:25px;color:#1797d3;margin-top:5px}.vc-tabs{padding:10px 14px;background:#f8fbfd;border-bottom:1px solid #e4edf3;display:flex;justify-content:space-between;align-items:center;gap:10px}.vc-table th{white-space:nowrap}.vc-check{text-align:center;width:32px}.vc-bulk{display:none;gap:7px;align-items:center;justify-content:flex-end;padding:9px 12px;background:#fff9e8;border-bottom:1px solid #f3dfaa}.vc-bulk.show{display:flex}.vc-pref{position:relative}.vc-pref-menu{display:none;position:absolute;right:0;top:38px;z-index:20;background:#fff;border:1px solid #dbe7ee;border-radius:10px;padding:10px;box-shadow:0 10px 28px #1232;width:190px}.vc-pref.open .vc-pref-menu{display:block}.vendor-center.compact .vc-vendor{padding:6px 9px}.vendor-center.compact .vc-table td,.vendor-center.compact .vc-table th{padding-top:6px;padding-bottom:6px}@media(max-width:900px){.vc-layout{grid-template-columns:1fr}.vc-list{max-height:260px}.vc-search{grid-template-columns:1fr}.vc-filter-actions{justify-content:flex-end}}
+:root{
+  --vc-green:#0a9b61;--vc-green-dark:#08784c;--vc-green-soft:#eaf8f1;
+  --vc-blue:#169fe6;--vc-blue-dark:#0b78b7;--vc-blue-soft:#eef8fd;
+  --vc-text:#243640;--vc-muted:#758791;--vc-line:#dce7eb;--vc-bg:#f5f9fb;
+  --vc-danger:#dc5a58;--vc-warning:#e09b21;--vc-shadow:0 8px 26px rgba(24,66,86,.08);
+}
+#vendorCenterModern *{box-sizing:border-box}
+#vendorCenterModern{background:var(--vc-bg);border-top:3px solid var(--vc-green);border-radius:12px 12px 0 0;box-shadow:var(--vc-shadow);overflow:hidden;color:var(--vc-text);min-height:720px}
+.vcm-topbar{display:flex;align-items:center;gap:4px;padding:8px 12px;border-bottom:1px solid var(--vc-line);background:#fff;min-height:52px;overflow-x:auto}
+.vcm-title{font-size:12px;font-weight:900;letter-spacing:.25px;color:#314955;margin-right:12px;white-space:nowrap}
+.vcm-tool{appearance:none;border:0;background:transparent;color:#167ead;text-decoration:none;display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s ease}
+.vcm-tool:hover{background:#eef8fc;color:#0f6992;transform:translateY(-1px)}
+.vcm-tool.danger{color:var(--vc-danger)}
+.vcm-tool.primary{background:var(--vc-blue);color:#fff;box-shadow:0 5px 14px rgba(22,159,230,.18)}
+.vcm-tool.primary:hover{background:var(--vc-blue-dark);color:#fff}
+.vcm-spacer{flex:1}
+.vcm-circle{width:28px;height:28px;border:1px solid #b9dccc;background:#fff;border-radius:50%;display:grid;place-items:center;color:var(--vc-green);font-weight:900;cursor:pointer;flex:none}
+.vcm-shell{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:668px}
+.vcm-left{background:#fbfdfe;border-right:1px solid var(--vc-line);min-width:0}
+.vcm-search{padding:11px;border-bottom:1px solid var(--vc-line);position:relative}
+.vcm-search input{width:100%!important;height:36px!important;border:1px solid #cfdee5!important;border-radius:9px!important;background:#fff!important;padding:0 34px 0 34px!important;font-size:11px!important;outline:none!important;box-shadow:none!important}
+.vcm-search input:focus{border-color:#65bee2!important;box-shadow:0 0 0 3px rgba(22,159,230,.08)!important}
+.vcm-search .mag{position:absolute;left:22px;top:22px;color:#8ba0aa;font-size:12px}
+.vcm-search .clear{position:absolute;right:19px;top:18px;width:22px;height:22px;border:1px solid #d8e3e8;border-radius:7px;background:#f7fafb;color:#7b8d96;font-size:15px;line-height:18px;cursor:pointer;padding:0;display:grid;place-items:center;transition:.15s ease}.vcm-search .clear:hover{background:#fff0f0;border-color:#efb3b1;color:#d85754}
+.vcm-bulkbar{display:none;gap:6px;align-items:center;padding:9px 10px;background:#f3faf7;border-bottom:1px solid #d8ebe2;font-size:10px;color:#60747e;flex-wrap:wrap}
+.vcm-bulkbar.show{display:flex}.vcm-bulkbar strong{color:#24566e}.vcm-bulkbar button{border:1px solid #cce2ea;background:#fff;color:#1679a9;border-radius:7px;padding:5px 7px;font-size:10px;cursor:pointer}
+.vcm-list{height:596px;overflow:auto}
+.vcm-vendor{display:flex;align-items:center;gap:9px;min-height:54px;padding:9px 10px 9px 12px;border-bottom:1px solid #e8eff2;background:#fff;transition:.12s ease}
+.vcm-vendor:hover{background:#f3faf7}.vcm-vendor.active{background:#def5e9;border-left:3px solid var(--vc-green);padding-left:9px}.vcm-vendor.selected{box-shadow:inset 0 0 0 1px #7acda8}
+.vcm-vendor a{min-width:0;flex:1;text-decoration:none;color:#4b5d66;font-size:11px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vcm-vendor.active a{color:var(--vc-green-dark);font-weight:900}.vcm-vendor small{display:block;margin-top:3px;color:#93a2aa;font-size:9px;font-weight:500}
+.vcm-check{display:none}.vcm-dot{width:21px;height:21px;flex:none;border:1px solid #c5dce6;border-radius:50%;background:#fff;color:transparent;cursor:pointer;padding:0;font-size:10px}.vcm-vendor.selected .vcm-dot{background:var(--vc-green);border-color:var(--vc-green);color:#fff}
+.vcm-main{background:#fff;min-width:0}
+.vcm-profile{display:grid;grid-template-columns:minmax(0,1fr) 235px;border-bottom:1px solid var(--vc-line);min-height:128px;background:linear-gradient(180deg,#fff 0%,#fcfefe 100%)}
+.vcm-profile-left{display:flex;gap:15px;padding:18px 22px;align-items:flex-start}.vcm-avatar{width:60px;height:60px;border-radius:14px;background:linear-gradient(145deg,#e8eef1,#f4f7f8);display:grid;place-items:center;color:#fff;font-size:31px;box-shadow:inset 0 0 0 1px #edf2f4;flex:none}.vcm-info{font-size:10px;color:#74878f;line-height:1.7}.vcm-info .name{font-size:15px;font-weight:900;color:var(--vc-green-dark);text-transform:uppercase;margin-top:7px;letter-spacing:.1px}.vcm-balance{border-left:1px solid var(--vc-line);padding:22px 24px;background:#fbfdfe}.vcm-balance span{display:block;color:#75868e;font-size:10px;font-weight:800;margin-bottom:12px}.vcm-balance strong{font-size:24px;color:var(--vc-blue);font-weight:950;letter-spacing:-.4px}
+.vcm-sectionhead{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 0;border-bottom:1px solid var(--vc-line);background:#fff}.vcm-tab{font-size:10px;font-weight:900;color:var(--vc-green-dark);height:31px;border-bottom:2px solid var(--vc-green);display:flex;align-items:flex-start}.vcm-selectionhint{font-size:9px;color:#8ca0a9;padding-bottom:9px}
+.vcm-filterbar{display:flex!important;align-items:center!important;gap:7px!important;padding:9px 10px!important;border-bottom:1px solid var(--vc-line)!important;background:#fbfdfe!important;flex-wrap:wrap!important}
+.vcm-filterbar select,.vcm-filterbar input{width:auto!important;min-width:120px!important;max-width:175px!important;height:32px!important;flex:0 0 auto!important;border:1px solid #cddde3!important;border-radius:8px!important;background:#fff!important;color:#52656e!important;font-size:10px!important;padding:0 9px!important;margin:0!important;box-shadow:none!important}
+.vcm-filterbar input[type=date]{min-width:135px!important}.vcm-filterbar .mini{width:32px!important;min-width:32px!important;height:32px!important;border:1px solid #cddde3!important;border-radius:8px!important;background:#fff!important;color:#5f737c!important;padding:0!important;cursor:pointer!important}.vcm-filterbar .mini.apply{background:var(--vc-green)!important;border-color:var(--vc-green)!important;color:#fff!important}
+.vcm-actions{display:flex;align-items:center;gap:1px;margin-left:auto;flex-wrap:wrap}.vcm-action{appearance:none;border:0;background:transparent;color:#147ead;text-decoration:none;display:inline-flex;align-items:center;gap:4px;padding:7px 8px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}.vcm-action:hover{background:#edf8fc}.vcm-action.danger{color:var(--vc-danger)}.vcm-action.void{color:#7b6ab1}.vcm-action.disabled{opacity:.35;pointer-events:none}
+.vcm-addmenu{position:relative}.vcm-addmenu-list{display:none;position:absolute;right:0;top:34px;z-index:40;width:178px;background:#fff;border:1px solid var(--vc-line);border-radius:10px;box-shadow:0 12px 32px rgba(17,50,66,.17);padding:6px}.vcm-addmenu.open .vcm-addmenu-list{display:block}.vcm-addmenu-list a{display:flex!important;width:100%;padding:8px 9px!important;border-radius:7px!important;color:#28576d!important}.vcm-addmenu-list a:hover{background:#eff8f4!important;color:var(--vc-green-dark)!important}
+.vcm-tablewrap{overflow:auto;max-height:410px}.vcm-table{width:100%;border-collapse:separate;border-spacing:0;min-width:1020px;font-size:10px}.vcm-table thead th{position:sticky;top:0;z-index:3;padding:8px 9px;background:#f2f7f9;border-bottom:1px solid var(--vc-line);font-size:9px;color:#41545e;text-align:left;white-space:nowrap;letter-spacing:.15px}.vcm-table tbody td{padding:9px 9px;border-bottom:1px solid #e8eff2;color:#566972;vertical-align:middle}.vcm-table tbody tr:nth-child(even){background:#fbfdfe}.vcm-table tbody tr:hover{background:#edf9f4}.vcm-table tbody tr.selected{background:#dcf5e7!important;box-shadow:inset 3px 0 0 var(--vc-green)}.vcm-table a{color:#176fd2;text-decoration:none;font-weight:750}.vcm-table .row-radio{width:14px;height:14px;accent-color:var(--vc-green)}
+.vcm-status{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:900}.vcm-status.posted{background:#e5f7ed;color:#087c4c}.vcm-status.draft{background:#fff4d9;color:#9d6c08}.vcm-status.void{background:#fce8e7;color:#b94745}
+.vcm-rowactions{display:flex;align-items:center;gap:2px}.vcm-rowactions a{width:25px;height:25px;display:grid;place-items:center;border-radius:6px;background:#f2f8fb;color:#167ead!important}.vcm-rowactions a:hover{background:#e3f4fb}
+.vcm-empty{padding:48px 15px;text-align:center;color:#8fa0a8;font-size:11px}.vcm-count{padding:8px 11px;border-top:1px solid var(--vc-line);background:#fff;color:#8999a1;font-size:9px}
+.vcm-hidden{display:none!important}
+.vcm-add-right{padding:8px 13px!important;border-radius:9px!important}
+.vcm-help{transition:.15s ease}.vcm-help:hover{background:var(--vc-green);border-color:var(--vc-green);color:#fff;transform:translateY(-1px)}
+.vcm-prefmodal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(27,45,55,.35);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:18px}
+.vcm-prefmodal.show{display:flex}
+.vcm-prefcard{width:min(500px,100%);background:#fff;border-radius:18px;box-shadow:0 28px 80px rgba(16,43,57,.25);overflow:hidden;border:1px solid rgba(217,229,235,.95)}
+.vcm-prefhead{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 15px;border-bottom:1px solid var(--vc-line);background:linear-gradient(180deg,#fff,#fbfdfe)}
+.vcm-prefhead-title{display:flex;gap:11px;align-items:center}
+.vcm-preficon{width:36px;height:36px;border-radius:11px;background:var(--vc-green-soft);color:var(--vc-green-dark);display:grid;place-items:center;font-size:17px}
+.vcm-prefhead strong{font-size:14px;color:#213a46;display:block}
+.vcm-prefhead small{display:block;margin-top:3px;font-size:9px;color:#8a9ba4;font-weight:500}
+.vcm-prefhead button{width:30px;height:30px;border:0;border-radius:9px;background:#f1f5f7;color:#6f818b;cursor:pointer;font-size:17px;display:grid;place-items:center;transition:.15s ease}
+.vcm-prefhead button:hover{background:#feecec;color:#d65151}
+.vcm-prefbody{padding:15px 20px 18px}
+.vcm-pref-group-title{font-size:9px;font-weight:900;color:#7d909a;text-transform:uppercase;letter-spacing:.7px;margin:2px 0 8px}
+.vcm-pref-option{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:12px 13px!important;margin:0 0 8px!important;border:1px solid #e3edf1;border-radius:12px;background:#fbfdfe;cursor:pointer;transition:.15s ease}
+.vcm-pref-option:hover{border-color:#c7e5d7;background:#f7fcf9}
+.vcm-pref-copy{min-width:0;flex:1}
+.vcm-pref-copy b{display:block;font-size:11px;color:#334d59;margin-bottom:3px}
+.vcm-pref-copy span{display:block;font-size:9px;line-height:1.4;color:#8a9ba4}
+.vcm-switch{position:relative;width:38px;height:22px;flex:none}
+.vcm-switch input{position:absolute;opacity:0;pointer-events:none}
+.vcm-slider{position:absolute;inset:0;border-radius:999px;background:#d8e3e8;transition:.18s ease;box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)}
+.vcm-slider:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(38,67,81,.18);transition:.18s ease}
+.vcm-switch input:checked + .vcm-slider{background:var(--vc-green)}
+.vcm-switch input:checked + .vcm-slider:before{transform:translateX(16px)}
+.vcm-prefnote{display:flex;gap:7px;align-items:flex-start;margin-top:11px;padding:10px 11px;border-radius:10px;background:#f3f8fa;color:#7a8d96;font-size:9px;line-height:1.45}
+.vcm-preffoot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:13px 20px;border-top:1px solid var(--vc-line);background:#fbfdfe}
+.vcm-preffoot-right{display:flex;gap:8px}
+.vcm-btn{border:1px solid #cbdde4;background:#fff;color:#26799f;border-radius:9px;padding:8px 13px;font-size:10px;font-weight:800;cursor:pointer;transition:.15s ease}
+.vcm-btn:hover{background:#f3f8fa}
+.vcm-btn.primary{background:var(--vc-green);border-color:var(--vc-green);color:#fff;box-shadow:0 5px 12px rgba(10,155,97,.16)}
+.vcm-btn.primary:hover{background:var(--vc-green-dark)}
+
+.vcm-bulkmodal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(18,40,50,.32);align-items:center;justify-content:center;padding:18px}.vcm-bulkmodal.show{display:flex}.vcm-bulkcard{width:min(460px,100%);background:#fff;border-radius:16px;box-shadow:0 26px 80px rgba(0,0,0,.22);overflow:hidden}.vcm-bulkhead{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--vc-line)}.vcm-bulkhead strong{font-size:14px;color:#2a414d}.vcm-bulkhead button{width:30px;height:30px;border:1px solid #dbe5e9;border-radius:8px;background:#f7fafb;color:#6e818a;font-size:16px;cursor:pointer}.vcm-bulkbody{padding:17px 18px}.vcm-bulkbody p{margin:0 0 13px;font-size:11px;color:#667a84}.vcm-bulkchoices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.vcm-bulkchoice{border:1px solid #d7e5ea;background:#fff;border-radius:12px;padding:14px 12px;text-align:left;cursor:pointer;transition:.15s ease}.vcm-bulkchoice:hover{border-color:#83c8aa;background:#f1faf6;transform:translateY(-1px)}.vcm-bulkchoice strong{display:block;color:#24624a;font-size:12px;margin-bottom:4px}.vcm-bulkchoice span{font-size:10px;color:#82939b}.vcm-bulkfoot{display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--vc-line);background:#fbfdfe}.vcm-print-link{background:#eef8fc!important;color:#1178a8!important}.vcm-primary-action{background:var(--vc-blue)!important;color:#fff!important;padding:7px 10px!important}.vcm-primary-action:hover{background:var(--vc-blue-dark)!important;color:#fff!important}.vcm-secondary-action{background:#eef8fc!important;color:#147ead!important;padding:7px 10px!important}.vcm-secondary-action:hover{background:#e1f3fb!important}.vcm-actions .vcm-separator{width:1px;height:20px;background:#dce7eb;margin:0 3px}
+#vendorCenterModern.compact .vcm-vendor{min-height:45px;padding-top:6px;padding-bottom:6px}#vendorCenterModern.compact .vcm-table tbody td{padding-top:6px;padding-bottom:6px}#vendorCenterModern.no-stripes .vcm-table tbody tr{background:#fff}#vendorCenterModern.hide-memo .memo-col{display:none}#vendorCenterModern.hide-status .status-col{display:none}
+@media(max-width:1040px){.vcm-shell{grid-template-columns:220px minmax(0,1fr)}.vcm-profile{grid-template-columns:minmax(0,1fr) 205px}.vcm-filterbar select,.vcm-filterbar input{max-width:145px!important}}
+@media(max-width:780px){#vendorCenterModern{border-radius:0}.vcm-shell{grid-template-columns:1fr}.vcm-left{border-right:0;border-bottom:1px solid var(--vc-line)}.vcm-list{height:220px}.vcm-profile{grid-template-columns:1fr}.vcm-balance{border-left:0;border-top:1px solid var(--vc-line)}.vcm-filterbar{align-items:stretch!important}.vcm-filterbar select,.vcm-filterbar input{min-width:calc(50% - 5px)!important;max-width:none!important;flex:1 1 calc(50% - 5px)!important}.vcm-actions{width:100%;margin-left:0;border-top:1px solid #edf2f4;padding-top:6px}.vcm-topbar{padding-left:8px;padding-right:8px}}
+@media print{.vcm-topbar,.vcm-left,.vcm-filterbar,.vcm-selectionhint,.main-header,.navbar,nav,.sidebar{display:none!important}#vendorCenterModern{box-shadow:none;border:0}.vcm-shell{display:block}.vcm-profile{grid-template-columns:1fr 220px}.vcm-tablewrap{max-height:none;overflow:visible}.vcm-table{min-width:0}}
 </style>
-<div class="vendor-center" id="vendorCenter">
-<div class="card">
-  <div class="card-head">
-    <div><h2>Vendor Center</h2><p>Vendor master, A/P balance and transaction history for {{ company.name }}.</p></div>
-    <div class="vc-toolbar">
-      <a class="btn" href="{% url 'vendor_create' %}">＋ Add</a>
-      {% if selected_vendor %}<a class="btn btn-light" href="{% url 'vendor_edit' selected_vendor.id %}">✎ Edit</a>{% endif %}
-      <button type="button" class="btn btn-light" id="deleteBtn">🗑 Delete</button>
-      <button type="button" class="btn btn-light" id="mergeBtn">⇄ Merge</button>
-      <a class="btn btn-light" href="{% url 'vendor_import_excel' %}">⇧ Import</a>
-      <a class="btn btn-light" href="{% url 'vendor_export_excel' %}">⇩ List / Excel</a>
-      <button type="button" class="btn btn-light" id="bulkBtn">⚡ Bulk Update</button>
-      <div class="vc-pref" id="prefWrap"><button type="button" class="btn btn-light" id="prefBtn">⚙ Preference</button><div class="vc-pref-menu"><label><input type="checkbox" id="compactToggle"> Compact rows</label><br><small>Display preference is saved on this browser.</small></div></div>
-    </div>
+
+
+<style>
+/* ==========================================================
+   VENDOR CENTER — compact search dropdown + wider profile
+   ========================================================== */
+
+#vendorCenterModern{
+  border-radius:15px!important;
+  border-color:#d8e7ed!important;
+  box-shadow:0 8px 26px rgba(30,72,92,.06)!important;
+  overflow:visible!important;
+}
+
+/* Toolbar: cleaner spacing, no odd crowding */
+.vcm-topbar{
+  min-height:50px!important;
+  padding:7px 14px!important;
+  gap:5px!important;
+  border-top:3px solid #0ca668!important;
+  border-radius:14px 14px 0 0!important;
+}
+.vcm-title{
+  font-size:12px!important;
+  margin-right:12px!important;
+}
+.vcm-tool{
+  min-height:31px!important;
+  padding:0 8px!important;
+  border-radius:6px!important;
+  font-size:9.5px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:4px!important;
+}
+.vcm-tool:hover{
+  background:#f1f8fb!important;
+}
+.vcm-tool.primary{
+  padding:0 13px!important;
+  border-radius:9px!important;
+  background:#169ee6!important;
+  color:#fff!important;
+}
+.vcm-tool.primary:hover{background:#0877b3!important}
+
+/* Main two-column layout, but left side is only a compact search box */
+.vcm-shell{
+  grid-template-columns:300px minmax(0,1fr)!important;
+  align-items:start!important;
+  overflow:visible!important;
+}
+.vcm-left{
+  position:relative!important;
+  align-self:start!important;
+  min-height:0!important;
+  height:auto!important;
+  padding:12px 10px 10px!important;
+  border-right:1px solid #dbe8ee!important;
+  background:#fbfdfe!important;
+  overflow:visible!important;
+  z-index:50!important;
+}
+
+/* Search box same style as Purchase Bill vendor search */
+.vcm-search{
+  position:relative!important;
+  margin:0!important;
+  padding:0!important;
+  height:38px!important;
+  border:0!important;
+  background:transparent!important;
+  z-index:70!important;
+}
+.vcm-search input{
+  width:100%!important;
+  height:38px!important;
+  min-height:38px!important;
+  box-sizing:border-box!important;
+  padding:8px 36px 8px 34px!important;
+  border:1px solid #cfe1ea!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#29495b!important;
+  font-size:10.5px!important;
+  outline:none!important;
+}
+.vcm-search input:focus{
+  border-color:#56b7df!important;
+  box-shadow:0 0 0 3px rgba(22,158,230,.08)!important;
+}
+.vcm-search .mag{
+  position:absolute!important;
+  left:11px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  z-index:2!important;
+  color:#7d929e!important;
+  font-size:13px!important;
+}
+.vcm-search .clear{
+  position:absolute!important;
+  right:7px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  width:25px!important;
+  height:25px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:#edf3f6!important;
+  color:#81939d!important;
+  cursor:pointer!important;
+}
+.vcm-search .clear:hover{background:#feecec!important;color:#d25151!important}
+
+/* Dropdown, not a full-height vendor sidebar */
+.vcm-list{
+  display:none!important;
+  position:absolute!important;
+  top:54px!important;
+  left:10px!important;
+  right:10px!important;
+  width:auto!important;
+  height:auto!important;
+  max-height:330px!important;
+  overflow:auto!important;
+  padding:6px!important;
+  border:1px solid #cfe1ea!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  box-shadow:0 14px 35px rgba(26,63,83,.17)!important;
+  z-index:10000!important;
+}
+.vcm-left.search-open .vcm-list{
+  display:block!important;
+}
+.vcm-search-add{
+  display:flex!important;
+  align-items:center!important;
+  min-height:36px!important;
+  padding:0 10px!important;
+  border-radius:7px!important;
+  color:#0877b3!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  text-decoration:none!important;
+  background:#fff!important;
+}
+.vcm-search-add:hover{
+  background:#eef8ff!important;
+}
+.vcm-search-divider{
+  height:1px!important;
+  margin:4px 4px 5px!important;
+  background:#e7eef2!important;
+}
+
+/* Vendor result rows inside dropdown */
+.vcm-vendor{
+  position:relative!important;
+  min-height:46px!important;
+  margin:0 0 3px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:#fff!important;
+}
+.vcm-vendor:last-child{margin-bottom:0!important}
+.vcm-vendor:hover{background:#f1f9fc!important}
+.vcm-vendor.active{
+  background:#eaf8f1!important;
+  box-shadow:inset 3px 0 0 #0ca668!important;
+}
+.vcm-vendor > a{
+  display:block!important;
+  padding:8px 36px 8px 10px!important;
+  font-size:10.5px!important;
+  color:#284b5d!important;
+  font-weight:850!important;
+  text-decoration:none!important;
+}
+.vcm-vendor > a small{
+  display:block!important;
+  margin-top:3px!important;
+  color:#889aa4!important;
+  font-size:8.5px!important;
+  font-weight:500!important;
+}
+.vcm-check{
+  display:none!important;
+}
+.vcm-dot{
+  position:absolute!important;
+  right:8px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  width:22px!important;
+  height:22px!important;
+  border:1px solid #cfe1ea!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  color:#0b9a5a!important;
+  font-size:0!important;
+}
+.vcm-dot::after{
+  content:"○";
+  font-size:14px!important;
+}
+.vcm-vendor.selected .vcm-dot::after,
+.vcm-vendor.active .vcm-dot::after{
+  content:"●";
+  color:#0b9a5a!important;
+}
+
+/* Bulk selection bar remains usable but compact */
+.vcm-bulkbar{
+  position:absolute!important;
+  left:10px!important;
+  right:10px!important;
+  top:100px!important;
+  z-index:10020!important;
+}
+
+/* Selected vendor info: larger, wider, better hierarchy */
+.vcm-main{
+  min-width:0!important;
+  overflow:visible!important;
+  background:#fff!important;
+}
+.vcm-profile{
+  grid-template-columns:minmax(0,1fr) 260px!important;
+  min-height:175px!important;
+  background:#fff!important;
+}
+.vcm-profile-left{
+  padding:25px 32px!important;
+  gap:22px!important;
+  align-items:center!important;
+}
+.vcm-avatar{
+  width:82px!important;
+  height:82px!important;
+  border-radius:18px!important;
+  font-size:38px!important;
+  background:linear-gradient(145deg,#e8eff2,#f7fafb)!important;
+}
+.vcm-info{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(170px,1fr))!important;
+  gap:5px 28px!important;
+  width:min(720px,100%)!important;
+  color:#68808c!important;
+  font-size:11px!important;
+  line-height:1.55!important;
+}
+.vcm-info .name{
+  grid-column:1 / -1!important;
+  order:-1!important;
+  margin:0 0 8px!important;
+  color:#087646!important;
+  font-size:20px!important;
+  line-height:1.2!important;
+  font-weight:950!important;
+}
+.vcm-balance{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  padding:28px 30px!important;
+  background:#fbfdfe!important;
+}
+.vcm-balance span{
+  font-size:11px!important;
+  margin-bottom:12px!important;
+}
+.vcm-balance strong{
+  font-size:30px!important;
+  color:#169ee6!important;
+}
+
+/* Main transaction area starts close under vendor profile */
+.vcm-sectionhead{
+  min-height:42px!important;
+  padding:0 14px!important;
+}
+.vcm-filterbar{
+  padding:8px 12px!important;
+  gap:7px!important;
+}
+.vcm-filterbar select,
+.vcm-filterbar input{
+  min-height:34px!important;
+  height:34px!important;
+  border-radius:7px!important;
+  font-size:10px!important;
+}
+.vcm-actions{
+  gap:5px!important;
+}
+.vcm-action{
+  min-height:32px!important;
+  border-radius:7px!important;
+  font-size:9.5px!important;
+}
+.vcm-primary-action{
+  background:#169ee6!important;
+  border-color:#169ee6!important;
+}
+
+/* No giant blank vendor-side column */
+@media(min-width:781px){
+  .vcm-left{
+    min-height:64px!important;
+  }
+}
+@media(max-width:1040px){
+  .vcm-shell{grid-template-columns:260px minmax(0,1fr)!important}
+  .vcm-info{grid-template-columns:1fr!important}
+  .vcm-info .name{grid-column:1!important}
+}
+@media(max-width:780px){
+  .vcm-shell{grid-template-columns:1fr!important}
+  .vcm-left{border-right:0!important;border-bottom:1px solid #dbe8ee!important}
+  .vcm-profile{grid-template-columns:1fr!important}
+  .vcm-balance{border-left:0!important;border-top:1px solid #dbe8ee!important}
+  .vcm-info{grid-template-columns:1fr!important}
+}
+</style>
+
+
+<style>
+.vendor-list-dialog{width:min(1100px,94vw)!important;max-height:86vh!important;display:flex!important;flex-direction:column!important}
+.vendor-list-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #dce8ee;background:#fbfdfe}
+.vendor-list-search{position:relative;width:min(430px,100%)}
+.vendor-list-search span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#7d929e}
+.vendor-list-search input{width:100%;height:36px;padding:7px 10px 7px 32px;border:1px solid #cfe1ea;border-radius:8px;background:#fff;color:#29495b;font-size:10px;outline:none}
+.vendor-list-table-wrap{overflow:auto;flex:1 1 auto;background:#fff}
+.vendor-list-table{width:100%;border-collapse:collapse;min-width:780px}
+.vendor-list-table th{position:sticky;top:0;z-index:2;padding:9px 10px;background:#eff6f9;border-bottom:1px solid #d7e5eb;color:#496574;font-size:9px;font-weight:900;text-align:left;text-transform:uppercase}
+.vendor-list-table td{padding:9px 10px;border-bottom:1px solid #edf2f4;color:#506a77;font-size:10px}
+.vendor-list-table tbody tr:hover td{background:#f7fbfd}
+.vendor-list-table td strong{color:#16744a}
+.vendor-status-pill{display:inline-flex;align-items:center;min-height:23px;padding:0 8px;border-radius:999px;font-size:8px;font-weight:900}
+.vendor-status-pill.active{background:#e7f8ef;color:#07864c}
+.vendor-status-pill.inactive{background:#ffeded;color:#d84c4c}
+.vendor-open-btn{display:inline-flex;align-items:center;min-height:27px;padding:0 9px;border:1px solid #cfe1ea;border-radius:6px;color:#0877b3;background:#fff;font-size:9px;font-weight:850;text-decoration:none}
+.vendor-list-empty{padding:30px!important;text-align:center;color:#94a3ab!important}
+.vendor-list-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid #dce8ee;background:#fbfdfe;color:#81929b;font-size:9px}
+</style>
+
+
+<style>
+/* ==========================================================
+   VENDOR CENTER — permanent left vendor list like Customer Center
+   ========================================================== */
+
+.vcm-shell{
+  grid-template-columns:255px minmax(0,1fr)!important;
+  align-items:stretch!important;
+}
+
+/* Left panel should stay visible, same behavior as Customer Center */
+.vcm-left{
+  position:relative!important;
+  min-height:560px!important;
+  height:auto!important;
+  padding:10px 8px!important;
+  background:#fbfdfe!important;
+  border-right:1px solid #d9e7ed!important;
+  overflow:hidden!important;
+  z-index:5!important;
+}
+
+/* Search at top */
+.vcm-search{
+  position:relative!important;
+  margin:0 0 7px!important;
+  height:36px!important;
+}
+.vcm-search input{
+  width:100%!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:7px 34px 7px 31px!important;
+  border:1px solid #cfe0e8!important;
+  border-radius:7px!important;
+  background:#fff!important;
+  color:#355363!important;
+  font-size:9.5px!important;
+  outline:none!important;
+}
+.vcm-search input:focus{
+  border-color:#56b7df!important;
+  box-shadow:0 0 0 3px rgba(22,158,230,.07)!important;
+}
+.vcm-search .mag{
+  left:10px!important;
+  font-size:12px!important;
+}
+.vcm-search .clear{
+  right:6px!important;
+  width:23px!important;
+  height:23px!important;
+  border-radius:6px!important;
+}
+
+/* Permanent list, NOT dropdown */
+.vcm-list{
+  display:block!important;
+  position:static!important;
+  width:100%!important;
+  height:auto!important;
+  max-height:500px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  z-index:auto!important;
+}
+
+/* Hide the "Create New Vendor" row in the permanent list.
+   Main + Add Vendor button already exists at the top-right. */
+.vcm-search-add,
+.vcm-search-divider{
+  display:none!important;
+}
+
+/* Vendor rows = Customer Center list style */
+.vcm-vendor{
+  display:block!important;
+  position:relative!important;
+  min-height:45px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-bottom:1px solid #edf2f4!important;
+  border-radius:0!important;
+  background:#fff!important;
+}
+.vcm-vendor:hover{
+  background:#f4fafc!important;
+}
+.vcm-vendor.active{
+  background:#e8f8f0!important;
+  box-shadow:inset 3px 0 0 #08a460!important;
+}
+.vcm-vendor > a{
+  display:block!important;
+  padding:8px 30px 7px 11px!important;
+  color:#315362!important;
+  font-size:9.5px!important;
+  font-weight:850!important;
+  line-height:1.25!important;
+  text-decoration:none!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.vcm-vendor > a small{
+  display:block!important;
+  margin-top:3px!important;
+  color:#8499a3!important;
+  font-size:7.5px!important;
+  font-weight:500!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.vcm-dot{
+  right:8px!important;
+  width:20px!important;
+  height:20px!important;
+  background:#fff!important;
+}
+.vcm-check{
+  display:none!important;
+}
+
+/* Main vendor area aligned like Customer Center */
+.vcm-main{
+  min-width:0!important;
+  background:#fff!important;
+}
+.vcm-profile{
+  grid-template-columns:minmax(0,1fr) 235px!important;
+  min-height:150px!important;
+}
+.vcm-profile-left{
+  padding:21px 28px!important;
+  gap:19px!important;
+}
+.vcm-avatar{
+  width:72px!important;
+  height:72px!important;
+  border-radius:16px!important;
+}
+.vcm-info{
+  width:min(680px,100%)!important;
+  grid-template-columns:repeat(2,minmax(150px,1fr))!important;
+  gap:4px 22px!important;
+  font-size:10px!important;
+}
+.vcm-info .name{
+  grid-column:1/-1!important;
+  font-size:18px!important;
+  margin-bottom:6px!important;
+}
+.vcm-balance{
+  padding:24px 26px!important;
+}
+.vcm-balance strong{
+  font-size:27px!important;
+}
+
+/* Transaction section */
+.vcm-sectionhead{
+  min-height:39px!important;
+}
+.vcm-filterbar{
+  padding:7px 10px!important;
+}
+.vcm-tablewrap{
+  min-height:120px!important;
+}
+
+/* Do not use dropdown-open class anymore */
+.vcm-left.search-open .vcm-list{
+  display:block!important;
+}
+
+/* Responsive */
+@media(max-width:900px){
+  .vcm-shell{grid-template-columns:220px minmax(0,1fr)!important}
+}
+@media(max-width:720px){
+  .vcm-shell{grid-template-columns:1fr!important}
+  .vcm-left{
+    min-height:auto!important;
+    border-right:0!important;
+    border-bottom:1px solid #d9e7ed!important;
+  }
+  .vcm-list{max-height:220px!important}
+}
+</style>
+
+<div id="vendorCenterModern">
+  <div class="vcm-topbar">
+    <div class="vcm-title">VENDOR CENTER</div>
+    {% if selected_vendor %}<a class="vcm-tool" href="{% url 'vendor_edit' selected_vendor.id %}">✎ Edit</a>{% else %}<span class="vcm-tool" style="opacity:.35">✎ Edit</span>{% endif %}
+    <button type="button" class="vcm-tool danger" id="vendorDelete">♲ Delete</button>
+    <button type="button" class="vcm-tool" id="vendorMerge">⇥ Merge</button>
+    <a class="vcm-tool" href="{% url 'vendor_import_excel' %}">⇧ Import</a>
+    <button type="button" class="vcm-tool" id="vendorListBtn">☷ Vendor List</button>
+    <a class="vcm-tool" href="{% url 'vendor_export_excel' %}?q={{ query|urlencode }}">⇩ Download Excel</a>
+    <a class="vcm-tool" href="{% url 'vendor_import_sample' %}">⇩ Sample</a>
+    <button type="button" class="vcm-tool" id="bulkVendorBtn">☑ Bulk Update</button>
+    <button type="button" class="vcm-tool" id="preferenceBtn">⚙ Preference</button>
+    <div class="vcm-spacer"></div>
+    <a class="vcm-tool primary vcm-add-right" href="{% url 'vendor_create' %}">＋ Add Vendor</a>
+    <button type="button" class="vcm-circle vcm-help" id="helpBtn" title="Vendor Center Help" aria-label="Vendor Center Help">?</button>
   </div>
-  <form method="get" class="vc-search">
-    <div class="form-group"><label>Search Vendor</label><input name="q" value="{{ query }}" placeholder="Vendor name, Vendor ID, phone, contact or email"></div>
-    <div class="vc-filter-actions"><button class="btn" type="submit">🔍 Search</button><a class="btn btn-light" href="{% url 'vendor_center' %}">Reset</a></div>
+
+  <form method="post" id="vendorForm">
+    {% csrf_token %}
+    <input type="hidden" name="action" id="vendorAction">
+    <input type="hidden" name="merge_target" id="mergeTarget">
+    <input type="hidden" name="activity_kind" id="activityKind">
+    <input type="hidden" name="activity_id" id="activityId">
+
+    <div class="vcm-shell">
+      <aside class="vcm-left">
+        <div class="vcm-search">
+          <span class="mag">⌕</span>
+          <input id="vendorSearch" type="text" value="{{ query }}" placeholder="Search vendor name, ID, phone...">
+          <button type="button" class="clear" id="vendorClear">×</button>
+        </div>
+        <div class="vcm-bulkbar" id="bulkBar">
+          <strong><span id="selectedCount">0</span> selected</strong>
+          <button type="button" data-bulk="activate">Active</button>
+          <button type="button" data-bulk="deactivate">Inactive</button>
+          <button type="button" id="clearSelected">Clear</button>
+        </div>
+        <div class="vcm-list" id="vendorSearchDropdown">
+          <a class="vcm-search-add" href="{% url 'vendor_create' %}">＋ Create New Vendor</a>
+          <div class="vcm-search-divider"></div>
+          {% for vendor in vendors %}
+          <div class="vcm-vendor {% if selected_vendor and selected_vendor.id == vendor.id %}active{% endif %}" data-vendor-card data-search="{{ vendor.name|lower }} {{ vendor.code|default:''|lower }} {{ vendor.phone|default:''|lower }} {{ vendor.email|default:''|lower }} {{ vendor.contact_person|default:''|lower }}">
+            <input class="vcm-check" type="checkbox" name="selected" value="{{ vendor.id }}">
+            <a href="?q={{ query|urlencode }}&vendor={{ vendor.id }}">
+              {{ vendor.name }}
+              <small>{{ vendor.code|default:'No ID' }} · {% if vendor.is_active %}Active{% else %}Inactive{% endif %}</small>
+            </a>
+            <button type="button" class="vcm-dot" title="Select vendor">✓</button>
+          </div>
+          {% empty %}
+          <div class="vcm-empty">No vendors found.</div>
+          {% endfor %}
+        </div>
+      </aside>
+
+      <main class="vcm-main">
+      {% if selected_vendor %}
+        <section class="vcm-profile">
+          <div class="vcm-profile-left">
+            <div class="vcm-avatar">●</div>
+            <div class="vcm-info">
+              <div>✉ &nbsp;{{ selected_vendor.email|default:'---' }}</div>
+              <div>☎ &nbsp;{{ selected_vendor.phone|default:'---' }}</div>
+              <div>♙ &nbsp;{{ selected_vendor.contact_person|default:'---' }}</div>
+              <div>$ &nbsp;Dollar USD ($)</div>
+              <div class="name">{{ selected_vendor.name }}</div>
+            </div>
+          </div>
+          <div class="vcm-balance">
+            <span>A/P Balance</span>
+            <strong>$ {{ selected_vendor.ap_balance|floatformat:2 }}</strong>
+          </div>
+        </section>
+
+        <div class="vcm-sectionhead">
+          <div class="vcm-tab">Transaction</div>
+          <div class="vcm-selectionhint">Select a row before Edit / Delete / Void</div>
+        </div>
+
+        <div class="vcm-filterbar">
+          <select id="typeFilter">
+            <option value="">All Transactions</option>
+            <option value="bill">Bill</option><option value="payment">Payment</option><option value="purchase">Purchase</option><option value="expense">Expense</option><option value="adjustment">Adjustment</option>
+          </select>
+          <select id="datePreset">
+            <option value="all">All Dates</option><option value="this_month">This Month</option><option value="last_month">Last Month</option><option value="this_year">This Year</option><option value="custom">Custom</option>
+          </select>
+          <input id="dateFrom" type="date" title="From date">
+          <input id="dateTo" type="date" title="To date">
+          <button type="button" class="mini apply" id="applyFilter" title="Apply">✓</button>
+          <button type="button" class="mini" id="resetFilter" title="Reset">↻</button>
+
+          <div class="vcm-actions">
+            <a class="vcm-action vcm-primary-action" href="{% url 'purchase_bill_create' %}?vendor={{ selected_vendor.id }}">＋ Purchase Bill</a>
+            <a class="vcm-action vcm-secondary-action" href="{% url 'vendor_payment_create' %}?vendor={{ selected_vendor.id }}">＋ Payment</a>
+            <span class="vcm-separator"></span>
+            <button type="button" class="vcm-action vcm-print-link" id="trPrint">▣ Print</button>
+            <button type="button" class="vcm-action" id="trEdit">✎ Edit</button>
+            <button type="button" class="vcm-action danger" id="trDelete">♲ Delete</button>
+            <button type="button" class="vcm-action void" id="trVoid">⊘ Void</button>
+            <button type="button" class="vcm-action" id="trExport">⇩ Export</button>
+          </div>
+        </div>
+
+        <div class="vcm-tablewrap">
+          <table class="vcm-table" id="trTable">
+            <thead><tr>
+              <th style="width:28px"></th><th>TRAN TYPE</th><th>TRAN DATE</th><th>NUMBER</th><th>PO NUMBER</th><th>CURRENCY</th><th>AMOUNT</th><th>OPEN BALANCE</th><th class="status-col">STATUS</th><th class="memo-col">MEMO</th><th>ACTION</th>
+            </tr></thead>
+            <tbody>
+            {% for row in recent_activity %}
+            <tr data-tr-row data-kind="{{ row.kind }}" data-id="{{ row.pk }}" data-type="{{ row.type|lower }}" data-date="{{ row.date|date:'Y-m-d' }}" data-status="{{ row.status_code }}" {% if row.edit_url_name == 'purchase_bill_edit' %}data-edit="{% url 'purchase_bill_edit' row.pk %}"{% elif row.edit_url_name == 'vendor_transaction_edit' %}data-edit="{% url 'vendor_transaction_edit' row.pk %}"{% elif row.edit_url_name == 'vendor_payment_edit' %}data-edit="{% url 'vendor_payment_edit' row.pk %}"{% endif %}>
+              <td><input class="row-radio" type="radio" name="activity_pick" value="{{ row.pk }}"></td>
+              <td>{% if row.url_name == 'purchase_bill_detail' %}<a href="{% url 'purchase_bill_detail' row.pk %}">{{ row.type }}</a>{% elif row.url_name == 'vendor_transaction_detail' %}<a href="{% url 'vendor_transaction_detail' row.pk %}">{{ row.type }}</a>{% else %}<strong>{{ row.type }}</strong>{% endif %}</td>
+              <td>{{ row.date|date:'d-m-Y' }}</td>
+              <td>{{ row.number }}</td>
+              <td>{{ row.po_number|default:'-' }}</td>
+              <td>Dollar USD ($)</td>
+              <td>{% if row.amount < 0 %}<span style="color:#c84d4b">({{ row.amount|floatformat:2 }})</span>{% else %}{{ row.amount|floatformat:2 }}{% endif %}</td>
+              <td>{% if row.kind == 'bill' %}{{ row.open_balance|floatformat:2 }}{% else %}-{% endif %}</td>
+              <td class="status-col"><span class="vcm-status {{ row.status_code }}">{{ row.status }}</span></td>
+              <td class="memo-col">{{ row.memo|default:'-'|truncatechars:70 }}</td>
+              <td><div class="vcm-rowactions">
+                {% if row.kind == 'bill' %}<a href="{% url 'purchase_bill_detail' row.pk %}" title="View">⌄</a><a href="{% url 'purchase_bill_edit' row.pk %}" title="Edit">✎</a>
+                {% elif row.kind == 'transaction' %}<a href="{% url 'vendor_transaction_detail' row.pk %}" title="View">⌄</a><a href="{% url 'vendor_transaction_edit' row.pk %}" title="Edit">✎</a>
+                {% elif row.kind == 'payment' %}<a href="{% url 'vendor_payment_edit' row.pk %}" title="Edit Payment">✎</a>
+                {% endif %}
+              </div></td>
+            </tr>
+            {% empty %}
+            <tr id="emptyRow"><td colspan="11"><div class="vcm-empty">No transactions for this vendor yet.</div></td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="vcm-count">Showing <strong id="visibleCount">{{ recent_activity|length }}</strong> of {{ recent_activity|length }} transaction(s)</div>
+      {% else %}
+        <div class="vcm-empty" style="padding-top:180px">Select a vendor on the left or create a new vendor.</div>
+      {% endif %}
+      </main>
+    </div>
   </form>
 </div>
 
-<form method="post" id="vendorBulkForm">{% csrf_token %}<input type="hidden" name="action" id="bulkAction"><input type="hidden" name="merge_target" id="mergeTarget">
-<div class="vc-layout">
-  <aside class="vc-side">
-    <div class="vc-side-head"><strong>Vendors</strong><small style="float:right">{{ total_vendors }} found</small></div>
-    <div class="vc-bulk" id="bulkBar"><span style="margin-right:auto"><strong id="selectedCount">0</strong> vendor(s) selected</span><button type="button" class="btn btn-light" data-bulk="activate">✓ Set Active</button><button type="button" class="btn btn-light" data-bulk="deactivate">○ Set Inactive</button><button type="button" class="btn btn-light" id="clearSelection">Clear</button></div>
-    <div class="vc-list">
-      {% for vendor in vendors %}
-      <div class="vc-vendor{% if selected_vendor.id == vendor.id %} active{% endif %}" data-select-card>
-        <input type="checkbox" name="selected" value="{{ vendor.id }}" class="vendor-check">
-        <a class="vc-vendor-main" href="?q={{ query|urlencode }}&vendor={{ vendor.id }}"><strong>{{ vendor.name }}</strong><small>{{ vendor.code|default:"No ID" }} · {% if vendor.is_active %}Active{% else %}Inactive{% endif %}</small></a>
-        <button type="button" class="vc-select-dot" aria-label="Select {{ vendor.name }}">✓</button>
-      </div>
-      {% empty %}<div class="empty-state">No vendors found.</div>{% endfor %}
-    </div>
-  </aside>
 
-  <section class="vc-main">
-    {% if selected_vendor %}
-    <div class="vc-profile">
-      <div><h2>{{ selected_vendor.name }}</h2><div>{{ selected_vendor.code|default:"No Vendor ID" }} · {{ selected_vendor.contact_person|default:"No contact person" }}</div><small>{{ selected_vendor.phone|default:"" }} {% if selected_vendor.email %} · {{ selected_vendor.email }}{% endif %}</small></div>
-      <div class="vc-balance"><span>A/P Balance</span><strong>${{ selected_vendor.ap_balance }}</strong></div>
+<div class="vcm-bulkmodal" id="vendorListModal">
+  <div class="vcm-bulkdialog vendor-list-dialog">
+    <div class="vcm-bulkhead">
+      <b>Vendor List</b>
+      <button type="button" id="closeVendorList">×</button>
     </div>
-    <div class="vc-tabs"><strong>Transactions</strong><div class="vc-actions"><a class="btn" href="{% url 'purchase_bill_create' %}?vendor={{ selected_vendor.id }}">＋ Purchase Bill</a><a class="btn btn-light" href="{% url 'vendor_payment_create' %}?vendor={{ selected_vendor.id }}">＋ Payment</a></div></div>
-    <div class="table-wrap"><table class="vc-table"><thead><tr><th>Type</th><th>Date</th><th>Number</th><th>Amount</th><th>Status</th><th>Memo</th><th>Action</th></tr></thead><tbody>
-      {% for row in recent_activity %}<tr><td><strong>{{ row.type }}</strong></td><td>{{ row.date|date:"d-m-Y" }}</td><td>{{ row.number }}</td><td>{% if row.amount < 0 %}<span style="color:#c0392b">${{ row.amount }}</span>{% else %}${{ row.amount }}{% endif %}</td><td>{{ row.status }}</td><td>{{ row.memo|default:"-"|truncatechars:55 }}</td><td>{% if row.url_name == 'purchase_bill_detail' %}<a class="btn btn-light" href="{% url 'purchase_bill_detail' row.pk %}">View</a>{% elif row.url_name == 'vendor_transaction_detail' %}<a class="btn btn-light" href="{% url 'vendor_transaction_detail' row.pk %}">View</a>{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="7"><div class="empty-state">No transactions for this vendor yet.</div></td></tr>{% endfor %}
-    </tbody></table></div>
-    {% else %}<div class="empty-state"><div class="emoji">🏪</div>Select or create a vendor.</div>{% endif %}
-  </section>
-</div></form></div>
+    <div class="vendor-list-toolbar">
+      <div class="vendor-list-search">
+        <span>⌕</span>
+        <input type="text" id="vendorListSearch" placeholder="Search vendor name, ID, phone...">
+      </div>
+      <a class="vcm-tool primary" href="{% url 'vendor_create' %}">＋ Add Vendor</a>
+    </div>
+    <div class="vendor-list-table-wrap">
+      <table class="vendor-list-table">
+        <thead>
+          <tr>
+            <th>No.</th><th>Vendor ID / Code</th><th>Vendor Name</th><th>Phone</th><th>Currency</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vendor in vendors %}
+          <tr data-vendor-list-row data-search="{{ vendor.code|default:''|lower }} {{ vendor.name|default:''|lower }} {{ vendor.phone|default:''|lower }}">
+            <td>{{ forloop.counter }}</td>
+            <td>{{ vendor.code|default:"—" }}</td>
+            <td><strong>{{ vendor.name }}</strong></td>
+            <td>{{ vendor.phone|default:"—" }}</td>
+            <td>{{ vendor.currency|default:"USD" }}</td>
+            <td>
+              {% if vendor.is_active %}
+                <span class="vendor-status-pill active">Active</span>
+              {% else %}
+                <span class="vendor-status-pill inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td><a class="vendor-open-btn" href="{% url 'vendor_center' %}?vendor={{ vendor.id }}">Open</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="vendor-list-empty">No vendors found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="vendor-list-footer">
+      <span>{{ vendors|length }} vendor{{ vendors|length|pluralize }}</span>
+      <button type="button" class="vcm-tool" id="closeVendorListBottom">× Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="vcm-bulkmodal" id="bulkModal">
+  <div class="vcm-bulkcard">
+    <div class="vcm-bulkhead"><strong>Bulk Update Vendors</strong><button type="button" id="bulkClose">×</button></div>
+    <div class="vcm-bulkbody">
+      <p><strong id="bulkModalCount">0</strong> vendor(s) selected. Choose what you want to update.</p>
+      <div class="vcm-bulkchoices">
+        <button type="button" class="vcm-bulkchoice" data-bulk-modal="activate"><strong>✓ Set Active</strong><span>Make all selected vendors active.</span></button>
+        <button type="button" class="vcm-bulkchoice" data-bulk-modal="deactivate"><strong>○ Set Inactive</strong><span>Deactivate selected vendors without deleting history.</span></button>
+      </div>
+    </div>
+    <div class="vcm-bulkfoot"><button type="button" class="vcm-btn" id="bulkCancel">Cancel</button></div>
+  </div>
+</div>
+
+<div class="vcm-prefmodal" id="prefModal">
+  <div class="vcm-prefcard" role="dialog" aria-modal="true" aria-labelledby="prefTitle">
+    <div class="vcm-prefhead">
+      <div class="vcm-prefhead-title">
+        <div class="vcm-preficon">⚙</div>
+        <div>
+          <strong id="prefTitle">Vendor Center Preferences</strong>
+          <small>Customize how your vendor workspace is displayed.</small>
+        </div>
+      </div>
+      <button type="button" id="prefClose" aria-label="Close preferences">×</button>
+    </div>
+
+    <div class="vcm-prefbody">
+      <div class="vcm-pref-group-title">Display</div>
+
+      <label class="vcm-pref-option" for="prefCompact">
+        <span class="vcm-pref-copy">
+          <b>Compact rows</b>
+          <span>Reduce vendor and transaction row height to show more records.</span>
+        </span>
+        <span class="vcm-switch">
+          <input type="checkbox" id="prefCompact">
+          <span class="vcm-slider"></span>
+        </span>
+      </label>
+
+      <label class="vcm-pref-option" for="prefStripes">
+        <span class="vcm-pref-copy">
+          <b>Alternate row background</b>
+          <span>Use subtle alternating backgrounds to make transaction rows easier to scan.</span>
+        </span>
+        <span class="vcm-switch">
+          <input type="checkbox" id="prefStripes" checked>
+          <span class="vcm-slider"></span>
+        </span>
+      </label>
+
+      <div class="vcm-pref-group-title" style="margin-top:14px">Columns</div>
+
+      <label class="vcm-pref-option" for="prefMemo">
+        <span class="vcm-pref-copy">
+          <b>Show Memo</b>
+          <span>Display the Memo column in the transaction table.</span>
+        </span>
+        <span class="vcm-switch">
+          <input type="checkbox" id="prefMemo" checked>
+          <span class="vcm-slider"></span>
+        </span>
+      </label>
+
+      <label class="vcm-pref-option" for="prefStatus">
+        <span class="vcm-pref-copy">
+          <b>Show Status</b>
+          <span>Display transaction status such as Posted, Paid, Draft, or Void.</span>
+        </span>
+        <span class="vcm-switch">
+          <input type="checkbox" id="prefStatus" checked>
+          <span class="vcm-slider"></span>
+        </span>
+      </label>
+
+      <div class="vcm-prefnote">
+        <span>ⓘ</span>
+        <span>These preferences are saved only in this browser and can be reset anytime.</span>
+      </div>
+    </div>
+
+    <div class="vcm-preffoot">
+      <button type="button" class="vcm-btn" id="prefReset">Reset to default</button>
+      <div class="vcm-preffoot-right">
+        <button type="button" class="vcm-btn" id="prefCancel">Cancel</button>
+        <button type="button" class="vcm-btn primary" id="prefDone">Save & Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-const checks=[...document.querySelectorAll('.vendor-check')],bar=document.getElementById('bulkBar'),count=document.getElementById('selectedCount'),form=document.getElementById('vendorBulkForm'),action=document.getElementById('bulkAction');
-function refresh(){
-  const n=checks.filter(x=>x.checked).length;
-  count.textContent=n;
-  bar.classList.toggle('show',n>0);
-  checks.forEach(x=>x.closest('[data-select-card]')?.classList.toggle('selected',x.checked));
-}
-checks.forEach(x=>x.addEventListener('change',refresh));
-document.querySelectorAll('.vc-select-dot').forEach(btn=>btn.onclick=(e)=>{
-  e.preventDefault();e.stopPropagation();
-  const box=btn.closest('[data-select-card]').querySelector('.vendor-check');
-  box.checked=!box.checked;
-  box.dispatchEvent(new Event('change'));
-});
-document.getElementById('bulkBtn').onclick=()=>{
-  const selectAll=!checks.every(x=>x.checked);
-  checks.forEach(x=>x.checked=selectAll);
-  refresh();
-  if(selectAll) bar.scrollIntoView({behavior:'smooth',block:'nearest'});
-};
-document.getElementById('clearSelection').onclick=()=>{checks.forEach(x=>x.checked=false);refresh()};
-document.querySelectorAll('[data-bulk]').forEach(b=>b.onclick=()=>{action.value=b.dataset.bulk;form.submit()});
-document.getElementById('deleteBtn').onclick=()=>{if(!checks.some(x=>x.checked)){alert('Select vendor(s) first.');return}if(confirm('Delete selected vendors? Vendors with accounting history will be safely deactivated instead.')){action.value='delete';form.submit()}};
-document.getElementById('mergeBtn').onclick=()=>{const ids=checks.filter(x=>x.checked).map(x=>x.value);if(ids.length<2){alert('Select at least 2 vendors to merge.');return}const target=prompt('Enter the Vendor ID number to KEEP as the target. Selected database IDs: '+ids.join(', '),ids[0]);if(!target||!ids.includes(target)){alert('Target must be one of the selected vendor IDs.');return}if(confirm('Merge the other selected vendors into the target? Transaction history will be preserved.')){document.getElementById('mergeTarget').value=target;action.value='merge';form.submit()}};
-const pref=document.getElementById('prefWrap'),toggle=document.getElementById('compactToggle'),center=document.getElementById('vendorCenter');document.getElementById('prefBtn').onclick=()=>pref.classList.toggle('open');toggle.checked=localStorage.getItem('vendorCompact')==='1';center.classList.toggle('compact',toggle.checked);toggle.onchange=()=>{center.classList.toggle('compact',toggle.checked);localStorage.setItem('vendorCompact',toggle.checked?'1':'0')};
+(function(){
+  const center=document.getElementById('vendorCenterModern');
+  const form=document.getElementById('vendorForm');
+  const action=document.getElementById('vendorAction');
+  const mergeTarget=document.getElementById('mergeTarget');
+  const checks=[...document.querySelectorAll('.vcm-check')];
+  const bulk=document.getElementById('bulkBar');
+  const selCount=document.getElementById('selectedCount');
+
+  function selectedVendors(){return checks.filter(x=>x.checked).map(x=>x.value)}
+  function refreshVendorSelection(){
+    const n=selectedVendors().length;
+    if(selCount)selCount.textContent=n;
+    if(bulk)bulk.classList.toggle('show',n>0);
+    checks.forEach(x=>x.closest('[data-vendor-card]')?.classList.toggle('selected',x.checked));
+  }
+  document.querySelectorAll('.vcm-dot').forEach(btn=>btn.addEventListener('click',e=>{
+    e.preventDefault();e.stopPropagation();
+    const box=btn.closest('[data-vendor-card]').querySelector('.vcm-check');
+    box.checked=!box.checked;refreshVendorSelection();
+  }));
+  document.getElementById('clearSelected')?.addEventListener('click',()=>{checks.forEach(x=>x.checked=false);refreshVendorSelection()});
+  document.querySelectorAll('[data-bulk]').forEach(btn=>btn.addEventListener('click',()=>{action.value=btn.dataset.bulk;form.submit()}));
+  const bulkModal=document.getElementById('bulkModal');
+  const bulkModalCount=document.getElementById('bulkModalCount');
+  function openBulkModal(){
+    const ids=selectedVendors();
+    if(!ids.length){alert('Select at least one vendor using the circle on the left first.');return;}
+    if(bulkModalCount)bulkModalCount.textContent=ids.length;
+    bulkModal?.classList.add('show');
+  }
+  function closeBulkModal(){bulkModal?.classList.remove('show')}
+  document.getElementById('bulkVendorBtn')?.addEventListener('click',openBulkModal);
+  document.getElementById('bulkClose')?.addEventListener('click',closeBulkModal);
+  document.getElementById('bulkCancel')?.addEventListener('click',closeBulkModal);
+  bulkModal?.addEventListener('click',e=>{if(e.target===bulkModal)closeBulkModal()});
+  document.querySelectorAll('[data-bulk-modal]').forEach(btn=>btn.addEventListener('click',()=>{
+    const mode=btn.dataset.bulkModal;
+    const label=mode==='activate'?'ACTIVE':'INACTIVE';
+    if(confirm('Set '+selectedVendors().length+' selected vendor(s) to '+label+'?')){action.value=mode;form.submit();}
+  }));
+
+  document.getElementById('vendorDelete')?.addEventListener('click',()=>{
+    if(!selectedVendors().length){const active=document.querySelector('.vcm-vendor.active .vcm-check');if(active)active.checked=true;refreshVendorSelection()}
+    if(!selectedVendors().length)return alert('Select vendor(s) first.');
+    if(confirm('Delete selected vendor(s)? Vendors with accounting history will be deactivated safely.')){action.value='delete';form.submit()}
+  });
+  document.getElementById('vendorMerge')?.addEventListener('click',()=>{
+    const ids=selectedVendors();if(ids.length<2)return alert('Select at least 2 vendors using the circles on the left.');
+    const t=prompt('Enter the Vendor ID to KEEP.\nSelected IDs: '+ids.join(', '),ids[0]);
+    if(!t||!ids.includes(t))return alert('Target must be one of the selected Vendor IDs.');
+    if(confirm('Merge all other selected vendors into Vendor ID '+t+'? Transaction history will be moved to the kept vendor.')){mergeTarget.value=t;action.value='merge';form.submit()}
+  });
+
+  const search=document.getElementById('vendorSearch');
+  const cards=[...document.querySelectorAll('[data-vendor-card]')];
+
+  function localSearch(){
+    const q=(search?.value||'').trim().toLowerCase();
+    cards.forEach(card=>{
+      const match=!q || card.dataset.search.includes(q);
+      card.classList.toggle('vcm-hidden',!match);
+    });
+  }
+
+  search?.addEventListener('input',localSearch);
+  search?.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      const first=cards.find(c=>!c.classList.contains('vcm-hidden'));
+      const link=first?.querySelector('a');
+      if(link) location.href=link.href;
+    }
+  });
+  document.getElementById('vendorClear')?.addEventListener('click',()=>{
+    if(!search)return;
+    search.value='';
+    localSearch();
+    search.focus();
+  });
+
+  const trRows=[...document.querySelectorAll('[data-tr-row]')];
+  const typeFilter=document.getElementById('typeFilter'),preset=document.getElementById('datePreset'),from=document.getElementById('dateFrom'),to=document.getElementById('dateTo'),visible=document.getElementById('visibleCount');
+  function picked(){return trRows.find(r=>r.querySelector('.row-radio')?.checked)}
+  trRows.forEach(r=>{
+    r.addEventListener('click',e=>{if(e.target.closest('a,button,input'))return;const radio=r.querySelector('.row-radio');if(radio){radio.checked=true;trRows.forEach(x=>x.classList.toggle('selected',x===r))}});
+    r.querySelector('.row-radio')?.addEventListener('change',()=>trRows.forEach(x=>x.classList.toggle('selected',x===r)));
+  });
+  function isoLocal(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`}
+  function applyPreset(){
+    const n=new Date();
+    if(preset.value==='this_month'){from.value=isoLocal(new Date(n.getFullYear(),n.getMonth(),1));to.value=isoLocal(new Date(n.getFullYear(),n.getMonth()+1,0))}
+    else if(preset.value==='last_month'){from.value=isoLocal(new Date(n.getFullYear(),n.getMonth()-1,1));to.value=isoLocal(new Date(n.getFullYear(),n.getMonth(),0))}
+    else if(preset.value==='this_year'){from.value=n.getFullYear()+'-01-01';to.value=n.getFullYear()+'-12-31'}
+    else if(preset.value==='all'){from.value='';to.value=''}
+    if(preset.value!=='custom')applyFilters();
+  }
+  function typeOK(t,w){if(!w)return true;if(w==='bill')return t.includes('bill');if(w==='payment')return t.includes('payment');if(w==='purchase')return t.includes('purchase');if(w==='expense')return t.includes('expense');if(w==='adjustment')return t.includes('adjustment');return t.includes(w)}
+  function applyFilters(){let n=0;const w=(typeFilter?.value||'').toLowerCase(),f=from?.value||'',tt=to?.value||'';trRows.forEach(r=>{const show=typeOK((r.dataset.type||'').toLowerCase(),w)&&(!f||r.dataset.date>=f)&&(!tt||r.dataset.date<=tt);r.classList.toggle('vcm-hidden',!show);if(show)n++});if(visible)visible.textContent=n}
+  preset?.addEventListener('change',applyPreset);typeFilter?.addEventListener('change',applyFilters);document.getElementById('applyFilter')?.addEventListener('click',applyFilters);
+  document.getElementById('resetFilter')?.addEventListener('click',()=>{typeFilter.value='';preset.value='all';from.value='';to.value='';applyFilters()});
+
+  document.getElementById('trPrint')?.addEventListener('click',()=>{
+    const params=new URLSearchParams();
+    params.set('vendor','{{ selected_vendor.id }}');
+    if(typeFilter?.value)params.set('type',typeFilter.value);
+    if(from?.value)params.set('from',from.value);
+    if(to?.value)params.set('to',to.value);
+    window.open('{% url 'vendor_print' %}?'+params.toString(),'_blank');
+  });
+  document.getElementById('trEdit')?.addEventListener('click',()=>{const r=picked();if(!r)return alert('Select a transaction row first.');if(!r.dataset.edit)return alert('This transaction cannot be edited from Vendor Center.');location.href=r.dataset.edit});
+  function submitActivity(which){
+    const r=picked();if(!r)return alert('Select a transaction row first.');
+    if(which==='activity_delete'&&r.dataset.status==='posted')return alert('Posted transactions cannot be deleted directly. Void it first.');
+    if(which==='activity_void'&&r.dataset.status==='void')return alert('This transaction is already void.');
+    const msg=which==='activity_void'?'Void this transaction? Its journal entry will be removed and it will stop affecting accounting balances.':'Delete this transaction permanently?';
+    if(!confirm(msg))return;
+    document.getElementById('activityKind').value=r.dataset.kind;document.getElementById('activityId').value=r.dataset.id;action.value=which;form.submit();
+  }
+  document.getElementById('trVoid')?.addEventListener('click',()=>submitActivity('activity_void'));
+  document.getElementById('trDelete')?.addEventListener('click',()=>submitActivity('activity_delete'));
+  document.getElementById('trExport')?.addEventListener('click',()=>{
+    const table=document.getElementById('trTable');if(!table)return;
+    const lines=[];const hs=[...table.querySelectorAll('thead th')].slice(1,-1).filter(x=>!x.classList.contains('vcm-hidden')).map(x=>'"'+x.innerText.replace(/"/g,'""').trim()+'"');lines.push(hs.join(','));
+    trRows.forEach(r=>{if(r.classList.contains('vcm-hidden'))return;lines.push([...r.querySelectorAll('td')].slice(1,-1).map(x=>'"'+x.innerText.replace(/"/g,'""').replace(/\s+/g,' ').trim()+'"').join(','))});
+    const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8;'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='{{ selected_vendor.name|escapejs }}_Transactions.csv';document.body.appendChild(a);a.click();URL.revokeObjectURL(a.href);a.remove();
+  });
+
+  const modal=document.getElementById('prefModal'),compact=document.getElementById('prefCompact'),stripes=document.getElementById('prefStripes'),memo=document.getElementById('prefMemo'),status=document.getElementById('prefStatus');
+  function loadPrefs(){compact.checked=localStorage.getItem('vcCompact')==='1';stripes.checked=localStorage.getItem('vcStripes')!=='0';memo.checked=localStorage.getItem('vcMemo')!=='0';status.checked=localStorage.getItem('vcStatus')!=='0';applyPrefs()}
+  function applyPrefs(){center.classList.toggle('compact',compact.checked);center.classList.toggle('no-stripes',!stripes.checked);center.classList.toggle('hide-memo',!memo.checked);center.classList.toggle('hide-status',!status.checked)}
+  function savePrefs(){localStorage.setItem('vcCompact',compact.checked?'1':'0');localStorage.setItem('vcStripes',stripes.checked?'1':'0');localStorage.setItem('vcMemo',memo.checked?'1':'0');localStorage.setItem('vcStatus',status.checked?'1':'0');applyPrefs()}
+  [compact,stripes,memo,status].forEach(x=>x?.addEventListener('change',applyPrefs));
+  document.getElementById('preferenceBtn')?.addEventListener('click',()=>{loadPrefs();modal.classList.add('show')});
+  function closePrefsWithoutSaving(){loadPrefs();modal.classList.remove('show')}
+  document.getElementById('prefClose')?.addEventListener('click',closePrefsWithoutSaving);
+  document.getElementById('prefCancel')?.addEventListener('click',closePrefsWithoutSaving);
+  document.getElementById('prefDone')?.addEventListener('click',()=>{savePrefs();modal.classList.remove('show')});
+  document.getElementById('prefReset')?.addEventListener('click',()=>{['vcCompact','vcStripes','vcMemo','vcStatus'].forEach(k=>localStorage.removeItem(k));loadPrefs()});
+  modal?.addEventListener('click',e=>{if(e.target===modal)closePrefsWithoutSaving()});
+  document.getElementById('helpBtn')?.addEventListener('click',()=>alert('Vendor Center\n\n• Add/Edit manages vendor master data.\n• Tick vendor circles for Delete, Merge or Bulk Update.\n• Import uploads the vendor Excel file.\n• List / Excel downloads the vendor list.\n• Sample downloads the Excel template.\n• Select a transaction row before Edit, Delete or Void.\n• Posted transactions must be voided before deletion.'));
+
+  refreshVendorSelection();localSearch();loadPrefs();
+})();
+
+  const vendorListModal=document.getElementById('vendorListModal');
+  const vendorListSearch=document.getElementById('vendorListSearch');
+  const vendorListRows=[...document.querySelectorAll('[data-vendor-list-row]')];
+
+  function openVendorList(){
+    vendorListModal?.classList.add('show');
+    setTimeout(()=>vendorListSearch?.focus(),20);
+  }
+  function closeVendorList(){vendorListModal?.classList.remove('show')}
+  function filterVendorList(){
+    const q=(vendorListSearch?.value||'').trim().toLowerCase();
+    vendorListRows.forEach(row=>row.style.display=(!q||row.dataset.search.includes(q))?'':'none');
+  }
+  document.getElementById('vendorListBtn')?.addEventListener('click',openVendorList);
+  document.getElementById('closeVendorList')?.addEventListener('click',closeVendorList);
+  document.getElementById('closeVendorListBottom')?.addEventListener('click',closeVendorList);
+  vendorListSearch?.addEventListener('input',filterVendorList);
+  vendorListModal?.addEventListener('click',e=>{if(e.target===vendorListModal)closeVendorList()});
+
 </script>
 {% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Import Item{% endblock %}
+{% block content %}
+<style>
+.iimp{max-width:920px;margin:0 auto;background:#fff;border:1px solid #d9e8ef;border-radius:16px;box-shadow:0 10px 30px rgba(25,66,86,.07);overflow:hidden}
+.iimp-head{display:flex;justify-content:space-between;gap:15px;padding:18px 20px;border-bottom:1px solid #d9e8ef}
+.iimp-head h2{margin:0;color:#123d5a;font-size:22px}.iimp-head p{margin:5px 0 0;color:#7d909c;font-size:10px}
+.iimp-body{padding:18px 20px}.uploadbox{border:2px dashed #cfe3ec;border-radius:13px;background:#f8fcfe;padding:28px;text-align:center}
+.uploadbox input{margin-top:13px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 13px;border-radius:9px;border:1px solid #c9dde7;background:#fff;color:#1677a8;text-decoration:none;font-size:10px;font-weight:900;cursor:pointer}.btn.primary{background:#18a6ea;border-color:#18a6ea;color:#fff}
+.err{margin-top:14px;padding:10px 12px;border-radius:9px;background:#fff1f1;color:#b34747;font-size:10px}
+.cols{margin-top:16px;padding:13px;border:1px solid #e0eaee;border-radius:10px;color:#607884;font-size:9px;line-height:1.6}
+.actions{display:flex;justify-content:flex-end;gap:7px;margin-top:16px}
+</style>
+<div class="iimp">
+  <div class="iimp-head">
+    <div><h2>Import Item</h2><p>Upload an Excel file to create or update items by Item Code.</p></div>
+    <a class="btn" href="{% url 'stock_item_list' %}">× Close</a>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="iimp-body">
+    {% csrf_token %}
+    <div class="uploadbox">
+      <div style="font-size:35px">⇧</div>
+      <strong style="color:#36576a">Choose Item Excel File</strong>
+      <div style="font-size:9px;color:#82959f;margin-top:5px">Supported format: .xlsx</div>
+      <input type="file" name="file" accept=".xlsx" required>
+    </div>
+    {% if errors %}
+      <div class="err">{% for e in errors %}<div>• {{ e }}</div>{% endfor %}</div>
+    {% endif %}
+    <div class="cols">
+      <strong>Supported columns:</strong><br>
+      ITEM_CODE, {% if has_barcode %}BARCODE, {% endif %}ITEM_NAME, {% if has_description %}DESCRIPTION, {% endif %}{% if has_cost_method %}COST_METHOD, {% endif %}ITEM_TYPE, ITEM_GROUP, ITEM_BRAND, UNIT_SET, COST_PRICE, {% if has_base_price %}BASE_PRICE, {% endif %}SALE_PRICE, ACTIVE, MEMO.
+    </div>
+    <div class="actions">
+      <a class="btn" href="{% url 'stock_item_import_sample' %}">⇩ Download Sample</a>
+      <button class="btn primary" type="submit">⇧ Import Items</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

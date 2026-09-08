@@ -66,7 +66,15 @@ class Vendor(models.Model):
             status=PurchaseBill.STATUS_POSTED,
         ).aggregate(total=models.Sum("total_amount"))["total"] or Decimal("0.00")
 
-        return self.opening_balance + legacy_credit + new_bills - legacy_debit
+        payment_qs = VendorPaymentAllocation.objects.filter(
+            payment__company=self.company,
+            payment__vendor=self,
+            payment__status=VendorPayment.STATUS_POSTED,
+        )
+        paid_to_bills = payment_qs.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        discounts = payment_qs.aggregate(total=models.Sum("discount"))["total"] or Decimal("0.00")
+
+        return self.opening_balance + legacy_credit + new_bills - legacy_debit - paid_to_bills - discounts
 
 
 class VendorTransaction(models.Model):
@@ -252,6 +260,21 @@ class PurchaseBill(models.Model):
 
         return self.total_amount
 
+
+    @property
+    def allocated_amount(self):
+        allocated = self.payment_allocations.filter(
+            payment__status=VendorPayment.STATUS_POSTED
+        ).aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        discounts = self.payment_allocations.filter(
+            payment__status=VendorPayment.STATUS_POSTED
+        ).aggregate(total=models.Sum("discount"))["total"] or Decimal("0.00")
+        return allocated + discounts
+
+    @property
+    def open_balance(self):
+        return max(Decimal("0.00"), (self.total_amount or Decimal("0.00")) - self.allocated_amount)
+
     def clean(self):
         if self.vendor_id and self.company_id and self.vendor.company_id != self.company_id:
             raise ValidationError("Vendor must belong to the selected company.")
@@ -336,6 +359,9 @@ class VendorPayment(models.Model):
     vendor = models.ForeignKey(Vendor, on_delete=models.PROTECT, related_name="payments")
     payment_date = models.DateField(default=timezone.localdate)
     number = models.CharField(max_length=80, blank=True)
+    cheque_to = models.CharField(max_length=120, blank=True)
+    cheque_no = models.CharField(max_length=80, blank=True)
+    reference = models.CharField(max_length=120, blank=True)
     payment_method = models.CharField(max_length=80, blank=True, default="Cash")
     payment_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="vendor_payment_cash_accounts")
     accounts_payable_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="vendor_payment_ap_accounts")
@@ -368,7 +394,19 @@ class VendorPaymentAllocation(models.Model):
 
 
 class VendorPaymentOtherCharge(models.Model):
+    TAX_NA = "NA"
+    TAX_VAT10 = "VAT10"
+    TAX_VAT0 = "VAT0"
+    TAX_EXEMPT = "EXEMPT"
+    TAX_CHOICES = [
+        (TAX_NA, "NA"),
+        (TAX_VAT10, "VAT 10%"),
+        (TAX_VAT0, "VAT 0%"),
+        (TAX_EXEMPT, "Tax Exempt"),
+    ]
+
     payment = models.ForeignKey(VendorPayment, on_delete=models.CASCADE, related_name="other_charges")
     memo = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="vendor_payment_other_charges")
+    tax_code = models.CharField(max_length=20, choices=TAX_CHOICES, default=TAX_NA)

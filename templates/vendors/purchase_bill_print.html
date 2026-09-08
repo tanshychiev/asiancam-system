@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Purchase Bill {{ bill.number|default:bill.id }}</title>
+<style>
+@page{size:A4 landscape;margin:12mm}
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;color:#243f50;margin:0;font-size:11px;background:#f3f7f9}
+.sheet{max-width:1120px;margin:20px auto;background:#fff;padding:24px;border-radius:12px;box-shadow:0 8px 30px rgba(24,65,86,.10)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.actions{display:flex;gap:8px}
+.btn{border:1px solid #cbdde5;background:#fff;color:#26749c;padding:8px 12px;border-radius:7px;text-decoration:none;cursor:pointer;font-weight:bold}
+.btn.primary{background:#0b9a5a;color:#fff;border-color:#0b9a5a}
+h1{font-size:23px;margin:0;color:#123b57}
+.sub{color:#728793;margin-top:4px}
+.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
+.meta div{border:1px solid #dce8ed;border-radius:7px;padding:8px;min-height:54px}
+.meta b{display:block;font-size:9px;color:#7a8d98;margin-bottom:4px;text-transform:uppercase}
+h2{font-size:12px;color:#087646;margin:18px 0 7px}
+table{width:100%;border-collapse:collapse}
+th{background:#eef6f8;font-size:9px;text-transform:uppercase}
+th,td{border:1px solid #dde8ed;padding:6px;text-align:left}
+.num{text-align:right}
+.totalbox{width:330px;margin:16px 0 0 auto;border:1px solid #d8e8ee;border-radius:8px;overflow:hidden}
+.totalbox div{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #e5eef2}
+.totalbox div:last-child{border:0;background:#e9f8f0;color:#087646;font-weight:bold;font-size:13px}
+.status{display:inline-block;padding:3px 7px;border-radius:12px;background:#e9f8f0;color:#087646;font-weight:bold;font-size:9px}
+.empty{text-align:center;color:#8b9ba4;padding:18px}
+@media print{
+  body{background:#fff}
+  .sheet{max-width:none;margin:0;padding:0;box-shadow:none}
+  .toolbar{display:none}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="toolbar">
+    <a class="btn" href="{{ next_url }}">← Continue</a>
+    <div class="actions">
+      <button class="btn" onclick="window.close()">Close</button>
+      <button class="btn primary" onclick="window.print()">Print</button>
+    </div>
+  </div>
+
+  <h1>Purchase Order / Bill</h1>
+  <div class="sub">{{ company.name }}</div>
+
+  <div class="meta">
+    <div><b>Vendor</b>{{ bill.vendor }}</div>
+    <div><b>Date</b>{{ bill.bill_date|date:"d/m/Y" }}</div>
+    <div><b>Due Date</b>{% if bill.due_date %}{{ bill.due_date|date:"d/m/Y" }}{% else %}—{% endif %}</div>
+    <div><b>Bill No.</b>{{ bill.number|default:"—" }}</div>
+    <div><b>PO Number</b>{{ bill.po_number|default:"—" }}</div>
+    <div><b>A/P Account</b>{{ bill.accounts_payable_account }}</div>
+    <div><b>Currency</b>Dollar USD ($)</div>
+    <div><b>Status</b><span class="status">{{ bill.get_status_display }}</span></div>
+  </div>
+
+  {% if bill.memo %}
+  <div class="meta" style="grid-template-columns:1fr">
+    <div><b>Memo</b>{{ bill.memo }}</div>
+  </div>
+  {% endif %}
+
+  <h2>Item / Inventory</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>Item</th><th>Code</th><th>Description</th><th>Qty</th>
+        <th>Unit</th><th>Cost</th><th>Amount</th><th>Account</th><th>VAT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in bill.item_lines.all %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ line.item.name|default:line.item }}</td>
+        <td>{{ line.item.code|default:"—" }}</td>
+        <td>{{ line.description|default:"—" }}</td>
+        <td class="num">{{ line.qty|floatformat:2 }}</td>
+        <td>{{ line.unit_name|default:"—" }}</td>
+        <td class="num">{{ line.unit_cost|floatformat:2 }}</td>
+        <td class="num">{{ line.line_amount|floatformat:2 }}</td>
+        <td>{{ line.account|default:"—" }}</td>
+        <td class="num">{{ line.vat_amount|floatformat:2 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="10" class="empty">No item/inventory lines.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Expense</h2>
+  <table>
+    <thead><tr><th>#</th><th>Description</th><th>Amount</th><th>Account</th><th>VAT</th></tr></thead>
+    <tbody>
+      {% for line in bill.expense_lines.all %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.amount|floatformat:2 }}</td>
+        <td>{{ line.account }}</td>
+        <td class="num">{{ line.vat_amount|floatformat:2 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty">No expense lines.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="totalbox">
+    <div><span>Sub Total</span><b>${{ bill.subtotal|floatformat:2 }}</b></div>
+    <div><span>VAT Input Tax</span><b>${{ bill.vat_total|floatformat:2 }}</b></div>
+    <div><span>Grand Total</span><b>${{ bill.total_amount|floatformat:2 }}</b></div>
+  </div>
+</div>
+
+{% if autoprint %}
+<script>
+window.addEventListener('load', function(){
+  setTimeout(function(){ window.print(); }, 250);
+});
+</script>
+{% endif %}
+</body>
+</html>

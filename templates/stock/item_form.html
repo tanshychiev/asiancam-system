@@ -1,6 +1,196 @@
 {% extends "base.html" %}
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
+<style>
+
+/* ============================================================
+   CLIENT SAMPLE MATCH — compact accounting sheet style
+   Based on the sample screens supplied in the client PDFs.
+   ============================================================ */
+.card,
+.accounting-sheet,
+.payment-sheet,
+.invoice-sheet{
+    border-radius:4px !important;
+    border:1px solid #dce5df !important;
+    box-shadow:none !important;
+    background:#fff !important;
+}
+.card-head,
+.payment-head,
+.invoice-head{
+    border-bottom:1px solid #e4ebe6 !important;
+    padding-bottom:10px !important;
+    margin-bottom:12px !important;
+}
+.card-head h2,
+.payment-head h2,
+.invoice-head h2{
+    font-size:18px !important;
+    color:#173d32 !important;
+}
+.card-head p,
+.payment-head p,
+.invoice-head p{
+    font-size:11px !important;
+    color:#687b73 !important;
+}
+.form-group label,
+.account-grid label{
+    font-size:11px !important;
+    font-weight:700 !important;
+    color:#374b43 !important;
+    margin-bottom:4px !important;
+}
+input,
+select,
+textarea,
+.form-control{
+    border-radius:2px !important;
+    border:1px solid #d6dfda !important;
+    min-height:34px !important;
+    padding:6px 8px !important;
+    font-size:12px !important;
+    box-shadow:none !important;
+    background:#fff !important;
+}
+textarea{min-height:70px !important}
+input:focus,select:focus,textarea:focus,.form-control:focus{
+    border-color:#23a35a !important;
+    box-shadow:0 0 0 1px rgba(35,163,90,.12) !important;
+}
+.pb-head-grid,
+.payment-grid,
+.invoice-grid,
+.account-grid{
+    gap:8px 12px !important;
+}
+.pb-tabs,.sheet-tabs{
+    border-bottom:1px solid #dfe8e2 !important;
+    gap:0 !important;
+    margin:14px 0 0 !important;
+    overflow:visible !important;
+}
+.pb-tab,.sheet-tab{
+    border:0 !important;
+    border-radius:0 !important;
+    padding:9px 14px !important;
+    background:transparent !important;
+    color:#52665e !important;
+    font-size:11px !important;
+    font-weight:700 !important;
+    border-bottom:2px solid transparent !important;
+}
+.pb-tab.active,.sheet-tab.active{
+    color:#178b4b !important;
+    background:#f8fcf9 !important;
+    border-bottom-color:#23a35a !important;
+}
+.table-wrap{
+    border:1px solid #dfe7e2 !important;
+    border-radius:2px !important;
+    overflow:auto !important;
+}
+table{
+    border-collapse:collapse !important;
+    background:#fff !important;
+}
+table thead th{
+    background:#f3f7f4 !important;
+    color:#40544b !important;
+    font-size:10px !important;
+    font-weight:800 !important;
+    text-transform:uppercase !important;
+    letter-spacing:.02em !important;
+    border-bottom:1px solid #d7e2da !important;
+    padding:7px 8px !important;
+}
+table tbody td{
+    border-bottom:1px solid #edf1ee !important;
+    padding:5px 6px !important;
+    font-size:11px !important;
+    vertical-align:middle !important;
+}
+table tbody input,table tbody select{
+    min-height:30px !important;
+    height:30px !important;
+    padding:3px 6px !important;
+    font-size:11px !important;
+}
+.pb-summary-box,.totals-box{
+    width:340px !important;
+    min-width:340px !important;
+    background:#fbfcf8 !important;
+    border:1px solid #e1e7dc !important;
+    padding:8px 12px !important;
+}
+.pb-summary-row,.totals-box>div{
+    min-height:29px !important;
+    padding:5px 0 !important;
+    font-size:11px !important;
+}
+.pb-summary-row.total,.totals-box .grand{
+    color:#16864a !important;
+    font-size:13px !important;
+    font-weight:800 !important;
+}
+.form-actions,.bottom-actions,.table-actions{
+    display:flex !important;
+    justify-content:flex-end !important;
+    align-items:center !important;
+    gap:6px !important;
+    flex-wrap:wrap !important;
+}
+.form-actions,.bottom-actions{
+    border-top:1px solid #e5ebe7 !important;
+    padding-top:12px !important;
+    margin-top:14px !important;
+}
+.btn{
+    min-height:34px !important;
+    border-radius:2px !important;
+    padding:0 12px !important;
+    font-size:11px !important;
+    font-weight:750 !important;
+    background:#118a46 !important;
+    border:1px solid #118a46 !important;
+    color:#fff !important;
+    box-shadow:none !important;
+}
+.btn:hover{background:#0d753b !important;border-color:#0d753b !important}
+.btn.btn-light{
+    background:#fff !important;
+    color:#275342 !important;
+    border:1px solid #cbd9d1 !important;
+}
+.btn.btn-light:hover{background:#f5faf7 !important}
+.trash-row{
+    width:28px !important;height:28px !important;border-radius:2px !important;
+    border:1px solid #e5b8b8 !important;background:#fff !important;color:#c73d3d !important;
+}
+.entity-results{
+    border-radius:2px !important;
+    box-shadow:0 10px 24px rgba(33,62,49,.13) !important;
+}
+.mode-guide{
+    border-radius:2px !important;
+    border:1px solid #dbe9df !important;
+    background:#f7fbf8 !important;
+    color:#416153 !important;
+}
+@media(max-width:900px){
+    .pb-summary-box,.totals-box{width:100% !important;min-width:0 !important}
+}
+
+
+.record-banner{border-radius:4px !important;border:1px solid #dce5df !important;background:#fff !important;box-shadow:none !important}
+.record-section{border-radius:3px !important;border:1px solid #e0e7e2 !important;box-shadow:none !important}
+.record-section-title{background:#f3f7f4 !important;color:#284d3e !important;font-size:11px !important;text-transform:uppercase !important}
+.record-compact-grid.three{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:8px 12px !important}
+@media(max-width:850px){.record-compact-grid.three{grid-template-columns:repeat(2,minmax(0,1fr)) !important}}
+
+</style>
+
 <div class="record-page item-record">
     <div class="record-banner">
         <div class="record-banner-main"><div class="record-icon">I</div><div><div class="record-eyebrow">Inventory master</div><h1>{{ page_title }}</h1><p>Item identity, pricing and accounting mapping.</p></div></div>
@@ -12,10 +202,12 @@
         <div class="record-section"><div class="record-section-title">Item identity</div><div class="record-section-body record-compact-grid three">
             <div class="form-group"><label>{{ form.code.label }}</label>{{ form.code }}{{ form.code.errors }}</div>
             <div class="form-group"><label>{{ form.name.label }}</label>{{ form.name }}{{ form.name.errors }}</div>
+            <div class="form-group"><label>Cost Method</label>{{ form.cost_method }}{{ form.cost_method.errors }}</div>
             <div class="form-group"><label>{{ form.item_type.label }}</label>{{ form.item_type }}{{ form.item_type.errors }}</div>
             <div class="form-group"><label>{{ form.item_group.label }}</label>{{ form.item_group }}{{ form.item_group.errors }}</div>
             <div class="form-group"><label>{{ form.item_brand.label }}</label>{{ form.item_brand }}{{ form.item_brand.errors }}</div>
             <div class="form-group"><label>{{ form.unit_set.label }}</label>{{ form.unit_set }}{{ form.unit_set.errors }}</div>
+        <div class="form-group record-span-2"><label>Description</label>{{ form.description }}{{ form.description.errors }}</div>
         </div></div>
         <div class="record-section"><div class="record-section-title">Price & accounting</div><div class="record-section-body record-compact-grid three">
             <div class="form-group"><label>{{ form.cost_price.label }}</label>{{ form.cost_price }}{{ form.cost_price.errors }}</div>
@@ -23,7 +215,7 @@
             <div class="status-field" data-status-toggle><div class="status-field-copy"><strong>Item Status</strong><span>Inactive items stay in records but are unavailable for new transactions.</span></div><span class="status-native-input">{{ form.is_active }}</span><div class="status-toggle" role="group" aria-label="Item status"><button type="button" class="status-choice" data-value="1">Active</button><button type="button" class="status-choice" data-value="0">Inactive</button></div>{{ form.is_active.errors }}</div>
             <div class="form-group"><label>{{ form.inventory_account.label }}</label>{{ form.inventory_account }}{{ form.inventory_account.errors }}</div>
             <div class="form-group"><label>{{ form.cogs_account.label }}</label>{{ form.cogs_account }}{{ form.cogs_account.errors }}</div>
-            <div class="form-group"><label>{{ form.revenue_account.label }}</label>{{ form.revenue_account }}{{ form.revenue_account.errors }}</div>
+            <div class="form-group"><label>Sale Account</label>{{ form.revenue_account }}{{ form.revenue_account.errors }}</div>
             <div class="form-group record-span-2"><label>{{ form.memo.label }}</label>{{ form.memo }}{{ form.memo.errors }}</div>
         </div></div>
         <div class="form-actions"><button type="submit" class="btn">💾 {{ button_text }}</button><a href="{% url 'stock_item_list' %}" class="btn btn-light">Cancel</a></div>

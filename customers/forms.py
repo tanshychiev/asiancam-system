@@ -67,6 +67,7 @@ class CustomerForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         company = kwargs.pop("company", None)
+        self.company = company
         super().__init__(*args, **kwargs)
 
         if company:
@@ -79,6 +80,18 @@ class CustomerForm(forms.ModelForm):
             self.fields["salesperson"].queryset = Salesperson.objects.none()
             self.fields["price_level"].queryset = PriceLevel.objects.none()
             self.fields["region"].queryset = Region.objects.none()
+
+
+    def clean_name(self):
+        name = (self.cleaned_data.get("name") or "").strip()
+        company = getattr(self, "company", None)
+        if name and company:
+            qs = Customer.objects.filter(company=company, name__iexact=name)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("This customer already exists. Select the existing customer instead of creating a duplicate.")
+        return name
 
 
 class CustomerTransactionForm(forms.ModelForm):
@@ -177,7 +190,7 @@ class SalesDocumentForm(forms.ModelForm):
 # CUSTOMER REQUIREMENT FORMS
 # =========================================================
 from django.forms import inlineformset_factory
-from stock.models import Item
+from stock.models import Item, Warehouse
 from .models import SalesInvoice, SalesInvoiceLine, CustomerReceipt, CustomerReceiptAllocation, CustomerReceiptOtherCharge
 
 
@@ -204,14 +217,23 @@ def find_default_cash_account(company):
 class SalesInvoiceForm(forms.ModelForm):
     class Meta:
         model = SalesInvoice
-        fields = ["customer", "invoice_date", "due_date", "number", "po_number", "currency", "exchange_rate",
-                  "accounts_receivable_account", "deposit_account", "salesperson", "memo"]
+        fields = ["customer", "invoice_date", "due_date", "number", "po_number", "quotation_no", "sale_order_no",
+                  "currency", "exchange_rate", "accounts_receivable_account", "deposit_account", "salesperson",
+                  "credit_term", "price_level", "warehouse", "address_name", "truck_no", "discount_tax_mode", "memo"]
         widgets = {
             "customer": forms.Select(attrs={"class":"form-control searchable-select"}),
             "invoice_date": forms.DateInput(attrs={"type":"date","class":"form-control"}),
             "due_date": forms.DateInput(attrs={"type":"date","class":"form-control"}),
             "number": forms.TextInput(attrs={"class":"form-control"}),
             "po_number": forms.TextInput(attrs={"class":"form-control"}),
+            "quotation_no": forms.TextInput(attrs={"class":"form-control"}),
+            "sale_order_no": forms.TextInput(attrs={"class":"form-control"}),
+            "address_name": forms.TextInput(attrs={"class":"form-control"}),
+            "truck_no": forms.TextInput(attrs={"class":"form-control"}),
+            "credit_term": forms.NumberInput(attrs={"class":"form-control","min":"0"}),
+            "price_level": forms.Select(attrs={"class":"form-control"}),
+            "warehouse": forms.Select(attrs={"class":"form-control"}),
+            "discount_tax_mode": forms.Select(attrs={"class":"form-control"}),
             "currency": forms.TextInput(attrs={"class":"form-control"}),
             "exchange_rate": forms.NumberInput(attrs={"class":"form-control","step":"0.0001"}),
             "accounts_receivable_account": forms.Select(attrs={"class":"form-control"}),
@@ -225,6 +247,8 @@ class SalesInvoiceForm(forms.ModelForm):
         if self.company:
             self.fields["customer"].queryset=Customer.objects.filter(company=self.company,is_active=True).order_by("name")
             self.fields["salesperson"].queryset=Salesperson.objects.filter(company=self.company,is_active=True).order_by("name")
+            self.fields["price_level"].queryset=PriceLevel.objects.filter(company=self.company,is_active=True).order_by("name")
+            self.fields["warehouse"].queryset=Warehouse.objects.filter(company=self.company,is_active=True).order_by("name")
             accounts=_active_accounts(self.company)
             self.fields["accounts_receivable_account"].queryset=accounts
             self.fields["deposit_account"].queryset=accounts
@@ -234,6 +258,7 @@ class SalesInvoiceForm(forms.ModelForm):
                 if cash: self.fields["deposit_account"].initial=cash.pk
         else:
             self.fields["customer"].queryset=Customer.objects.none(); self.fields["salesperson"].queryset=Salesperson.objects.none()
+            self.fields["price_level"].queryset=PriceLevel.objects.none(); self.fields["warehouse"].queryset=Warehouse.objects.none()
             self.fields["accounts_receivable_account"].queryset=ChartOfAccount.objects.none(); self.fields["deposit_account"].queryset=ChartOfAccount.objects.none()
         self.fields["deposit_account"].required = self.document_type == SalesInvoice.TYPE_SALE_RECEIPT
 
@@ -241,16 +266,18 @@ class SalesInvoiceForm(forms.ModelForm):
 class SalesInvoiceLineForm(forms.ModelForm):
     class Meta:
         model=SalesInvoiceLine
-        fields=["item","description","qty","unit_name","unit_price","discount_amount","revenue_account","tax_amount"]
+        fields=["item","description","qty","unit_name","unit_price","discount_amount","tax_amount","memo","revenue_account","credit_amount"]
         widgets={
             "item":forms.Select(attrs={"class":"form-control js-sale-item"}),
             "description":forms.TextInput(attrs={"class":"form-control"}),
             "qty":forms.NumberInput(attrs={"class":"form-control js-qty","step":"0.01","min":"0"}),
             "unit_name":forms.TextInput(attrs={"class":"form-control"}),
-            "unit_price":forms.NumberInput(attrs={"class":"form-control js-price","step":"0.01","min":"0"}),
-            "discount_amount":forms.NumberInput(attrs={"class":"form-control js-discount","step":"0.01","min":"0"}),
-            "revenue_account":forms.Select(attrs={"class":"form-control"}),
-            "tax_amount":forms.NumberInput(attrs={"class":"form-control js-tax","step":"0.01","min":"0"}),
+            "unit_price":forms.TextInput(attrs={"class":"form-control js-price money-input","inputmode":"decimal"}),
+            "discount_amount":forms.TextInput(attrs={"class":"form-control js-discount money-input","inputmode":"decimal"}),
+            "tax_amount":forms.TextInput(attrs={"class":"form-control js-tax money-input","inputmode":"decimal"}),
+            "memo":forms.TextInput(attrs={"class":"form-control","placeholder":"Memo"}),
+            "revenue_account":forms.Select(attrs={"class":"form-control js-credit-account"}),
+            "credit_amount":forms.TextInput(attrs={"class":"form-control js-credit-amount money-input","inputmode":"decimal","placeholder":"0.00"}),
         }
     def __init__(self,*args,**kwargs):
         company=kwargs.pop("company",None); super().__init__(*args,**kwargs)
@@ -258,7 +285,17 @@ class SalesInvoiceLineForm(forms.ModelForm):
             self.fields["item"].queryset=Item.objects.filter(company=company,is_active=True).select_related("unit_set","revenue_account").order_by("code","name")
             self.fields["revenue_account"].queryset=_active_accounts(company)
         else:
-            self.fields["item"].queryset=Item.objects.none(); self.fields["revenue_account"].queryset=ChartOfAccount.objects.none()
+            self.fields["item"].queryset=Item.objects.none()
+            self.fields["revenue_account"].queryset=ChartOfAccount.objects.none()
+        # If the user does not manually choose Set Credit, use the selected Item's Sale/Revenue Account.
+        self.fields["revenue_account"].required=False
+
+    def clean(self):
+        cleaned=super().clean()
+        item=cleaned.get("item")
+        if not cleaned.get("revenue_account") and item and item.revenue_account_id:
+            cleaned["revenue_account"]=item.revenue_account
+        return cleaned
 
 SalesInvoiceLineFormSet=inlineformset_factory(SalesInvoice,SalesInvoiceLine,form=SalesInvoiceLineForm,extra=1,can_delete=True,min_num=1,validate_min=True)
 
@@ -292,7 +329,7 @@ class CustomerReceiptAllocationForm(forms.ModelForm):
     class Meta:
         model=CustomerReceiptAllocation
         fields=["invoice","discount","amount","memo"]
-        widgets={"invoice":forms.Select(attrs={"class":"form-control"}),"discount":forms.NumberInput(attrs={"class":"form-control","step":"0.01"}),"amount":forms.NumberInput(attrs={"class":"form-control","step":"0.01"}),"memo":forms.TextInput(attrs={"class":"form-control"})}
+        widgets={"invoice":forms.Select(attrs={"class":"form-control"}),"discount":forms.TextInput(attrs={"class":"form-control money-input","inputmode":"decimal"}),"amount":forms.TextInput(attrs={"class":"form-control money-input","inputmode":"decimal"}),"memo":forms.TextInput(attrs={"class":"form-control"})}
     def __init__(self,*args,**kwargs):
         company=kwargs.pop("company",None); customer_id=kwargs.pop("customer_id",None); super().__init__(*args,**kwargs)
         qs=SalesInvoice.objects.none()
@@ -306,7 +343,7 @@ class CustomerReceiptOtherChargeForm(forms.ModelForm):
     class Meta:
         model=CustomerReceiptOtherCharge
         fields=["memo","amount","account"]
-        widgets={"memo":forms.TextInput(attrs={"class":"form-control"}),"amount":forms.NumberInput(attrs={"class":"form-control","step":"0.01"}),"account":forms.Select(attrs={"class":"form-control"})}
+        widgets={"memo":forms.TextInput(attrs={"class":"form-control"}),"amount":forms.TextInput(attrs={"class":"form-control money-input","inputmode":"decimal"}),"account":forms.Select(attrs={"class":"form-control"})}
     def __init__(self,*args,**kwargs):
         company=kwargs.pop("company",None);super().__init__(*args,**kwargs);self.fields["account"].queryset=_active_accounts(company) if company else ChartOfAccount.objects.none()
 

@@ -1,114 +1,981 @@
 {% extends "base.html" %}
-
 {% block title %}Item{% endblock %}
-
 {% block content %}
+<style>
+:root{
+  --it-green:#0aa35d;
+  --it-blue:#0b86cf;
+  --it-red:#db5353;
+  --it-line:#dfe9ee;
+  --it-head:#f2f7f9;
+  --it-text:#4a5e69;
+  --it-muted:#85959d;
+}
+.item-shell{
+  width:100%;
+  background:#fff;
+  border:1px solid #dfe7eb;
+  border-radius:4px;
+  overflow:hidden;
+  box-shadow:none;
+}
+.item-toolbar{
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 8px;
+  border-bottom:1px solid #dfe7eb;
+  background:#fff;
+  flex-wrap:nowrap;
+}
+.item-title{
+  display:inline-flex;
+  align-items:center;
+  height:28px;
+  padding:0 5px 0 2px;
+  border-radius:0;
+  background:transparent;
+  color:#4d5d66;
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.toolbar-select,
+.toolbar-search{
+  height:30px;
+  border:1px solid #cfd9de;
+  border-radius:4px;
+  background:#fff;
+  color:#4f6069;
+  font-size:8.5px;
+  padding:0 8px;
+  outline:none;
+  box-sizing:border-box;
+}
+.toolbar-select:focus,.toolbar-search:focus{
+  border-color:#64bce3;
+  box-shadow:0 0 0 3px rgba(11,134,207,.08);
+}
+.toolbar-type{width:115px;flex:0 0 115px}
+.toolbar-small{width:100px;flex:0 0 100px}
+.toolbar-search-wrap{
+  display:flex;
+  height:30px;
+  border:1px solid #cfd9de;
+  border-radius:4px;
+  overflow:hidden;
+  width:230px;
+  min-width:180px;
+  flex:1 1 230px;
+  max-width:320px;
+  background:#fff;
+}
+.toolbar-search-icon{
+  width:29px;
+  flex:0 0 29px;
+  display:grid;
+  place-items:center;
+  color:#6f838d;
+  background:#f7fafb;
+  border-right:1px solid #dfe8ec;
+  font-size:10px;
+}
+.toolbar-search{
+  border:0;
+  border-radius:0;
+  width:100%;
+  min-width:180px;
+}
+.toolbar-spacer{flex:1 1 auto;min-width:8px}
+.toolbar-action{
+  height:30px;
+  min-width:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:0 6px;
+  border:1px solid transparent;
+  border-radius:4px;
+  background:transparent;
+  color:#0b84ca;
+  font-size:8.5px;
+  font-weight:750;
+  line-height:1;
+  text-decoration:none;
+  cursor:pointer;
+  white-space:nowrap;
+  box-sizing:border-box;
+}
+.toolbar-action:hover{
+  background:#eef8fd;
+  border-color:#d5eaf3;
+  color:#0877ad;
+}
+.toolbar-action.danger{
+  color:#d94d4d;
+  border-color:#f1d3d3;
+  background:#fffafa;
+  padding:0 8px;
+}
+.toolbar-action.danger:hover{
+  background:#fff0f0;
+  border-color:#efbcbc;
+  color:#c83d3d;
+}
+.toolbar-action.disabled{opacity:.4;pointer-events:none}
+.toolbar-icon{
+  font-size:11px;
+  line-height:1;
+}
+.item-table-wrap{overflow:auto}
+.item-table{
+  width:100%;
+  min-width:1160px;
+  border-collapse:collapse;
+  table-layout:auto;
+}
+.item-table th{
+  height:27px;
+  padding:0 6px;
+  border-bottom:1px solid #d7e0e4;
+  background:#f4f7f8;
+  color:#4e5f68;
+  font-size:7.8px;
+  font-weight:900;
+  text-align:left;
+  white-space:nowrap;
+  letter-spacing:0;
+}
+.item-table td{
+  height:27px;
+  padding:0 6px;
+  border-bottom:1px solid #e7ecef;
+  color:#596b74;
+  font-size:8px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.item-table tbody tr{
+  cursor:pointer;
+  transition:background .08s;
+}
+.item-table tbody tr:hover td{background:#f7fbfd}
+.item-table tbody tr.selected td{background:#eaf8f1}
+.item-table tbody tr.selected td:first-child{box-shadow:inset 3px 0 0 var(--it-green)}
+.item-table .num{text-align:right;font-variant-numeric:tabular-nums}
+.item-table .center{text-align:center}
+.name-link{
+  color:#168553;
+  text-decoration:none;
+  font-weight:900;
+}
+.name-link:hover{text-decoration:underline}
+.row-radio{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.row-expand{
+  width:27px;height:27px;border:1px solid transparent;background:transparent;color:#0b84ca;
+  border-radius:7px;font-size:16px;line-height:1;cursor:pointer;padding:0;transition:.15s ease
+}
+.row-expand:hover{color:#055f99;background:#eaf6fc;border-color:#d4eaf4}
+.detail-row{display:none}
+.detail-row.open{display:table-row}
+.detail-row td{
+  height:auto!important;
+  padding:10px 12px!important;
+  background:#f7fbfd!important;
+  border-bottom:1px solid #dfecef!important;
+}
+.detail-actions{
+  display:flex;
+  gap:7px;
+  align-items:center;
+  justify-content:flex-end;
+}
+.detail-btn{
+  min-height:28px;
+  border:1px solid #cddce4;
+  border-radius:5px;
+  background:#fff;
+  color:#0d7fbf;
+  padding:0 9px;
+  font-size:8px;
+  font-weight:800;
+  cursor:pointer;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+}
+.detail-btn:hover{background:#edf8fd}
+.detail-btn.danger{color:#d74d4d;border-color:#efc8c8}
+.status-dot{
+  width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px
+}
+.status-dot.active{background:#0fa35c}
+.status-dot.inactive{background:#a3afb5}
+.item-footer{
+  min-height:32px;
+  padding:4px 6px;
+  border-top:1px solid #dfe7eb;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  color:#7a8c95;
+  font-size:7.5px;
+  background:#fff;
+}
+.page-wrap{display:flex;gap:3px;align-items:center}
+.page-btn{
+  min-width:28px;height:28px;border:1px solid #d3e2e8;border-radius:7px;background:#fff;
+  color:#397895;text-decoration:none;display:grid;place-items:center;font-size:8px
+}
+.page-btn.active{background:#0b86cf;color:#fff;border-color:#0b86cf}
+.page-btn.disabled{opacity:.4;pointer-events:none}
+.page-size{
+  height:28px;border:1px solid #d3e2e8;border-radius:7px;background:#fff;color:#566c77;font-size:8px;padding:0 6px
+}
+.empty-cell{
+  text-align:center!important;
+  padding:44px 20px!important;
+  color:#85969f!important;
+  height:auto!important;
+  font-size:9px!important;
+}
 
-<div class="card">
-    <div class="card-head">
-        <div>
-            <h2>Item</h2>
-            <p>Item master list for {{ company.name }}.</p>
-        </div>
+/* Modals */
+.modal{
+  position:fixed;inset:0;z-index:10050;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(24,42,52,.35);backdrop-filter:blur(3px);padding:18px
+}
+.modal.show{display:flex}
+.modal-card{
+  width:min(520px,100%);background:#fff;border-radius:12px;
+  box-shadow:0 24px 70px rgba(0,0,0,.22);overflow:hidden
+}
+.modal-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 14px;border-bottom:1px solid #dfe8ec
+}
+.modal-head strong{font-size:12px;color:#365363}
+.modal-close{
+  width:27px;height:27px;border:0;border-radius:6px;background:#eef3f5;color:#73868f;cursor:pointer
+}
+.modal-body{padding:14px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mfield label{display:block;margin-bottom:5px;font-size:9px;font-weight:800;color:#48616e}
+.mfield input,.mfield select{
+  width:100%;box-sizing:border-box;height:34px;border:1px solid #d2e0e6;border-radius:6px;
+  padding:0 8px;font-size:9px;color:#47606c;background:#fff
+}
+.modal-foot{
+  padding:10px 14px;border-top:1px solid #dfe8ec;background:#fbfdfe;
+  display:flex;justify-content:flex-end;gap:6px
+}
+.mbtn{
+  min-height:31px;border:1px solid #cbdce4;border-radius:6px;background:#fff;color:#167dab;
+  padding:0 10px;font-size:9px;font-weight:800;cursor:pointer
+}
+.mbtn.primary{background:#0b86cf;color:#fff;border-color:#0b86cf}
+.mbtn.green{background:#0aa35d;color:#fff;border-color:#0aa35d}
+.pref-row{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  border:1px solid #e3ecef;border-radius:7px;padding:9px 10px;margin-bottom:7px
+}
+.pref-row b{display:block;color:#49616e;font-size:9px}
+.pref-row small{font-size:8px;color:#85969f}
+.pref-row input{width:15px;height:15px;accent-color:#0aa35d}
 
-        <div class="form-actions">
-            <a href="{% url 'stock_item_create' %}" class="btn">➕ Add Item</a>
-            <a href="{% url 'stock_item_group_list' %}" class="btn btn-light">Item Group</a>
-            <a href="{% url 'stock_item_brand_list' %}" class="btn btn-light">Item Brand</a>
-            <a href="{% url 'stock_unit_set_list' %}" class="btn btn-light">Unit Set</a>
-        </div>
+/* Preference classes */
+.item-shell.compact .item-table td{height:23px}
+.item-shell.compact .item-table th{height:24px}
+.item-shell.hide-cost .cost-col{display:none}
+.item-shell.hide-brand .brand-col{display:none}
+
+
+.custom-grid-btn{width:26px;height:26px;border:0;border-radius:2px;background:transparent;color:#0b84ca;cursor:pointer;display:grid;place-items:center;font-size:14px;transition:.12s ease}
+.custom-grid-btn:hover{background:#edf8fd;border-color:#badfed;transform:translateY(-1px)}
+.row-menu{position:fixed;z-index:10100;width:190px;background:#fff;border:1px solid #d7e5eb;border-radius:10px;box-shadow:0 16px 38px rgba(25,59,79,.18);padding:5px;display:none}
+.row-menu.show{display:block}
+.row-menu button,.row-menu a{width:100%;box-sizing:border-box;display:flex;align-items:center;gap:8px;min-height:31px;padding:0 9px;border:0;border-radius:7px;background:#fff;color:#415e6d;text-decoration:none;font-size:9px;font-weight:750;cursor:pointer;text-align:left}
+.row-menu button:hover,.row-menu a:hover{background:#eef8fd;color:#0b7ebc}
+.row-menu .danger{color:#d74f4f}.row-menu .danger:hover{background:#fff1f1;color:#c83f3f}
+.row-more-btn{width:28px;height:28px;border:1px solid #d6e4ea;border-radius:7px;background:#fff;color:#0a82c7;font-size:15px;cursor:pointer;display:grid;place-items:center}
+.row-more-btn:hover{background:#eef8fd}
+.using-info-modal .modal-card{width:min(1120px,96vw);height:min(680px,88vh);display:flex;flex-direction:column}
+.using-info-modal .modal-body{padding:0;overflow:auto;flex:1}
+.using-table{width:100%;border-collapse:collapse;min-width:850px}.using-table th{height:34px;padding:0 9px;background:#f3f7f9;border-bottom:1px solid #dce7ec;color:#425b69;font-size:9px;font-weight:900;text-align:left;white-space:nowrap}.using-table td{height:34px;padding:0 9px;border-bottom:1px solid #e8eef1;color:#566c78;font-size:9px}.using-table .num{text-align:right}
+.custom-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px 22px
+}
+.custom-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#4e6572;
+  font-size:9px;
+  min-height:30px;
+  padding:2px 0
+}
+.custom-check input{
+  width:15px;
+  height:15px;
+  accent-color:#0aa35d;
+  flex:0 0 auto
+}
+@media(max-width:700px){.custom-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+.item-toolbar-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:3px;
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+
+
+.toolbar-icon{
+  font-size:11px;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+  .item-toolbar-actions{
+    grid-column:1 / -1;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+    padding-top:2px;
+  }
+}
+
+  .toolbar-spacer{display:none}
+}
+
+
+
+@media(max-width:1380px){
+  .item-toolbar{
+    flex-wrap:wrap;
+  }
+  .toolbar-spacer{
+    display:none;
+  }
+  .item-toolbar-actions{
+    flex:1 1 100%;
+    width:100%;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+    padding-top:2px;
+  }
+}
+@media(max-width:760px){
+  .toolbar-type,
+  .toolbar-small{
+    flex:1 1 130px;
+    width:auto;
+  }
+  .toolbar-search-wrap{
+    flex:1 1 100%;
+    width:100%;
+    max-width:none;
+  }
+  .item-toolbar-actions{
+    gap:4px;
+  }
+}
+
+
+/* Corrected top action layout */
+.item-toolbar-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:8px !important;
+  flex:0 0 auto !important;
+  white-space:nowrap !important;
+}
+.item-toolbar-actions .toolbar-action{
+  position:static !important;
+  transform:none !important;
+  margin:0 !important;
+  flex:0 0 auto !important;
+}
+.edit-main-btn{
+  color:#0b84ca !important;
+}
+.delete-main-btn{
+  color:#d94d4d !important;
+  background:#fffafa !important;
+  border-color:#f1d3d3 !important;
+}
+.item-select-check{
+  width:14px;
+  height:14px;
+  accent-color:#0aa35d;
+  cursor:pointer;
+}
+.select-col{width:34px !important}
+
+</style>
+
+<div class="item-shell" id="itemShell">
+  <form method="get" id="filterForm" class="item-toolbar">
+    <span class="item-title">ITEM</span>
+
+    <select name="item_type" class="toolbar-select toolbar-type" onchange="this.form.submit()">
+      <option value="">All Item Type</option>
+      {% for value,label in item_type_choices %}
+      <option value="{{ value }}" {% if item_type == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="group" class="toolbar-select toolbar-small" onchange="this.form.submit()">
+      <option value="">All Group</option>
+      {% for row in groups %}
+      <option value="{{ row.id }}" {% if group_id == row.id|stringformat:"s" %}selected{% endif %}>{{ row.name }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="brand" class="toolbar-select toolbar-small" onchange="this.form.submit()">
+      <option value="">All Brand</option>
+      {% for row in brands %}
+      <option value="{{ row.id }}" {% if brand_id == row.id|stringformat:"s" %}selected{% endif %}>{{ row.name }}</option>
+      {% endfor %}
+    </select>
+
+    <div class="toolbar-search-wrap">
+      <span class="toolbar-search-icon">⌕</span>
+      <input class="toolbar-search" type="text" name="q" value="{{ query }}" placeholder="Press Enter to Search">
     </div>
 
-    <form method="get" class="card" style="box-shadow:none;">
-        <div class="form-grid">
-            <div class="form-group">
-                <label>Item Type</label>
-                <select name="item_type">
-                    <option value="">All Item Type</option>
-                    {% for value,label in item_type_choices %}
-                        <option value="{{ value }}" {% if item_type == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+    <input type="hidden" name="unit" value="{{ unit_id }}">
+    <input type="hidden" name="active" value="{{ active }}">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <input type="hidden" name="per_page" value="{{ per_page }}">
 
-            <div class="form-group">
-                <label>Item Group</label>
-                <select name="group">
-                    <option value="">All Group</option>
-                    {% for group in groups %}
-                        <option value="{{ group.id }}" {% if group_id == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+    <div class="toolbar-spacer"></div>
 
-            <div class="form-group">
-                <label>Item Brand</label>
-                <select name="brand">
-                    <option value="">All Brand</option>
-                    {% for brand in brands %}
-                        <option value="{{ brand.id }}" {% if brand_id == brand.id|stringformat:"s" %}selected{% endif %}>{{ brand.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Search</label>
-                <input type="text" name="q" value="{{ query }}" placeholder="Press Enter to Search">
-            </div>
-        </div>
-
-        <div class="form-actions">
-            <button class="btn" type="submit">🔍 Search</button>
-            <a href="{% url 'stock_item_list' %}" class="btn btn-light">Reset</a>
-        </div>
-    </form>
-
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>No.</th>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Item Type</th>
-                    <th>Item Group</th>
-                    <th>Item Brand</th>
-                    <th>Unit Set</th>
-                    <th>Cost</th>
-                    <th>Sale</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for item in items %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ item.code }}</td>
-                        <td><strong>{{ item.name }}</strong></td>
-                        <td>{{ item.get_item_type_display }}</td>
-                        <td>{{ item.item_group.name|default:"-" }}</td>
-                        <td>{{ item.item_brand.name|default:"-" }}</td>
-                        <td>{{ item.unit_set.name|default:"-" }}</td>
-                        <td>${{ item.cost_price }}</td>
-                        <td>${{ item.sale_price }}</td>
-                        <td><a href="{% url 'stock_item_edit' item.id %}" class="btn btn-light">Edit</a></td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="10">
-                            <div class="empty-state">
-                                <div class="emoji">📦</div>
-                                No items yet.
-                                <br><br>
-                                
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="item-toolbar-actions">
+      <button type="button" class="toolbar-action edit-main-btn" id="editSelected" title="Edit selected item">
+        <span class="toolbar-icon">✎</span><span>Edit</span>
+      </button>
+      <button type="button" class="toolbar-action danger delete-main-btn" id="deleteSelected" title="Delete selected item(s)">
+        <span class="toolbar-icon">🗑</span><span>Delete</span>
+      </button>
+      <button type="button" class="toolbar-action" id="priceSelected">
+        <span class="toolbar-icon">✎</span><span>Edit Price &amp; Barcode</span>
+      </button>
+      <a class="toolbar-action" href="{% url 'stock_item_import_excel' %}">
+        <span class="toolbar-icon">⇩</span><span>Import Item</span>
+      </a>
+      <a class="toolbar-action" href="{% url 'stock_item_export_excel' %}?{{ request.GET.urlencode }}" title="Download current item list as Excel">
+        <span class="toolbar-icon">☰</span><span>Download List</span>
+      </a>
+      <button type="button" class="toolbar-action" id="bulkBtn">
+        <span class="toolbar-icon">☑</span><span>Bulk Update</span>
+      </button>
+      <button type="button" class="toolbar-action" id="preferenceBtn">
+        <span class="toolbar-icon">⚙</span><span>Preference</span>
+      </button>
     </div>
+  </form>
+
+  <form method="post" id="actionForm">
+    {% csrf_token %}
+    <input type="hidden" name="action" id="actionField">
+    <input type="hidden" name="item_id" id="itemIdField">
+    <input type="hidden" name="bulk_field" id="bulkField">
+    <input type="hidden" name="bulk_value" id="bulkValue">
+    <input type="hidden" name="cost_price" id="priceCost">
+    <input type="hidden" name="sale_price" id="priceSale">
+    {% if has_base_price %}<input type="hidden" name="base_price" id="priceBase">{% endif %}
+    {% if has_barcode %}<input type="hidden" name="barcode" id="priceBarcode">{% endif %}
+
+    <div class="item-table-wrap">
+      <table class="item-table">
+        <thead>
+          <tr>
+            <th class="center select-col" style="width:34px">
+              <input type="checkbox" id="selectAllRows" class="item-select-check" aria-label="Select all visible items">
+            </th>
+            <th data-col="no" style="width:34px">No.</th>
+            <th data-col="code" style="width:95px">Code</th>
+            {% if has_barcode %}<th data-col="barcode" style="width:110px">Barcode</th>{% endif %}
+            <th data-col="name" style="min-width:190px">
+              Name
+              <a href="?{{ request.GET.urlencode }}&sort={% if sort == 'name' %}-name{% else %}name{% endif %}" style="color:#0aa35d;text-decoration:none">⇅</a>
+            </th>
+            <th data-col="type" style="width:105px">Item Type</th>
+            <th data-col="group" style="width:110px">Item Group</th>
+            <th data-col="brand" class="brand-col" style="width:110px">Item Brand</th>
+            <th data-col="unit" style="width:95px">Unit Set</th>
+            <th data-col="cost" class="num cost-col" style="width:85px">Cost</th>
+            {% if has_base_price %}<th data-col="base" class="num" style="width:90px">Base Price</th>{% endif %}
+            {% if has_description %}<th data-col="memo" style="min-width:150px">Memo</th>{% else %}<th data-col="memo" style="min-width:150px">Memo</th>{% endif %}
+            <th data-col="onhand" class="num" style="width:80px">On Hand</th>
+            <th class="center" style="width:48px"><button type="button" class="custom-grid-btn" id="customColumnBtn" title="Custom columns">▦</button></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr class="item-row"
+              data-id="{{ item.id }}"
+              data-name="{{ item.name|escape }}"
+              data-edit-url="{% url 'stock_item_edit' item.id %}" data-using-url="{% url 'stock_item_using_info' item.id %}"
+              data-cost="{{ item.cost_price }}"
+              data-sale="{{ item.sale_price }}"
+              {% if has_base_price %}data-base="{{ item.base_price }}"{% endif %}
+              {% if has_barcode %}data-barcode="{{ item.barcode|default:''|escape }}"{% endif %}>
+            <td class="center select-col">
+              <input type="checkbox" class="item-select-check row-select" value="{{ item.id }}" aria-label="Select {{ item.name|escape }}">
+            </td>
+            <td data-col="no">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+            <td data-col="code">{{ item.code }}</td>
+            {% if has_barcode %}<td data-col="barcode">{{ item.barcode|default:"" }}</td>{% endif %}
+            <td data-col="name"><a href="{% url 'stock_item_edit' item.id %}" class="name-link">{{ item.name }}</a></td>
+            <td data-col="type">{{ item.get_item_type_display }}</td>
+            <td data-col="group">{{ item.item_group.name|default:"N/A" }}</td>
+            <td data-col="brand" class="brand-col">{{ item.item_brand.name|default:"N/A" }}</td>
+            <td data-col="unit">{{ item.unit_set.name|default:"N/A" }}</td>
+            <td data-col="cost" class="num cost-col" data-money="{{ item.cost_price }}">$ {{ item.cost_price|floatformat:4 }}</td>
+            {% if has_base_price %}<td data-col="base" class="num" data-money="{{ item.base_price }}">$ {{ item.base_price|floatformat:4 }}</td>{% endif %}
+            <td data-col="memo">{% if has_description %}{{ item.description|default:item.memo|default:""|truncatechars:50 }}{% else %}{{ item.memo|default:""|truncatechars:50 }}{% endif %}</td>
+            <td data-col="onhand" class="num">-</td>
+            <td class="center">
+              <button type="button" class="row-more-btn" aria-label="Item actions" title="Item actions">⌄</button>
+            </td>
+          </tr>
+          <tr class="detail-row">
+            <td colspan="20">
+              <div style="display:flex;justify-content:space-between;gap:14px;align-items:center">
+                <div style="font-size:8px;color:#778b95">
+                  <span class="status-dot {% if item.is_active %}active{% else %}inactive{% endif %}"></span>
+                  {% if item.is_active %}Active{% else %}Inactive{% endif %}
+                  {% if item.memo %} · {{ item.memo }}{% endif %}
+                </div>
+                <div class="detail-actions">
+                  <a class="detail-btn" href="{% url 'stock_item_edit' item.id %}">✎ Edit</a>
+                  <button type="button" class="detail-btn js-price" data-id="{{ item.id }}" data-name="{{ item.name|escape }}" data-cost="{{ item.cost_price }}" data-sale="{{ item.sale_price }}" {% if has_base_price %}data-base="{{ item.base_price }}"{% endif %} {% if has_barcode %}data-barcode="{{ item.barcode|default:''|escape }}"{% endif %}>$ Price{% if has_barcode %} / Barcode{% endif %}</button>
+                  <button type="button" class="detail-btn js-duplicate" data-id="{{ item.id }}" data-name="{{ item.name|escape }}">⧉ Duplicate</button>
+                  <button type="button" class="detail-btn danger js-delete" data-id="{{ item.id }}" data-name="{{ item.name|escape }}">🗑 Delete</button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="20" class="empty-cell">No items found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+
+  <div class="item-footer">
+    <div>
+      {% if paginator.count %}
+        Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} items
+      {% else %}
+        Showing 0 items
+      {% endif %}
+    </div>
+    <div style="display:flex;gap:7px;align-items:center">
+      <div class="page-wrap">
+        <a class="page-btn {% if not page_obj.has_previous %}disabled{% endif %}" href="?{{ request.GET.urlencode }}&page=1">«</a>
+        <a class="page-btn {% if not page_obj.has_previous %}disabled{% endif %}" href="?{{ request.GET.urlencode }}&page={% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %}">‹</a>
+        {% for n in paginator.page_range %}
+          {% if n >= page_obj.number|add:"-3" and n <= page_obj.number|add:"3" %}
+          <a class="page-btn {% if n == page_obj.number %}active{% endif %}" href="?{{ request.GET.urlencode }}&page={{ n }}">{{ n }}</a>
+          {% endif %}
+        {% endfor %}
+        <a class="page-btn {% if not page_obj.has_next %}disabled{% endif %}" href="?{{ request.GET.urlencode }}&page={% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ paginator.num_pages }}{% endif %}">›</a>
+        <a class="page-btn {% if not page_obj.has_next %}disabled{% endif %}" href="?{{ request.GET.urlencode }}&page={{ paginator.num_pages }}">»</a>
+      </div>
+      <select class="page-size" id="pageSize">
+        <option value="10" {% if per_page == 10 %}selected{% endif %}>10 / page</option>
+        <option value="25" {% if per_page == 25 %}selected{% endif %}>25 / page</option>
+        <option value="50" {% if per_page == 50 %}selected{% endif %}>50 / page</option>
+        <option value="100" {% if per_page == 100 %}selected{% endif %}>100 / page</option>
+      </select>
+    </div>
+  </div>
 </div>
 
+
+<div class="row-menu" id="rowMenu">
+  <a href="#" id="rowMenuView">◉ View / Edit</a>
+  <button type="button" id="rowMenuPrice">▣ Edit Price & Barcode</button>
+  <button type="button" id="rowMenuDuplicate">⧉ Duplicate</button>
+  <button type="button" id="rowMenuUsing">▤ Using Info</button>
+  <button type="button" class="danger" id="rowMenuDelete">🗑 Delete</button>
+</div>
+
+<div class="modal" id="customColumnModal">
+  <div class="modal-card" style="width:min(820px,96vw)">
+    <div class="modal-head"><strong>Custom</strong><button type="button" class="modal-close">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:10px;font-weight:900;color:#0a9a57;border-bottom:1px solid #dce8ed;padding-bottom:8px;margin-bottom:12px">Item</div>
+      <div class="custom-grid">
+        <label class="custom-check"><input type="checkbox" data-col="no" checked>No.</label>
+        <label class="custom-check"><input type="checkbox" data-col="code" checked>Code</label>
+        {% if has_barcode %}<label class="custom-check"><input type="checkbox" data-col="barcode" checked>Barcode</label>{% endif %}
+        <label class="custom-check"><input type="checkbox" data-col="name" checked>Name</label>
+        <label class="custom-check"><input type="checkbox" data-col="type" checked>Item Type</label>
+        <label class="custom-check"><input type="checkbox" data-col="group" checked>Item Group</label>
+        <label class="custom-check"><input type="checkbox" data-col="brand" checked>Item Brand</label>
+        <label class="custom-check"><input type="checkbox" data-col="unit" checked>Unit Set</label>
+        <label class="custom-check"><input type="checkbox" data-col="cost" checked>Cost</label>
+        {% if has_base_price %}<label class="custom-check"><input type="checkbox" data-col="base" checked>Base Price</label>{% endif %}
+        <label class="custom-check"><input type="checkbox" data-col="memo" checked>Memo</label>
+        <label class="custom-check"><input type="checkbox" data-col="onhand" checked>On Hand</label>
+        <label class="custom-check"><input type="checkbox" id="customActiveOnly">Active Only</label>
+        <label class="custom-check"><input type="checkbox" id="customRound5" checked>Round Price and Cost to 5 Digits</label>
+      </div>
+    </div>
+    <div class="modal-foot" style="justify-content:space-between;align-items:center">
+      <button type="button" class="mbtn" id="customReset">Reset</button>
+      <div style="display:flex;gap:6px"><button type="button" class="mbtn green" id="customSave">▣ Save</button><button type="button" class="mbtn modal-close">× Close</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal using-info-modal" id="usingInfoModal">
+  <div class="modal-card">
+    <div class="modal-head"><strong id="usingInfoTitle">Using Info Item</strong><button type="button" class="modal-close">×</button></div>
+    <div class="modal-body">
+      <table class="using-table">
+        <thead><tr><th>#</th><th>Tran Type Or Other</th><th>Number</th><th>Tran Date</th><th>Name</th><th class="num">Qty</th><th class="num">Amount</th><th></th></tr></thead>
+        <tbody id="usingInfoBody"><tr><td colspan="8" style="text-align:center;padding:30px;color:#84969f">Select Using Info from an item row.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Update -->
+<div class="modal" id="bulkModal">
+  <div class="modal-card">
+    <div class="modal-head"><strong>Bulk Update Items</strong><button type="button" class="modal-close">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:8px;color:#7d9099;margin-bottom:10px">Select multiple rows by Ctrl/Command + click, then choose the field to update.</div>
+      <div class="modal-grid">
+        <div class="mfield">
+          <label>Field</label>
+          <select id="bulkFieldSelect">
+            <option value="is_active">Status</option>
+            <option value="item_type">Item Type</option>
+            <option value="item_group">Item Group</option>
+            <option value="item_brand">Item Brand</option>
+            <option value="unit_set">Unit Set</option>
+            <option value="cost_price">Cost Price</option>
+            <option value="sale_price">Sale Price</option>
+          </select>
+        </div>
+        <div class="mfield">
+          <label>New Value</label>
+          <select id="bulkSelectValue"></select>
+          <input id="bulkTextValue" type="text" style="display:none">
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="mbtn modal-close">Cancel</button>
+      <button type="button" class="mbtn green" id="applyBulk">Apply Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- Price -->
+<div class="modal" id="priceModal">
+  <div class="modal-card">
+    <div class="modal-head"><strong id="priceTitle">Edit Price{% if has_barcode %} & Barcode{% endif %}</strong><button type="button" class="modal-close">×</button></div>
+    <div class="modal-body">
+      <div class="modal-grid">
+        {% if has_barcode %}<div class="mfield" style="grid-column:1/-1"><label>Barcode</label><input id="priceBarcodeInput"></div>{% endif %}
+        <div class="mfield"><label>Cost</label><input id="priceCostInput" type="number" min="0" step="0.01"></div>
+        {% if has_base_price %}<div class="mfield"><label>Base Price</label><input id="priceBaseInput" type="number" min="0" step="0.01"></div>{% endif %}
+        <div class="mfield"><label>Sale Price</label><input id="priceSaleInput" type="number" min="0" step="0.01"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="mbtn modal-close">Cancel</button>
+      <button type="button" class="mbtn primary" id="savePrice">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Preference -->
+<div class="modal" id="prefModal">
+  <div class="modal-card">
+    <div class="modal-head"><strong>Item Preference</strong><button type="button" class="modal-close">×</button></div>
+    <div class="modal-body">
+      <label class="pref-row"><span><b>Compact Rows</b><small>Show more items on the screen.</small></span><input type="checkbox" id="prefCompact"></label>
+      <label class="pref-row"><span><b>Hide Cost</b><small>Hide the cost column.</small></span><input type="checkbox" id="prefCost"></label>
+      <label class="pref-row"><span><b>Hide Brand</b><small>Hide the brand column.</small></span><input type="checkbox" id="prefBrand"></label>
+      <small>Preference is saved in this browser.</small>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="mbtn" id="resetPref">Reset</button>
+      <button type="button" class="mbtn green modal-close">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const shell=document.getElementById('itemShell');
+  const form=document.getElementById('actionForm');
+  const action=document.getElementById('actionField');
+  const itemId=document.getElementById('itemIdField');
+  let selectedIds=[];
+  let primaryRow=null;
+
+  function rows(){return [...document.querySelectorAll('.item-row')]}
+  function syncSelection(){
+    selectedIds=rows().filter(r=>r.querySelector('.row-select')?.checked).map(r=>r.dataset.id);
+    rows().forEach(r=>r.classList.toggle('selected', !!r.querySelector('.row-select')?.checked));
+    primaryRow=selectedIds.length===1 ? rows().find(r=>r.dataset.id===selectedIds[0]) : null;
+    const all=document.getElementById('selectAllRows');
+    const checks=rows().map(r=>r.querySelector('.row-select')).filter(Boolean);
+    if(all){
+      all.checked=checks.length>0 && checks.every(c=>c.checked);
+      all.indeterminate=checks.some(c=>c.checked) && !all.checked;
+    }
+  }
+  function selectRow(row,multi){
+    const cb=row.querySelector('.row-select');
+    if(!cb)return;
+    if(!multi) rows().forEach(r=>{const x=r.querySelector('.row-select');if(x)x.checked=false});
+    cb.checked=multi ? !cb.checked : true;
+    syncSelection();
+  }
+
+  rows().forEach(row=>{
+    const cb=row.querySelector('.row-select');
+    if(cb) cb.addEventListener('click',e=>{e.stopPropagation();syncSelection()});
+    row.addEventListener('click',e=>{
+      if(e.target.closest('a,button,input')) return;
+      selectRow(row,e.ctrlKey||e.metaKey);
+    });
+  });
+  const selectAllRows=document.getElementById('selectAllRows');
+  if(selectAllRows)selectAllRows.addEventListener('change',()=>{
+    rows().forEach(r=>{const cb=r.querySelector('.row-select');if(cb)cb.checked=selectAllRows.checked});
+    syncSelection();
+  });
+
+
+  const rowMenu=document.getElementById('rowMenu');
+  let menuRow=null;
+  function closeRowMenu(){rowMenu.classList.remove('show');menuRow=null}
+  function openRowMenu(btn,row){
+    menuRow=row;selectRow(row,false);
+    const rect=btn.getBoundingClientRect();
+    rowMenu.style.left=Math.max(8,Math.min(window.innerWidth-200,rect.right-190))+'px';
+    rowMenu.style.top=Math.min(window.innerHeight-190,rect.bottom+4)+'px';
+    rowMenu.classList.add('show');
+    document.getElementById('rowMenuView').href=row.dataset.editUrl;
+  }
+  document.querySelectorAll('.row-more-btn').forEach(btn=>btn.addEventListener('click',e=>{
+    e.stopPropagation();const row=btn.closest('.item-row');
+    if(rowMenu.classList.contains('show')&&menuRow===row){closeRowMenu();return}
+    openRowMenu(btn,row);
+  }));
+  document.addEventListener('click',e=>{if(!e.target.closest('#rowMenu,.row-more-btn'))closeRowMenu()});
+  window.addEventListener('scroll',closeRowMenu,true);window.addEventListener('resize',closeRowMenu);
+
+  document.getElementById('rowMenuPrice').addEventListener('click',()=>{if(menuRow){openPrice(menuRow);closeRowMenu()}});
+  document.getElementById('rowMenuDuplicate').addEventListener('click',()=>{if(menuRow&&confirm(`Duplicate "${menuRow.dataset.name}"?`)){action.value='duplicate';itemId.value=menuRow.dataset.id;form.submit()}});
+  document.getElementById('rowMenuDelete').addEventListener('click',()=>{if(menuRow&&confirm(`Delete "${menuRow.dataset.name}"? If it has history it will be deactivated instead.`)){action.value='delete';const i=document.createElement('input');i.type='hidden';i.name='selected';i.value=menuRow.dataset.id;form.appendChild(i);form.submit()}});
+
+  async function loadUsingInfo(row){
+    if(!row)return;closeRowMenu();
+    const body=document.getElementById('usingInfoBody');
+    document.getElementById('usingInfoTitle').textContent=`Using Info Item: ${row.dataset.name}`;
+    body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:#84969f">Loading...</td></tr>';
+    openModal('usingInfoModal');
+    try{
+      const res=await fetch(row.dataset.usingUrl,{headers:{'X-Requested-With':'XMLHttpRequest'}});
+      const data=await res.json();
+      if(!res.ok)throw new Error('Could not load usage information.');
+      const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      if(!data.rows.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:36px;color:#84969f">This item has not been used in any transaction yet.</td></tr>';return}
+      body.innerHTML=data.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.type)}</td><td>${esc(r.number)}</td><td>${esc(r.date)}</td><td>${esc(r.name)}</td><td class="num">${esc(r.qty)}</td><td class="num">${esc(r.amount)}</td><td>${r.edit_url?`<a href="${esc(r.edit_url)}" style="color:#0b88cc;text-decoration:none">✎</a>`:''}</td></tr>`).join('');
+    }catch(e){body.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:36px;color:#c65353">${e.message}</td></tr>`}
+  }
+  document.getElementById('rowMenuUsing').addEventListener('click',()=>loadUsingInfo(menuRow));
+
+  function requireOne(message='Please select item to edit.'){
+    syncSelection();
+    if(selectedIds.length===0){alert(message);return false}
+    if(selectedIds.length>1){alert('Please select only one item to edit.');return false}
+    primaryRow=rows().find(r=>r.dataset.id===selectedIds[0])||null;
+    return !!primaryRow;
+  }
+  document.getElementById('editSelected').addEventListener('click',()=>{
+    if(requireOne('Please select item to edit.')) window.location=primaryRow.dataset.editUrl;
+  });
+  document.getElementById('deleteSelected').addEventListener('click',()=>{
+    syncSelection();
+    if(!selectedIds.length){alert('Please select item to delete.');return}
+    if(confirm(`Delete ${selectedIds.length} selected item(s)? Items with history will be deactivated instead.`)){
+      action.value='delete';
+      selectedIds.forEach(id=>{
+        const input=document.createElement('input');input.type='hidden';input.name='selected';input.value=id;form.appendChild(input);
+      });
+      form.submit();
+    }
+  });
+
+  function openPrice(row){
+    itemId.value=row.dataset.id;
+    document.getElementById('priceTitle').textContent=`Edit Price{% if has_barcode %} & Barcode{% endif %} — ${row.dataset.name}`;
+    document.getElementById('priceCostInput').value=row.dataset.cost||'0';
+    document.getElementById('priceSaleInput').value=row.dataset.sale||'0';
+    {% if has_base_price %}document.getElementById('priceBaseInput').value=row.dataset.base||'0';{% endif %}
+    {% if has_barcode %}document.getElementById('priceBarcodeInput').value=row.dataset.barcode||'';{% endif %}
+    openModal('priceModal');
+  }
+  document.getElementById('priceSelected').addEventListener('click',()=>{if(requireOne('Please select item to edit price & barcode.'))openPrice(primaryRow)});
+  document.querySelectorAll('.js-price').forEach(btn=>btn.addEventListener('click',()=>{
+    const row=btn.closest('.detail-row').previousElementSibling;selectRow(row,false);openPrice(row);
+  }));
+
+  document.getElementById('savePrice').addEventListener('click',()=>{
+    action.value='price_update';
+    document.getElementById('priceCost').value=document.getElementById('priceCostInput').value;
+    document.getElementById('priceSale').value=document.getElementById('priceSaleInput').value;
+    {% if has_base_price %}document.getElementById('priceBase').value=document.getElementById('priceBaseInput').value;{% endif %}
+    {% if has_barcode %}document.getElementById('priceBarcode').value=document.getElementById('priceBarcodeInput').value;{% endif %}
+    form.submit();
+  });
+
+  document.querySelectorAll('.js-duplicate').forEach(btn=>btn.addEventListener('click',()=>{
+    if(confirm(`Duplicate "${btn.dataset.name}"?`)){action.value='duplicate';itemId.value=btn.dataset.id;form.submit()}
+  }));
+  document.querySelectorAll('.js-delete').forEach(btn=>btn.addEventListener('click',()=>{
+    if(confirm(`Delete "${btn.dataset.name}"? If it has history it will be deactivated instead.`)){
+      action.value='delete';
+      const input=document.createElement('input');input.type='hidden';input.name='selected';input.value=btn.dataset.id;form.appendChild(input);
+      form.submit();
+    }
+  }));
+
+  function openModal(id){document.getElementById(id).classList.add('show')}
+  function closeModal(el){el.closest('.modal').classList.remove('show')}
+  document.querySelectorAll('.modal-close').forEach(b=>b.addEventListener('click',()=>closeModal(b)));
+  document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')}));
+
+  // Bulk update
+  const fieldSel=document.getElementById('bulkFieldSelect'), valueSel=document.getElementById('bulkSelectValue'), valueText=document.getElementById('bulkTextValue');
+  const maps={
+    is_active:[{v:'1',t:'Active'},{v:'0',t:'Inactive'}],
+    item_type:[{% for v,l in item_type_choices %}{v:'{{ v|escapejs }}',t:'{{ l|escapejs }}'},{% endfor %}],
+    item_group:[{v:'',t:'No Group'},{% for r in groups %}{v:'{{ r.id }}',t:'{{ r.name|escapejs }}'},{% endfor %}],
+    item_brand:[{v:'',t:'No Brand'},{% for r in brands %}{v:'{{ r.id }}',t:'{{ r.name|escapejs }}'},{% endfor %}],
+    unit_set:[{v:'',t:'No Unit Set'},{% for r in units %}{v:'{{ r.id }}',t:'{{ r.name|escapejs }}'},{% endfor %}]
+  };
+  function drawBulk(){
+    const data=maps[fieldSel.value];
+    if(data){
+      valueSel.style.display='';valueText.style.display='none';
+      valueSel.innerHTML=data.map(x=>`<option value="${x.v}">${x.t}</option>`).join('');
+    }else{
+      valueSel.style.display='none';valueText.style.display='';
+      valueText.type='number';valueText.min='0';valueText.step='0.01';valueText.value='';
+    }
+  }
+  fieldSel.addEventListener('change',drawBulk);drawBulk();
+  document.getElementById('bulkBtn').addEventListener('click',()=>{
+    syncSelection();
+    if(!selectedIds.length){alert('Please select item(s) for bulk update.');return}
+    openModal('bulkModal');
+  });
+  document.getElementById('applyBulk').addEventListener('click',()=>{
+    action.value='bulk_update';
+    document.getElementById('bulkField').value=fieldSel.value;
+    document.getElementById('bulkValue').value=valueSel.style.display==='none'?valueText.value:valueSel.value;
+    selectedIds.forEach(id=>{
+      const input=document.createElement('input');input.type='hidden';input.name='selected';input.value=id;form.appendChild(input);
+    });
+    form.submit();
+  });
+
+
+  const customModal=document.getElementById('customColumnModal');
+  const customChecks=[...customModal.querySelectorAll('input[data-col]')];
+  const activeOnly=document.getElementById('customActiveOnly');
+  const round5=document.getElementById('customRound5');
+  const key=c=>`itemColumn_${c}`;
+  function applyCustomColumns(){
+    customChecks.forEach(ch=>document.querySelectorAll(`[data-col="${ch.dataset.col}"]`).forEach(el=>el.style.display=ch.checked?'':'none'));
+    rows().forEach(row=>{
+      if(!activeOnly.checked){row.style.display='';return}
+      const detail=row.nextElementSibling;
+      row.style.display=detail?.querySelector('.status-dot.inactive')?'none':'';
+    });
+    document.querySelectorAll('[data-money]').forEach(cell=>{
+      const n=parseFloat(cell.dataset.money||'0');if(Number.isFinite(n))cell.textContent='$ '+n.toFixed(round5.checked?5:4)
+    });
+  }
+  function loadCustom(){
+    customChecks.forEach(ch=>{const s=localStorage.getItem(key(ch.dataset.col));ch.checked=s===null?true:s==='1'});
+    activeOnly.checked=localStorage.itemCustomActiveOnly==='1';
+    round5.checked=localStorage.itemCustomRound5===null?true:localStorage.itemCustomRound5==='1';
+    applyCustomColumns();
+  }
+  document.getElementById('customColumnBtn').addEventListener('click',()=>{loadCustom();openModal('customColumnModal')});
+  document.getElementById('customSave').addEventListener('click',()=>{
+    customChecks.forEach(ch=>localStorage.setItem(key(ch.dataset.col),ch.checked?'1':'0'));
+    localStorage.itemCustomActiveOnly=activeOnly.checked?'1':'0';
+    localStorage.itemCustomRound5=round5.checked?'1':'0';
+    applyCustomColumns();customModal.classList.remove('show');
+  });
+  document.getElementById('customReset').addEventListener('click',()=>{
+    customChecks.forEach(ch=>{localStorage.removeItem(key(ch.dataset.col));ch.checked=true});
+    localStorage.removeItem('itemCustomActiveOnly');localStorage.removeItem('itemCustomRound5');
+    activeOnly.checked=false;round5.checked=true;applyCustomColumns();
+  });
+  loadCustom();
+
+  // Preferences
+  const compact=document.getElementById('prefCompact'), cost=document.getElementById('prefCost'), brand=document.getElementById('prefBrand');
+  function applyPrefs(){
+    shell.classList.toggle('compact',compact.checked);
+    shell.classList.toggle('hide-cost',cost.checked);
+    shell.classList.toggle('hide-brand',brand.checked);
+  }
+  function loadPrefs(){
+    compact.checked=localStorage.itemCompact==='1';
+    cost.checked=localStorage.itemHideCost==='1';
+    brand.checked=localStorage.itemHideBrand==='1';
+    applyPrefs();
+  }
+  [compact,cost,brand].forEach(x=>x.addEventListener('change',()=>{
+    localStorage.itemCompact=compact.checked?'1':'0';
+    localStorage.itemHideCost=cost.checked?'1':'0';
+    localStorage.itemHideBrand=brand.checked?'1':'0';
+    applyPrefs();
+  }));
+  document.getElementById('preferenceBtn').addEventListener('click',()=>openModal('prefModal'));
+  document.getElementById('resetPref').addEventListener('click',()=>{
+    ['itemCompact','itemHideCost','itemHideBrand'].forEach(k=>localStorage.removeItem(k));loadPrefs()
+  });loadPrefs();
+
+
+  document.getElementById('pageSize').addEventListener('change',e=>{
+    const u=new URL(location.href);u.searchParams.set('per_page',e.target.value);u.searchParams.set('page','1');location=u;
+  });
+})();
+</script>
 {% endblock %}

@@ -1,162 +1,937 @@
 {% extends "base.html" %}
-
 {% block title %}Customer Center{% endblock %}
-
 {% block content %}
+<style>
+:root{--cc-green:#0aa35d;--cc-blue:#0b86cf;--cc-red:#dc5252;--cc-line:#dfe8ed;--cc-head:#f5f8fa;--cc-text:#415966;--cc-muted:#7f919b}
+.cc{background:#fff;border:1px solid var(--cc-line);border-radius:8px;overflow:hidden;min-height:610px;box-shadow:0 8px 28px rgba(38,70,88,.06)}
+.cc-top{height:48px;display:flex;align-items:center;gap:5px;padding:0 10px;border-bottom:1px solid var(--cc-line);white-space:nowrap;overflow-x:auto}
+.cc-title{font-size:11px;font-weight:900;color:#53636c;margin-right:8px}.cc-tool{height:31px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;color:#0b84ca;text-decoration:none;display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;cursor:pointer}
+.cc-tool:hover{background:#edf8fd;border-color:#d4eaf4}.cc-tool.danger{color:#d65050}.cc-tool.disabled{opacity:.35;pointer-events:none}.cc-spacer{flex:1}.cc-add{width:30px;height:30px;border:1px solid #bfe4cf;border-radius:50%;background:#effbf4;color:var(--cc-green);font-size:19px;cursor:pointer}
+.cc-body{display:grid;grid-template-columns:255px minmax(0,1fr);min-height:560px}.cc-side{border-right:1px solid var(--cc-line);background:#fbfdfe}.cc-search{padding:9px;border-bottom:1px solid var(--cc-line);position:relative}.cc-search input{width:100%;height:32px;box-sizing:border-box;border:1px solid #d6e2e8;border-radius:7px;padding:0 30px 0 30px;font-size:9px;outline:none}.cc-search .mag{position:absolute;left:19px;top:18px;color:#82939c}.cc-search .clear{position:absolute;right:17px;top:15px;border:0;background:transparent;color:#d75b5b;cursor:pointer}
+.cc-list{max-height:510px;overflow:auto}
+.cc-search-drop{display:none;position:absolute;left:9px;right:9px;top:45px;z-index:500;background:#fff;border:1px solid #d7e4e9;border-radius:8px;box-shadow:0 12px 30px rgba(33,67,83,.18);overflow:hidden}
+.cc-search-drop.show{display:block}.cc-search-result{display:block;padding:10px 12px;border-bottom:1px solid #edf2f4;text-decoration:none;color:#4d626e;font-size:9px}.cc-search-result:hover{background:#eef9f4;color:#078c52}
+.cc-search-add{display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;background:#0aa35d;color:#fff!important;text-decoration:none;font-size:9px;font-weight:900}.cc-customer{display:block;padding:9px 11px;border-bottom:1px solid #edf1f3;color:#52636d;text-decoration:none;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cc-customer:hover{background:#f2faf6}.cc-customer.active{background:#e8f8f0;color:#079755;font-weight:900;border-left:3px solid var(--cc-green)}
+.cc-main{min-width:0}.cc-profile{display:grid;grid-template-columns:minmax(0,1fr) 260px;min-height:150px;border-bottom:1px solid var(--cc-line)}.cc-person{padding:24px 30px;display:flex;align-items:center;gap:20px}.cc-avatar{width:72px;height:72px;border-radius:12px;background:#edf2f4;color:#93a2aa;display:grid;place-items:center;font-size:32px}.cc-person h2{margin:0 0 10px;font-size:20px;color:#148b58}.cc-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:10px;color:#6d7f89}.cc-balance{border-left:1px solid var(--cc-line);padding:30px 26px}.cc-balance span{font-size:11px;color:#687983;font-weight:800}.cc-balance strong{display:block;margin-top:11px;color:#0b93dc;font-size:24px}
+.cc-tabs{height:36px;display:flex;align-items:end;padding:0 10px;border-bottom:1px solid var(--cc-line);gap:18px}.cc-tab{height:35px;border:0;border-bottom:2px solid transparent;background:transparent;font-size:8px;font-weight:900;color:#536671;cursor:pointer}.cc-tab.active{color:#079755;border-color:#0aa35d}
+.cc-filter{min-height:42px;padding:5px 9px;display:flex;align-items:center;gap:5px;border-bottom:1px solid var(--cc-line)}.cc-filter select,.cc-filter input{height:34px;border:1px solid #d5e1e7;border-radius:5px;background:#fff;color:#566a75;font-size:8px;padding:0 7px}.cc-filter select{width:145px;flex:0 0 145px}.cc-filter input[type=date]{width:135px;flex:0 0 135px}.cc-filter .grow{flex:1}.cc-filter-tool{border:1px solid #d8e7ee;background:#fff;border-radius:6px;color:#0b84ca;font-size:9px;font-weight:800;cursor:pointer;padding:8px 9px;white-space:nowrap}.cc-filter-tool:hover{background:#edf8fd}.cc-tablewrap{overflow:auto;max-height:345px}.cc-table{width:100%;min-width:850px;border-collapse:collapse}.cc-table th{height:29px;background:#f4f7f8;border-bottom:1px solid #dbe4e8;color:#465b66;font-size:7.5px;text-align:left;padding:0 7px;white-space:nowrap}.cc-table td{height:30px;border-bottom:1px solid #edf1f3;color:#596c76;font-size:8px;padding:0 7px;white-space:nowrap}.cc-table tr.selected td{background:#e8f8f0}.cc-table .money{text-align:right}.cc-table .numlink{color:#087fc1;font-weight:800;cursor:pointer}.cc-square{width:27px;height:27px;border:0;background:transparent;color:#0b84ca;font-size:16px;cursor:pointer}.cc-square:hover{background:#eaf6fc;border-radius:5px}
+.cc-menu{display:none;position:fixed;z-index:99999;width:190px;background:#fff;border:1px solid #d9e5ea;border-radius:9px;padding:5px;box-shadow:0 16px 40px rgba(20,52,70,.2)}.cc-menu.show{display:block}.cc-menu button{width:100%;height:32px;border:0;border-radius:6px;background:#fff;color:#1684bd;text-align:left;padding:0 10px;font-size:9px;cursor:pointer}.cc-menu button:hover{background:#eaf6fc}
+.cc-empty{padding:50px;text-align:center;color:#8b9aa2}.cc-modal{display:none;position:fixed;inset:0;z-index:12000;background:rgba(28,43,52,.38);backdrop-filter:blur(2px);align-items:center;justify-content:center;padding:20px}.cc-modal.show{display:flex}.cc-card{width:min(960px,96vw);max-height:86vh;background:#fff;border-radius:11px;box-shadow:0 25px 80px rgba(0,0,0,.22);overflow:hidden}.cc-card-head{height:46px;padding:0 15px;border-bottom:1px solid #e1e8ec;display:flex;align-items:center;justify-content:space-between;color:#3e5360;font-size:12px;font-weight:900}.cc-close{width:28px;height:28px;border:0;border-radius:6px;background:#eef3f5;cursor:pointer}.cc-card-body{padding:18px;max-height:68vh;overflow:auto}.cc-info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.cc-info{border:1px solid #e1e9ed;border-radius:8px;padding:11px}.cc-info small{display:block;color:#8998a0;font-size:8px}.cc-info strong{display:block;margin-top:4px;color:#405866;font-size:11px}.cc-report{width:100%;border-collapse:collapse}.cc-report th,.cc-report td{border-bottom:1px solid #e5ebee;padding:8px;font-size:9px;text-align:left}.cc-report th{background:#4d535c;color:#fff}.cc-report .right{text-align:right}
+.cc-pref-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.cc-pref-grid label{border:1px solid #e1e9ed;border-radius:7px;padding:10px;font-size:9px;color:#536773}.cc-footer{display:flex;justify-content:flex-end;gap:6px;padding:10px 14px;border-top:1px solid #e1e8ec}.cc-btn{height:31px;border:1px solid #cfe0e7;border-radius:6px;background:#fff;color:#1681b7;padding:0 11px;font-size:9px;font-weight:800;cursor:pointer}.cc-btn.green{background:#0aa35d;color:#fff;border-color:#0aa35d}
+.cc.compact .cc-table td{height:25px}.cc.hide-phone .col-phone,.cc.hide-email .col-email,.cc.hide-memo .col-memo{display:none}
+@media(max-width:900px){.cc-body{grid-template-columns:1fr}.cc-side{border-right:0;border-bottom:1px solid var(--cc-line)}.cc-list{max-height:190px}.cc-profile{grid-template-columns:1fr}.cc-balance{border-left:0;border-top:1px solid var(--cc-line)}}
+.cc-importmenu{position:relative;display:inline-flex}.cc-importdrop{display:none;position:absolute;left:0;top:32px;z-index:700;width:170px;background:#fff;border:1px solid #d7e4e9;border-radius:8px;box-shadow:0 12px 28px rgba(33,67,83,.18);padding:5px}.cc-importmenu.open .cc-importdrop{display:block}.cc-importdrop a,.cc-importdrop button{display:block;width:100%;border:0;background:#fff;text-align:left;padding:8px 9px;border-radius:6px;color:#167ead;text-decoration:none;font-size:9px;font-weight:800;cursor:pointer}.cc-importdrop a:hover,.cc-importdrop button:hover{background:#edf8fd}
+</style>
 
-<div class="card">
 
-    <div class="card-head">
+<style>
+/* Vendor Center visual parity — Customer functions/routes remain unchanged */
+.cc{
+  border-radius:10px;
+  min-height:646px;
+  box-shadow:0 8px 28px rgba(38,70,88,.06);
+}
+.cc-top{
+  height:47px;
+  gap:4px;
+  padding:0 10px;
+}
+.cc-title{margin-right:7px}
+.cc-tool{
+  height:30px;
+  padding:0 7px;
+  border-radius:6px;
+  font-size:9px;
+}
+.cc-body{
+  grid-template-columns:255px minmax(0,1fr);
+  min-height:596px;
+}
+.cc-side{background:#fbfdfe}
+.cc-search{padding:9px}
+.cc-search input{height:32px}
+.cc-list{max-height:596px}
+.cc-customer{
+  min-height:36px;
+  box-sizing:border-box;
+  padding:9px 11px;
+}
+.cc-profile{
+  grid-template-columns:minmax(0,1fr) 260px;
+  min-height:168px;
+  background:linear-gradient(180deg,#fff 0%,#fcfefe 100%);
+}
+.cc-person{padding:24px 30px;gap:22px}
+.cc-avatar{
+  width:82px;height:82px;border-radius:16px;
+  background:linear-gradient(145deg,#e8eef1,#f4f7f8);
+  box-shadow:inset 0 0 0 1px #edf2f4;
+}
+.cc-person h2{
+  font-size:21px;
+  margin:0 0 10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.cc-meta{
+  gap:7px 28px;
+  font-size:11px;
+  line-height:1.65;
+}
+.cc-balance{
+  padding:30px 28px;
+  background:#fbfdfe;
+}
+.cc-balance span{font-size:12px}
+.cc-balance strong{font-size:28px}
+.cc-tabs{
+  height:37px;
+  padding:0 10px;
+  gap:18px;
+}
+.cc-filter{
+  min-height:44px;
+  padding:5px 9px;
+  gap:5px;
+}
+.cc-filter select,.cc-filter input{height:32px}
+.cc-filter-tool{
+  height:30px;
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 8px;
+}
+.cc-tablewrap{max-height:365px}
+.cc-table th{height:29px}
+.cc-table td{height:30px}
+.cc-search-drop{top:45px}
+@media(max-width:900px){
+  .cc-body{grid-template-columns:1fr}
+  .cc-list{max-height:220px}
+}
+</style>
 
-        <div>
-            <h2>Customer Center</h2>
-            <p>Manage customer records and A/R balance for {{ company.name }}.</p>
-        </div>
 
-        <div class="form-actions">
-            <a href="{% url 'customer_create' %}" class="btn">➕ Add Customer</a>
-            <a href="{% url 'customer_invoice_create' %}" class="btn btn-light">Invoice</a>
-            <a href="{% url 'sale_receipt_create' %}" class="btn btn-light">Sale Receipt</a>
-            <a href="{% url 'receive_payment_create' %}" class="btn btn-light">Receipt / Collection</a>
-            <a href="{% url 'customer_import_excel' %}" class="btn btn-light">Import Excel</a>
-        </div>
+<style>
+/* Customer transaction action bar */
+.cc-filter-tool{
+  min-width:74px !important;
+  height:34px !important;
+  padding:0 12px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:6px !important;
+  border:1px solid #d4e4ec !important;
+  border-radius:7px !important;
+  background:#fff !important;
+  color:#087fc1 !important;
+  font-size:10px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  text-decoration:none !important;
+  white-space:nowrap !important;
+}
+.cc-filter-tool .act-icon{
+  display:inline-flex;
+  width:15px;
+  height:15px;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  line-height:1;
+  font-weight:900;
+}
+.cc-filter-tool.action-add{min-width:112px !important}
+.cc-filter-tool.action-delete{
+  color:#dc3545 !important;
+  border-color:#f0c7cc !important;
+}
+.cc-filter-tool.action-delete:hover{
+  background:#fff2f3 !important;
+  border-color:#dc3545 !important;
+}
+.cc-filter-tool:hover{
+  background:#edf8fd !important;
+  border-color:#9dcfe8 !important;
+}
+@media print{
+  .cc-top,.cc-side,.cc-tabs,.cc-filter,.cc-menu,.cc-modal,
+  .main-header,.navbar,nav,.sidebar{display:none !important}
+  .cc,.cc-body,.cc-main{display:block !important;border:0 !important;box-shadow:none !important}
+  .cc-profile{grid-template-columns:1fr 220px !important}
+  .cc-tablewrap{max-height:none !important;overflow:visible !important}
+  .cc-table{min-width:0 !important;width:100% !important}
+  body{background:#fff !important}
+}
+</style>
 
-    </div>
 
-    <div class="quick-grid">
+<style>
+/* CUSTOMER Custom modal — keep the old customer style */
+.cc-customer-custom{
+  width:min(930px,96vw)!important;
+  min-height:540px;
+  border-radius:5px!important;
+}
+.cc-customer-custom .cc-card-head{
+  height:48px;
+  padding:0 16px;
+  font-size:12px;
+}
+.customer-custom-body{
+  padding:14px 16px 22px!important;
+  min-height:420px;
+}
+.customer-custom-top{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:0;
+  max-width:760px;
+}
+.custom-section{
+  padding:0 14px 8px 0;
+  min-height:145px;
+}
+.custom-section + .custom-section{
+  border-left:1px solid #e2e8eb;
+  padding-left:18px;
+}
+.custom-section-title{
+  height:26px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:8px;
+  background:#faf9fb;
+  color:#64747d;
+  font-size:10px;
+}
+.custom-section label,
+.transaction-options label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:28px;
+  color:#52656f;
+  font-size:10px;
+  cursor:pointer;
+}
+.custom-section input,
+.transaction-options input{
+  width:16px;
+  height:16px;
+  margin:0;
+  accent-color:#0aa35d;
+}
+.customer-custom-tabs{
+  height:36px;
+  display:flex;
+  align-items:flex-end;
+  gap:22px;
+  border-bottom:1px solid #dce4e8;
+}
+.customer-custom-tabs span{
+  height:35px;
+  display:flex;
+  align-items:center;
+  padding:0 4px;
+  color:#4e5d65;
+  font-size:10px;
+  font-weight:800;
+  border-bottom:2px solid transparent;
+}
+.customer-custom-tabs span.active{
+  color:#0a9b57;
+  border-color:#0aa35d;
+}
+.transaction-options{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(140px,1fr));
+  gap:2px 24px;
+  padding:14px 16px 0;
+}
+.custom-footer{
+  justify-content:space-between!important;
+  min-height:52px;
+  padding:9px 16px!important;
+}
+.custom-footer>div{
+  display:flex;
+  gap:6px;
+}
+.cc-customer-custom .cc-btn{
+  height:32px;
+  min-width:64px;
+  border-radius:3px;
+}
+.cc-customer-custom .cc-btn.green{
+  background:#07984f;
+  border-color:#07984f;
+}
+.cc-list-extra{
+  display:block;
+  margin-top:3px;
+  color:#8b9aa2;
+  font-size:7.5px;
+}
+@media(max-width:800px){
+  .customer-custom-top{grid-template-columns:1fr 1fr}
+  .transaction-options{grid-template-columns:1fr 1fr}
+}
+</style>
 
-        <div class="quick-card">
-            <div class="quick-icon">👥</div>
-            <span>Total Customers</span>
-            <h3>{{ total_customers }}</h3>
-        </div>
 
-        <div class="quick-card">
-            <div class="quick-icon">🧾</div>
-            <span>Total Invoice</span>
-            <h3>${{ total_invoice }}</h3>
-        </div>
+<style>
+/* ===== Customer table right-side controls ===== */
+.cc-custom-grid-btn{
+  width:29px;height:29px;padding:6px;border:1px solid #d8e3e8;border-radius:4px;
+  background:#fff;display:grid;grid-template-columns:repeat(2,5px);grid-template-rows:repeat(2,5px);
+  gap:2px;align-content:center;justify-content:center;cursor:pointer;margin:auto;color:#1187c3;
+}
+.cc-custom-grid-btn span{display:block;width:5px;height:5px;border:1.5px solid #1187c3}
+.cc-custom-grid-btn:hover{background:#eef8fc;border-color:#9fd0e7}
+.cc-square{font-weight:900;font-size:18px!important}
 
-        <div class="quick-card">
-            <div class="quick-icon">💵</div>
-            <span>Total Payment</span>
-            <h3>${{ total_payment }}</h3>
-        </div>
+/* ===== Old-style Custom popup ===== */
+.cc-customer-custom{
+  width:min(1050px,94vw)!important;
+  min-height:610px!important;
+  border-radius:3px!important;
+}
+.cc-customer-custom .cc-card-head{height:52px!important;padding:0 18px!important;font-size:13px!important}
+.customer-custom-body{padding:14px 18px 28px!important;min-height:500px!important}
+.customer-custom-top{
+  display:grid!important;grid-template-columns:255px 300px 220px!important;gap:0!important;
+  width:100%;max-width:810px!important;
+}
+.custom-section{min-height:150px!important;padding:0 20px 8px 0!important}
+.custom-section + .custom-section{padding-left:20px!important}
+.custom-section-title{
+  height:25px!important;margin-bottom:8px!important;background:#fbfafc!important;
+  font-size:10px!important;font-weight:500!important;
+}
+.customer-custom-tabs button{
+  height:36px;border:0;background:transparent;padding:0 8px;margin-right:12px;
+  color:#505d65;font-size:10px;font-weight:800;cursor:pointer;border-bottom:2px solid transparent;
+}
+.customer-custom-tabs button.active{color:#0a9a56;border-color:#0aa35d}
+.custom-tab-panel{display:none;padding:15px 16px 0}
+.custom-tab-panel.active{display:grid}
+.transaction-options.custom-tab-panel{
+  grid-template-columns:repeat(4,minmax(140px,1fr));gap:2px 26px;
+}
+.open-options.custom-tab-panel{
+  grid-template-columns:repeat(4,minmax(140px,1fr));gap:2px 26px;
+}
+.address-options.custom-tab-panel{
+  grid-template-columns:repeat(4,minmax(140px,1fr));gap:2px 26px;
+}
+.custom-tab-panel label{
+  display:flex;align-items:center;gap:8px;min-height:29px;color:#52656f;font-size:10px;cursor:pointer;
+}
+.custom-tab-panel input{width:16px;height:16px;margin:0;accent-color:#0aa35d}
 
-        <div class="quick-card">
-            <div class="quick-icon">💳</div>
-            <span>A/R Balance</span>
-            <h3>${{ ar_balance }}</h3>
-        </div>
+/* ===== Row popup ===== */
+.cc-menu{
+  min-width:205px!important;border-radius:3px!important;padding:5px 0!important;
+  box-shadow:0 3px 10px rgba(0,0,0,.22)!important;
+}
+.cc-menu button{
+  min-height:36px!important;padding:0 18px!important;font-size:11px!important;color:#1689c5!important;
+}
+.cc-menu button:hover{background:#eef8fc!important}
 
-    </div>
+/* ===== Large information modal like sample ===== */
+.cc-action-card{width:min(1210px,94vw)!important;min-height:650px!important;border-radius:2px!important}
+.cc-action-card .cc-card-head{height:52px!important;font-size:14px!important;padding:0 18px!important}
+.action-summary{
+  display:grid;grid-template-columns:150px 360px 1fr;align-items:center;
+  gap:16px;padding:25px 28px 24px;border-bottom:0;
+}
+.action-money-icon{
+  width:115px;height:115px;border-radius:50%;border:10px solid #e7e7e7;
+  display:flex;align-items:center;justify-content:center;font-size:66px;font-weight:900;color:#dedede;
+}
+.action-doc-no{font-size:27px;font-weight:900;color:#51545a;margin-bottom:13px}
+.action-meta-row{display:flex;align-items:center;gap:9px;margin:10px 0;color:#6b6d72;font-size:12px}
+.action-amount{border-left:1px solid #e4e4e4;padding-left:34px}
+.action-amount small{display:block;font-size:20px;color:#777;margin-bottom:10px}
+.action-amount strong{display:block;font-size:29px;color:#24a7df}
+.action-report-wrap{padding:8px 28px 28px}
+.cc-report.sample-report{width:100%;border-collapse:collapse}
+.cc-report.sample-report th{
+  height:31px;background:#fbfafc;border:1px solid #e4e4e8;color:#575c63;
+  font-size:10px;text-align:center;font-weight:800;
+}
+.cc-report.sample-report td{height:31px;border-bottom:1px solid #ececef;padding:5px 8px;font-size:10px;color:#606870}
+.action-empty{height:270px!important;text-align:center!important;color:#9aa3a8!important}
 
-</div>
+/* ===== Journal report style ===== */
+.journal-title{text-align:center;margin:5px 0 18px}
+.journal-title strong{display:block;font-size:14px;color:#51555b}
+.journal-title span{display:block;font-size:12px;font-weight:800;color:#51555b;margin-top:3px}
+.journal-table{width:100%;border-collapse:collapse}
+.journal-table th{
+  background:#50545c;color:#fff;height:30px;padding:0 5px;font-size:9px;text-align:left;
+  border-right:1px solid #fff;
+}
+.journal-table td{height:28px;padding:4px 5px;font-size:9px;border-bottom:1px solid #e6e6e6}
+.journal-table .right{text-align:right}
+.journal-grand td{font-weight:900;border-top:1px solid #777}
 
-<div class="card">
+/* Transaction log */
+.log-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:8px}
+.log-box{border:1px solid #e0e7ea;padding:12px 14px;min-height:62px}
+.log-box small{display:block;color:#89959b;font-size:9px;text-transform:uppercase;margin-bottom:6px}
+.log-box strong{font-size:11px;color:#455760}
+@media(max-width:800px){
+  .customer-custom-top{grid-template-columns:1fr 1fr!important}
+  .action-summary{grid-template-columns:100px 1fr}.action-amount{grid-column:1/-1;border-left:0;padding-left:0}
+}
+</style>
 
-    <div class="card-head">
+<div class="cc" id="customerCenter">
+  <div class="cc-top">
+    <div class="cc-title">CUSTOMER</div>
+    <a class="cc-tool" href="{% url 'customer_create' %}">⊕ Add</a>
+    {% if selected_customer %}<a class="cc-tool" href="{% url 'customer_edit' selected_customer.id %}">✎ Edit</a>{% else %}<span class="cc-tool disabled">✎ Edit</span>{% endif %}
+    <button class="cc-tool danger" id="deleteCustomer">♲ Delete</button>
+    <button class="cc-tool" id="mergeCustomer">⇥ Merge</button>
+    <div class="cc-importmenu"><button type="button" class="cc-tool" id="customerImportBtn">⇧ Import ▾</button><div class="cc-importdrop" id="customerImportDrop"><a href="{% url 'customer_import_excel' %}">⇧ Upload Excel</a><button type="button" id="customerSampleBtn">⇩ Download Sample</button></div></div>
+    <a class="cc-tool" href="{% url 'customer_export_excel' %}?q={{ query|urlencode }}">⇩ Download List</a>
+    <button class="cc-tool" id="bulkCustomer">☑ Bulk Update</button>
+    <button class="cc-tool" id="prefCustomer">⚙ Preference</button>
+    <div class="cc-spacer"></div>
+  </div>
 
-        <div>
-            <h2>Customer List</h2>
-            <p>Search customer profile.</p>
-        </div>
-
-        <div class="form-actions">
-            <a
-                href="{% url 'customer_export_excel' %}{% if query %}?q={{ query|urlencode }}{% endif %}"
-                class="btn btn-light"
-            >
-                📥 Download Excel
-            </a>
-        </div>
-
-    </div>
-
-    <form method="get" class="form-actions">
-
-        <input
-            type="text"
-            name="q"
-            value="{{ query }}"
-            placeholder="Press Enter to Search"
-        >
-
-        <button class="btn">🔍 Search</button>
-
-        <a href="{% url 'customer_center' %}" class="btn btn-light">
-            Reset
+  <div class="cc-body">
+    <aside class="cc-side">
+      <div class="cc-search"><span class="mag">⌕</span><input id="customerSearch" value="{{ query }}" placeholder="Search customer name, code or phone..." autocomplete="off"><button class="clear" id="clearSearch">×</button>
+<div class="cc-search-drop" id="customerSearchDrop">
+{% for customer in customers %}<a class="cc-search-result" href="?customer={{ customer.id }}&q={{ query|urlencode }}" data-search="{{ customer.name|lower }} {{ customer.code|default:''|lower }} {{ customer.phone|default:''|lower }}"><strong>{{ customer.name }}</strong><br><small>{{ customer.code|default:"No code" }}{% if customer.phone %} · {{ customer.phone }}{% endif %}</small></a>{% endfor %}
+<a class="cc-search-add" href="{% url 'customer_create' %}">＋ Add Customer</a>
+</div></div>
+      <div class="cc-list" id="customerList">
+        {% for customer in customers %}
+        <a class="cc-customer {% if selected_customer and selected_customer.id == customer.id %}active{% endif %}" href="?customer={{ customer.id }}&q={{ query|urlencode }}" data-search="{{ customer.name|lower }} {{ customer.code|default:''|lower }} {{ customer.phone|default:''|lower }}" data-active="{% if customer.is_active %}1{% else %}0{% endif %}">
+          <span class="cc-list-name">{{ customer.name }}</span>
+          <small class="cc-list-extra"><span class="pref-list-code">{{ customer.code|default:"No code" }}</span><span class="pref-list-phone">{% if customer.phone %} · {{ customer.phone }}{% endif %}</span></small>
         </a>
+        {% empty %}<div class="cc-empty">No customers found.</div>{% endfor %}
+      </div>
+    </aside>
 
-    </form>
+    <main class="cc-main">
+      {% if selected_customer %}
+      <section class="cc-profile">
+        <div class="cc-person">
+          <div class="cc-avatar">●</div>
+          <div>
+            <h2>{{ selected_customer.name }}</h2>
+            <div class="cc-meta">
+              <span class="pref-info-code">▣ {{ selected_customer.code|default:"—" }}</span><span class="pref-info-email">✉ {{ selected_customer.email|default:"—" }}</span>
+              <span class="pref-info-phone">☎ {{ selected_customer.phone|default:"—" }}</span><span class="pref-info-telegram">➤ {{ selected_customer.telegram|default:"—" }}</span>
+              <span class="pref-info-currency">$ {{ selected_customer.currency|default:"Dollar USD" }}</span><span class="pref-info-address">⌖ {{ selected_customer.address|default:"—" }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="cc-balance pref-info-ar"><span>A/R Balance</span><strong>$ {{ selected_ar_balance|floatformat:2 }}</strong></div>
+      </section>
 
-    <div class="table-wrap">
+      <div class="cc-tabs"><button class="cc-tab active">Transaction</button><button class="cc-tab">Open</button><button class="cc-tab">Address</button></div>
+      <div class="cc-filter">
+        <select id="tranType"><option value="">All</option><option>Invoice</option><option>Receipt / Collection</option><option>Sale Receipt</option><option>Receive Payment</option></select>
+        <input type="date" id="dateFrom"><input type="date" id="dateTo">
+        <button class="cc-filter-tool" id="resetTran">↻</button><div class="grow"></div>
+        <a class="cc-filter-tool action-add" href="{% url 'customer_invoice_create' %}?customer={{ selected_customer.id }}"><span class="act-icon">＋</span>Add Invoice</a>
+        <button type="button" class="cc-filter-tool" id="printCustomerPage"><span class="act-icon">▣</span>Print</button>
+        <button type="button" class="cc-filter-tool" id="editTran"><span class="act-icon">✎</span>Edit</button>
+        <button type="button" class="cc-filter-tool action-delete" id="deleteTran"><span class="act-icon">🗑</span>Delete</button>
+        <button type="button" class="cc-filter-tool" id="voidTran"><span class="act-icon">⊘</span>Void</button>
+        <button type="button" class="cc-filter-tool" id="exportTran"><span class="act-icon">⇩</span>Export</button>
+        <a class="cc-filter-tool" href="{% url 'customer_import_excel' %}"><span class="act-icon">⇧</span>Import</a>
+      </div>
 
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Customer</th>
-                    <th>Code</th>
-                    <th>Phone</th>
-                    <th>Email</th>
-                    <th>Salesperson</th>
-                    <th>Region</th>
-                    <th>A/R Balance</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                {% for customer in customers %}
-
-                <tr>
-                    <td><strong>{{ customer.name }}</strong></td>
-                    <td>{{ customer.code|default:"-" }}</td>
-                    <td>{{ customer.phone|default:"-" }}</td>
-                    <td>{{ customer.email|default:"-" }}</td>
-                    <td>{{ customer.salesperson.name|default:"-" }}</td>
-                    <td>{{ customer.region.name|default:"-" }}</td>
-                    <td>${{ customer.ar_balance }}</td>
-                    <td>
-                        <a
-                            href="{% url 'customer_edit' customer.id %}"
-                            class="btn btn-light"
-                        >
-                            Edit
-                        </a>
-                    </td>
-                </tr>
-
-                {% empty %}
-
-                <tr>
-                    <td colspan="8">
-
-                        <div class="empty-state">
-
-                            <div class="emoji">👥</div>
-
-                            No customers yet.
-
-                            <br><br>
-
-                            
-
-                        </div>
-
-                    </td>
-                </tr>
-
-                {% endfor %}
-
-            </tbody>
-
+      <div class="cc-tablewrap">
+        <table class="cc-table" id="transactionTable">
+          <thead><tr>
+            <th>Tran Type</th>
+            <th data-pref-col="date">Tran Date</th>
+            <th data-pref-col="number">Number</th>
+            <th data-pref-col="so">SO Number</th>
+            <th data-pref-col="currency">Currency</th>
+            <th data-pref-col="amount" class="money">Amount</th>
+            <th data-pref-col="open" class="money">Open Balance</th>
+            <th data-pref-col="memo" class="col-memo">Memo</th>
+            <th>Sent</th>
+            <th style="width:42px;text-align:center">
+              <button type="button" class="cc-custom-grid-btn" id="customerCustomBtn" title="Custom columns">
+                <span></span><span></span><span></span><span></span>
+              </button>
+            </th>
+          </tr></thead>
+          <tbody>
+          {% for t in center_transactions %}
+          <tr class="tran-row" data-id="{{ t.id }}" data-kind="{{ t.kind }}" data-type="{{ t.type }}" data-date="{{ t.date|date:'Y-m-d' }}" data-number="{{ t.number }}" data-amount="{{ t.amount }}" data-open="{{ t.open_balance }}" data-memo="{{ t.memo|default:''|escape }}" data-detail-url="{{ t.detail_url }}" data-duplicate-url="{{ t.duplicate_url }}" data-action-url="{{ t.action_url }}">
+            <td>{{ t.type }}</td>
+            <td data-pref-col="date">{{ t.date|date:"d-m-Y" }}</td>
+            <td data-pref-col="number"><span class="numlink">{{ t.number }}</span></td>
+            <td data-pref-col="so">{{ t.so_number|default:"" }}</td>
+            <td data-pref-col="currency">{{ t.currency|default:"Dollar USD ($)" }}</td>
+            <td data-pref-col="amount" class="money">{{ t.amount|floatformat:2 }}</td>
+            <td data-pref-col="open" class="money">{{ t.open_balance|floatformat:2 }}</td>
+            <td data-pref-col="memo" class="col-memo">{{ t.memo|default:"" }}</td>
+            <td>{{ t.sent|default:"" }}</td>
+            <td><button type="button" class="cc-square rowMenuBtn">⌄</button></td>
+          </tr>
+          {% empty %}<tr><td colspan="10" class="cc-empty">No transactions for this customer.</td></tr>{% endfor %}
+          </tbody>
         </table>
-
-    </div>
-
+      </div>
+      {% else %}<div class="cc-empty">Select a customer from the left.</div>{% endif %}
+    </main>
+  </div>
 </div>
 
+<div class="cc-menu" id="rowMenu">
+  <button type="button" data-menu="collection">Collection Information</button>
+  <button type="button" data-menu="duplicate">Duplicate</button>
+  <button type="button" data-menu="journal">Journal Report</button>
+  <button type="button" data-menu="log">Transaction Log</button>
+</div>
+
+<div class="cc-modal" id="infoModal"><div class="cc-card cc-action-card"><div class="cc-card-head"><span id="infoTitle">Transaction Information</span><button class="cc-close">×</button></div><div class="cc-card-body" id="infoBody"></div><div class="cc-footer"><button class="cc-btn green cc-close">Close</button></div></div></div>
+
+<div class="cc-modal" id="prefModal">
+  <div class="cc-card cc-customer-custom">
+    <div class="cc-card-head">
+      <span>Custom</span>
+      <button type="button" class="cc-close">×</button>
+    </div>
+
+    <div class="cc-card-body customer-custom-body">
+      <div class="customer-custom-top">
+        <section class="custom-section">
+          <div class="custom-section-title">Customer List</div>
+          <label><input type="checkbox" id="ccListCode" checked> Customer Code</label>
+          <label><input type="checkbox" id="ccListPhone" checked> Phone</label>
+          <label><input type="checkbox" id="ccListOpen"> Open Balance</label>
+          <label><input type="checkbox" id="ccActiveOnly"> Active Only</label>
+        </section>
+
+        <section class="custom-section">
+          <div class="custom-section-title">Customer Information</div>
+          <label><input type="checkbox" id="ccInfoPhone" checked> Phone</label>
+          <label><input type="checkbox" id="ccInfoEmail" checked> Email</label>
+          <label><input type="checkbox" id="ccInfoCurrency" checked> Currency</label>
+        </section>
+
+        <section class="custom-section">
+          <div class="custom-section-title">&nbsp;</div>
+          <label><input type="checkbox" id="ccInfoAR" checked> A/R Balance</label>
+        </section>
+      </div>
+
+      <div class="customer-custom-tabs">
+        <button type="button" class="custom-tab active" data-custom-tab="transaction">Transaction</button>
+        <button type="button" class="custom-tab" data-custom-tab="open">Open</button>
+        <button type="button" class="custom-tab" data-custom-tab="address">Address</button>
+      </div>
+
+      <div class="transaction-options custom-tab-panel active" data-custom-panel="transaction">
+        <label><input type="checkbox" data-cc-col="date" checked> Tran Date</label>
+        <label><input type="checkbox" data-cc-col="number" checked> Number</label>
+        <label><input type="checkbox" data-cc-col="so" checked> SO Number</label>
+        <label><input type="checkbox" data-cc-col="currency" checked> Currency</label>
+        <label><input type="checkbox" data-cc-col="amount" checked> Amount</label>
+        <label><input type="checkbox" data-cc-col="open" checked> Open Balance</label>
+        <label><input type="checkbox" data-cc-col="memo" checked> Memo</label>
+      </div>
+
+      <div class="open-options custom-tab-panel" data-custom-panel="open">
+        <label><input type="checkbox" data-cc-col="number" checked> Number</label>
+        <label><input type="checkbox" data-cc-col="date" checked> Tran Date</label>
+        <label><input type="checkbox" data-cc-col="currency" checked> Currency</label>
+        <label><input type="checkbox" data-cc-col="open" checked> Open Balance</label>
+        <label><input type="checkbox" data-cc-col="amount" checked> Amount</label>
+        <label><input type="checkbox" data-cc-col="memo" checked> Memo</label>
+      </div>
+
+      <div class="address-options custom-tab-panel" data-custom-panel="address">
+        <label><input type="checkbox" id="ccInfoAddress" checked> Address</label>
+        <label><input type="checkbox" id="ccInfoTelegram" checked> Telegram</label>
+        <label><input type="checkbox" id="ccInfoPhone2" checked> Phone</label>
+        <label><input type="checkbox" id="ccInfoEmail2" checked> Email</label>
+      </div>
+    </div>
+
+    <div class="cc-footer custom-footer">
+      <button type="button" class="cc-btn" id="prefReset">Reset</button>
+      <div>
+        <button type="button" class="cc-btn green" id="prefSave">▣ Save</button>
+        <button type="button" class="cc-btn cc-close">× Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+ const center=document.getElementById('customerCenter'),menu=document.getElementById('rowMenu');let row=null;
+ const search=document.getElementById('customerSearch');
+ const searchDrop=document.getElementById('customerSearchDrop');
+ function showCustomerSearch(){searchDrop?.classList.add('show')}
+ function filterCustomers(){const q=search.value.toLowerCase();document.querySelectorAll('.cc-customer,.cc-search-result').forEach(x=>x.style.display=x.dataset.search.includes(q)?'':'none');showCustomerSearch()}
+ search?.addEventListener('focus',showCustomerSearch);
+ search?.addEventListener('click',showCustomerSearch);
+ search?.addEventListener('input',filterCustomers);
+ search?.addEventListener('keydown',e=>{if(e.key==='Enter')location.href='?q='+encodeURIComponent(search.value)});
+ document.addEventListener('click',e=>{if(!e.target.closest('.cc-search'))searchDrop?.classList.remove('show')});
+ document.getElementById('clearSearch')?.addEventListener('click',()=>location.href='{% url "customer_center" %}');
+ document.querySelectorAll('.tran-row').forEach(r=>{
+   r.addEventListener('click',e=>{
+     if(e.target.closest('button,a,input,select')) return;
+     document.querySelectorAll('.tran-row').forEach(x=>x.classList.remove('selected'));
+     r.classList.add('selected');
+     row=r;
+   });
+ });
+
+ function closeRowMenu(){
+   menu?.classList.remove('show');
+ }
+
+ function selectTransactionRow(r){
+   if(!r)return;
+   document.querySelectorAll('.tran-row').forEach(x=>x.classList.remove('selected'));
+   r.classList.add('selected');
+   row=r;
+ }
+
+ document.querySelectorAll('.rowMenuBtn').forEach(b=>{
+   b.addEventListener('click',e=>{
+     e.preventDefault();
+     e.stopPropagation();
+
+     const r=b.closest('.tran-row');
+     if(!r)return;
+     selectTransactionRow(r);
+
+     const rect=b.getBoundingClientRect();
+     const menuWidth=205;
+     const menuHeight=145;
+     let left=rect.right-menuWidth;
+     let top=rect.bottom+4;
+
+     if(left<8)left=8;
+     if(left+menuWidth>window.innerWidth-8)left=window.innerWidth-menuWidth-8;
+     if(top+menuHeight>window.innerHeight-8)top=rect.top-menuHeight-4;
+
+     menu.style.left=left+'px';
+     menu.style.top=Math.max(8,top)+'px';
+     menu.classList.add('show');
+   });
+ });
+
+ document.addEventListener('click',e=>{
+   if(!e.target.closest('#rowMenu,.rowMenuBtn'))closeRowMenu();
+ });
+
+ window.addEventListener('scroll',closeRowMenu,true);
+ window.addEventListener('resize',closeRowMenu);
+
+ function need(){
+   if(!row){
+     alert('Please select a transaction first.');
+     return false;
+   }
+   return true;
+ }
+
+ function esc(v){
+   return String(v ?? '')
+     .replaceAll('&','&amp;')
+     .replaceAll('<','&lt;')
+     .replaceAll('>','&gt;')
+     .replaceAll('"','&quot;');
+ }
+
+ function openModal(title,body){
+   const titleEl=document.getElementById('infoTitle');
+   const bodyEl=document.getElementById('infoBody');
+   const modalEl=document.getElementById('infoModal');
+   if(titleEl)titleEl.textContent=title;
+   if(bodyEl)bodyEl.innerHTML=body;
+   modalEl?.classList.add('show');
+ }
+
+ async function getInfo(mode){
+   if(!need())return;
+   closeRowMenu();
+
+   const url=row.dataset.actionUrl;
+   if(!url){
+     alert('This transaction action is not connected. Update customer_center.html, customers/views.py and customers/urls.py together.');
+     return;
+   }
+
+   try{
+     const sep=url.includes('?')?'&':'?';
+     const res=await fetch(url+sep+'mode='+encodeURIComponent(mode),{
+       method:'GET',
+       headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'},
+       credentials:'same-origin'
+     });
+
+     const contentType=res.headers.get('content-type')||'';
+     if(!contentType.includes('application/json')){
+       throw new Error('The server action endpoint is not returning JSON. Replace views.py and urls.py from this update.');
+     }
+     const d=await res.json();
+     if(!res.ok)throw new Error(d.error||'Could not load transaction information.');
+
+     if(mode==='collection'){
+       const rows=(d.collections||[]).map(x=>`
+         <tr>
+           <td>${esc(x.transaction)}</td>
+           <td>${esc(x.number)}</td>
+           <td>${esc(x.date)}</td>
+           <td class="right">${esc(x.paid_amount)}</td>
+           <td>${esc(x.memo)}</td>
+         </tr>`).join('');
+
+       openModal('Collection Information',`
+         <div class="action-summary">
+           <div class="action-money-icon">$</div>
+           <div>
+             <div class="action-doc-no">${esc(d.number||'—')}</div>
+             <div class="action-meta-row">♙ <span>${esc(d.customer||'—')}</span></div>
+             <div class="action-meta-row">▣ <span>${esc(d.date||'—')}</span></div>
+             <div class="action-meta-row">$ <span>${esc(d.currency||'Dollar USD')}</span></div>
+           </div>
+           <div class="action-amount">
+             <small>Amount</small>
+             <strong>$ ${esc(d.amount||'0.00')}</strong>
+           </div>
+         </div>
+         <div class="action-report-wrap">
+           <table class="cc-report sample-report">
+             <thead><tr><th>Transaction</th><th>Number</th><th>Date</th><th>Paid Amount</th><th>Memo</th></tr></thead>
+             <tbody>${rows||`<tr><td colspan="5" class="action-empty">${esc(d.message||'No collection information found for this transaction.')}</td></tr>`}</tbody>
+           </table>
+         </div>`);
+       return;
+     }
+
+     if(mode==='journal'){
+       const lines=(d.lines||[]);
+       let debitTotal=0,creditTotal=0;
+       const body=lines.map(x=>{
+         debitTotal+=Number(x.debit||0);creditTotal+=Number(x.credit||0);
+         return `<tr>
+           <td>${esc(d.type)}</td>
+           <td>${esc(d.number)}</td>
+           <td>${esc(d.date)}</td>
+           <td>${esc(d.customer)}</td>
+           <td>${esc(x.item||'')}</td>
+           <td>${esc(x.account)}</td>
+           <td class="right">${esc(x.currency_amount||d.amount||'')}</td>
+           <td class="right">${Number(x.debit||0)?Number(x.debit).toFixed(2):'-'}</td>
+           <td class="right">${Number(x.credit||0)?Number(x.credit).toFixed(2):'-'}</td>
+           <td>${esc(x.memo||d.memo||'')}</td>
+         </tr>`;
+       }).join('');
+
+       openModal('Journal Report',`
+         <div class="action-report-wrap" style="padding-top:18px">
+           <div class="journal-title"><strong>${esc(d.company||'')}</strong><span>Journal Report</span></div>
+           <table class="journal-table">
+             <thead><tr><th>Tran Type</th><th>Number</th><th>Date</th><th>Name</th><th>Item</th><th>Account</th><th>Currency Amount</th><th>Debit</th><th>Credit</th><th>Memo</th></tr></thead>
+             <tbody>
+               ${body||'<tr><td colspan="10" class="action-empty">No journal entry generated for this transaction.</td></tr>'}
+               ${body?`<tr class="journal-grand"><td colspan="7">Grand Total</td><td class="right">${debitTotal.toFixed(2)}</td><td class="right">${creditTotal.toFixed(2)}</td><td></td></tr>`:''}
+             </tbody>
+           </table>
+         </div>`);
+       return;
+     }
+
+     if(mode==='log'){
+       openModal('Transaction Log',`
+         <div class="action-report-wrap" style="padding-top:22px">
+           <div class="log-grid">
+             <div class="log-box"><small>Transaction</small><strong>${esc(d.type||'—')}</strong></div>
+             <div class="log-box"><small>Number</small><strong>${esc(d.number||'—')}</strong></div>
+             <div class="log-box"><small>Status</small><strong>${esc(d.status||'—')}</strong></div>
+             <div class="log-box"><small>Date</small><strong>${esc(d.date||'—')}</strong></div>
+             <div class="log-box"><small>Customer</small><strong>${esc(d.customer||'—')}</strong></div>
+             <div class="log-box"><small>Amount</small><strong>$ ${esc(d.amount||'0.00')}</strong></div>
+             <div class="log-box"><small>Created By</small><strong>${esc(d.created_by||'—')}</strong></div>
+             <div class="log-box"><small>Created At</small><strong>${esc(d.created_at||'—')}</strong></div>
+             <div class="log-box"><small>Updated At</small><strong>${esc(d.updated_at||'—')}</strong></div>
+             <div class="log-box" style="grid-column:1/-1"><small>Memo</small><strong>${esc(d.memo||'—')}</strong></div>
+           </div>
+         </div>`);
+     }
+   }catch(err){
+     console.error(err);
+     alert(err.message||'Could not load transaction information.');
+   }
+ }
+ menu?.querySelector('[data-menu="collection"]')?.addEventListener('click',()=>getInfo('collection'));
+
+ menu?.querySelector('[data-menu="duplicate"]')?.addEventListener('click',()=>{
+   if(!need())return;
+   closeRowMenu();
+   const url=row.dataset.duplicateUrl;
+   if(!url){
+     alert('Duplicate URL is missing. Please update customers/views.py and customers/urls.py.');
+     return;
+   }
+   window.location.href=url;
+ });
+
+ menu?.querySelector('[data-menu="journal"]')?.addEventListener('click',()=>getInfo('journal'));
+ menu?.querySelector('[data-menu="log"]')?.addEventListener('click',()=>getInfo('log'));
+ document.getElementById('editTran')?.addEventListener('click',()=>{if(need()&&row.dataset.detailUrl)location.href=row.dataset.detailUrl});
+ document.getElementById('printCustomerPage')?.addEventListener('click',()=>{ const qs=new URLSearchParams(); qs.set('customer','{{ selected_customer.id }}'); if(type?.value) qs.set('type',type.value); if(df?.value) qs.set('date_from',df.value); if(dt?.value) qs.set('date_to',dt.value); window.open('/customers/customer-center/print/?'+qs.toString(),'_blank'); });
+ document.getElementById('deleteTran')?.addEventListener('click',()=>alert('For accounting safety, posted transactions cannot be directly deleted. Use Void.'));
+ document.getElementById('voidTran')?.addEventListener('click',()=>alert('Void keeps the accounting audit trail. Open the transaction first to void it.'));
+ document.getElementById('exportTran')?.addEventListener('click',()=>{let csv='Tran Type,Date,Number,Currency,Amount,Open Balance,Memo\n';document.querySelectorAll('.tran-row').forEach(r=>csv += [r.dataset.type,r.dataset.date,r.dataset.number,'USD',r.dataset.amount,r.dataset.open,`"${(r.dataset.memo||'').replaceAll('"','""')}"`].join(',')+'\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='customer_transactions.csv';a.click();URL.revokeObjectURL(a.href)});
+ const type=document.getElementById('tranType'),df=document.getElementById('dateFrom'),dt=document.getElementById('dateTo');function filter(){document.querySelectorAll('.tran-row').forEach(r=>{let ok=(!type.value||r.dataset.type===type.value)&&(!df.value||r.dataset.date>=df.value)&&(!dt.value||r.dataset.date<=dt.value);r.style.display=ok?'':'none'})}[type,df,dt].forEach(x=>x?.addEventListener('change',filter));document.getElementById('resetTran')?.addEventListener('click',()=>{type.value='';df.value='';dt.value='';filter()});
+ document.querySelectorAll('.cc-close').forEach(x=>x.addEventListener('click',()=>x.closest('.cc-modal').classList.remove('show')));
+ document.querySelectorAll('.cc-modal').forEach(x=>x.addEventListener('click',e=>{if(e.target===x)x.classList.remove('show')}));
+ const prefEls={
+   listCode:document.getElementById('ccListCode'),
+   listPhone:document.getElementById('ccListPhone'),
+   listOpen:document.getElementById('ccListOpen'),
+   activeOnly:document.getElementById('ccActiveOnly'),
+   infoPhone:document.getElementById('ccInfoPhone'),
+   infoEmail:document.getElementById('ccInfoEmail'),
+   infoCurrency:document.getElementById('ccInfoCurrency'),
+   infoAR:document.getElementById('ccInfoAR'),
+   infoAddress:document.getElementById('ccInfoAddress'),
+   infoTelegram:document.getElementById('ccInfoTelegram'),
+   infoPhone2:document.getElementById('ccInfoPhone2'),
+   infoEmail2:document.getElementById('ccInfoEmail2')
+ };
+ const transChecks=[...document.querySelectorAll('[data-cc-col]')];
+
+ function ccKey(name){return 'customerCustom_'+name}
+ function setVisible(selector,visible){
+   document.querySelectorAll(selector).forEach(el=>el.style.display=visible?'':'none');
+ }
+ function applyCustomerCustom(){
+   setVisible('.pref-list-code',prefEls.listCode?.checked!==false);
+   setVisible('.pref-list-phone',prefEls.listPhone?.checked!==false);
+   setVisible('.pref-info-phone',prefEls.infoPhone?.checked!==false);
+   setVisible('.pref-info-email',prefEls.infoEmail?.checked!==false);
+   setVisible('.pref-info-currency',prefEls.infoCurrency?.checked!==false);
+   setVisible('.pref-info-ar',prefEls.infoAR?.checked!==false);
+   setVisible('.pref-info-address',prefEls.infoAddress?.checked!==false);
+   setVisible('.pref-info-telegram',prefEls.infoTelegram?.checked!==false);
+   if(prefEls.infoPhone2) setVisible('.pref-info-phone',prefEls.infoPhone2.checked && (prefEls.infoPhone?.checked!==false));
+   if(prefEls.infoEmail2) setVisible('.pref-info-email',prefEls.infoEmail2.checked && (prefEls.infoEmail?.checked!==false));
+
+   // Open Balance in the customer list: show current selected customer's A/R only.
+   document.querySelectorAll('.cc-list-open-balance').forEach(x=>x.remove());
+   if(prefEls.listOpen?.checked){
+     document.querySelectorAll('.cc-customer').forEach(card=>{
+       const x=document.createElement('small');
+       x.className='cc-list-open-balance';
+       x.style.cssText='display:block;margin-top:2px;color:#6f838d;font-size:7.5px';
+       if(card.classList.contains('active')){
+         x.textContent='A/R: $ {{ selected_ar_balance|floatformat:2 }}';
+       }else{
+         x.textContent='A/R: —';
+       }
+       card.appendChild(x);
+     });
+   }
+
+   if(prefEls.activeOnly?.checked){
+     document.querySelectorAll('.cc-customer').forEach(card=>{
+       card.style.display=card.dataset.active==='0'?'none':'';
+     });
+   }else{
+     document.querySelectorAll('.cc-customer').forEach(card=>card.style.display='');
+   }
+
+   transChecks.forEach(ch=>{
+     document.querySelectorAll(`[data-pref-col="${ch.dataset.ccCol}"]`).forEach(el=>{
+       el.style.display=ch.checked?'':'none';
+     });
+   });
+ }
+
+ function loadCustomerCustom(){
+   Object.entries(prefEls).forEach(([name,el])=>{
+     if(!el)return;
+     const v=localStorage.getItem(ccKey(name));
+     if(v!==null)el.checked=v==='1';
+   });
+   transChecks.forEach(ch=>{
+     const v=localStorage.getItem(ccKey('col_'+ch.dataset.ccCol));
+     if(v!==null)ch.checked=v==='1';
+   });
+   applyCustomerCustom();
+ }
+
+ Object.values(prefEls).filter(Boolean).forEach(el=>el.addEventListener('change',applyCustomerCustom));
+ transChecks.forEach(el=>el.addEventListener('change',applyCustomerCustom));
+
+ function openCustomerCustom(){
+   loadCustomerCustom();
+   document.getElementById('prefModal')?.classList.add('show');
+ }
+ document.getElementById('prefCustomer')?.addEventListener('click',openCustomerCustom);
+ document.getElementById('customerCustomBtn')?.addEventListener('click',openCustomerCustom);
+
+ document.querySelectorAll('.custom-tab').forEach(btn=>btn.addEventListener('click',()=>{
+   document.querySelectorAll('.custom-tab').forEach(x=>x.classList.toggle('active',x===btn));
+   document.querySelectorAll('.custom-tab-panel').forEach(p=>p.classList.toggle('active',p.dataset.customPanel===btn.dataset.customTab));
+ }));
+
+ document.getElementById('prefSave')?.addEventListener('click',()=>{
+   Object.entries(prefEls).forEach(([name,el])=>{
+     if(el)localStorage.setItem(ccKey(name),el.checked?'1':'0');
+   });
+   transChecks.forEach(ch=>localStorage.setItem(ccKey('col_'+ch.dataset.ccCol),ch.checked?'1':'0'));
+   applyCustomerCustom();
+   document.getElementById('prefModal')?.classList.remove('show');
+ });
+
+ document.getElementById('prefReset')?.addEventListener('click',()=>{
+   Object.keys(prefEls).forEach(name=>localStorage.removeItem(ccKey(name)));
+   transChecks.forEach(ch=>localStorage.removeItem(ccKey('col_'+ch.dataset.ccCol)));
+   if(prefEls.listCode)prefEls.listCode.checked=true;
+   if(prefEls.listPhone)prefEls.listPhone.checked=true;
+   if(prefEls.listOpen)prefEls.listOpen.checked=false;
+   if(prefEls.activeOnly)prefEls.activeOnly.checked=false;
+   if(prefEls.infoPhone)prefEls.infoPhone.checked=true;
+   if(prefEls.infoEmail)prefEls.infoEmail.checked=true;
+   if(prefEls.infoCurrency)prefEls.infoCurrency.checked=true;
+   if(prefEls.infoAR)prefEls.infoAR.checked=true;
+   if(prefEls.infoAddress)prefEls.infoAddress.checked=true;
+   if(prefEls.infoTelegram)prefEls.infoTelegram.checked=true;
+   if(prefEls.infoPhone2)prefEls.infoPhone2.checked=true;
+   if(prefEls.infoEmail2)prefEls.infoEmail2.checked=true;
+   transChecks.forEach(ch=>ch.checked=true);
+   applyCustomerCustom();
+ });
+
+ loadCustomerCustom();
+})();
+const importMenu=document.querySelector('.cc-importmenu'), importBtn=document.getElementById('customerImportBtn'), importDrop=document.getElementById('customerImportDrop');
+ importBtn?.addEventListener('click',e=>{e.stopPropagation();importMenu?.classList.toggle('open')});
+ document.getElementById('customerSampleBtn')?.addEventListener('click',()=>{
+   const csv='Customer ID,Customer Name,Local Name,Phone,Email,Telegram,Address\n';
+   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Customer_Import_Sample.csv';document.body.appendChild(a);a.click();URL.revokeObjectURL(a.href);a.remove();
+ });
+ document.addEventListener('click',e=>{if(!e.target.closest('.cc-importmenu'))importMenu?.classList.remove('open')});
+</script>
 {% endblock %}

@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vendor Transactions - {{ vendor.name }}</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#263942;font-family:Arial,Helvetica,sans-serif}.print-page{width:min(1120px,calc(100% - 32px));margin:24px auto;background:#fff;border-radius:14px;box-shadow:0 12px 34px rgba(31,66,82,.12);overflow:hidden}.toolbar{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;background:#fbfdfe;border-bottom:1px solid #dce7eb}.btn{border:1px solid #cadbe2;background:#fff;color:#267ca4;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer}.btn.primary{background:#0a9b61;border-color:#0a9b61;color:#fff}.head{padding:24px 28px 18px;border-bottom:2px solid #0a9b61}.brand{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.brand h1{font-size:20px;margin:0 0 5px;color:#153c50}.brand p{margin:0;color:#71848d;font-size:12px}.doc-title{text-align:right}.doc-title strong{display:block;font-size:18px;color:#0a9b61}.doc-title span{font-size:11px;color:#83949c}.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:16px 28px;background:#f8fbfc;border-bottom:1px solid #dce7eb}.card{border:1px solid #dce7eb;border-radius:9px;padding:10px 12px}.card label{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:#86979f;margin-bottom:4px}.card strong{font-size:12px;color:#304a56}.table-wrap{padding:18px 28px 26px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#f1f6f8;color:#435861;padding:8px 7px;text-align:left;border-bottom:1px solid #d7e3e8;white-space:nowrap}td{padding:8px 7px;border-bottom:1px solid #e5edf0;color:#566a73;vertical-align:top}tbody tr:nth-child(even){background:#fbfdfe}.amount{text-align:right;white-space:nowrap}.footer-total td{font-weight:800;background:#f4faf7;border-top:2px solid #0a9b61}.empty{text-align:center;padding:42px!important;color:#8b9aa1}.note{padding:0 28px 22px;font-size:9px;color:#8a9aa1}@page{size:A4 landscape;margin:10mm}@media print{body{background:#fff}.print-page{width:100%;margin:0;box-shadow:none;border-radius:0}.toolbar{display:none}.head{padding-top:0}.table-wrap{overflow:visible}thead{display:table-header-group}tr{page-break-inside:avoid}.print-page{page-break-after:auto}}
+</style>
+</head>
+<body>
+<div class="print-page">
+  <div class="toolbar"><button class="btn" onclick="window.close()">Close</button><button class="btn primary" onclick="window.print()">Print</button></div>
+  <div class="head">
+    <div class="brand">
+      <div><h1>{{ company.name|default:'AsianCam' }}</h1><p>Vendor transaction report</p></div>
+      <div class="doc-title"><strong>VENDOR TRANSACTIONS</strong><span>Prepared from Vendor Center</span></div>
+    </div>
+  </div>
+  <div class="summary">
+    <div class="card"><label>Vendor</label><strong>{{ vendor.name }}</strong><br><span style="font-size:10px;color:#7e8f97">{{ vendor.code|default:'No Vendor ID' }}</span></div>
+    <div class="card"><label>Period</label><strong>{% if date_from %}{{ date_from }}{% else %}Beginning{% endif %} → {% if date_to %}{{ date_to }}{% else %}Today{% endif %}</strong></div>
+    <div class="card"><label>A/P Balance</label><strong>$ {{ vendor.ap_balance|floatformat:2 }}</strong></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>TYPE</th><th>DATE</th><th>NUMBER</th><th>PO NUMBER</th><th>CURRENCY</th><th class="amount">AMOUNT</th><th class="amount">OPEN BALANCE</th><th>STATUS</th><th>MEMO</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr><td>{{ row.type }}</td><td>{{ row.date|date:'d-m-Y' }}</td><td>{{ row.number }}</td><td>{{ row.po_number|default:'-' }}</td><td>USD ($)</td><td class="amount">{{ row.amount|floatformat:2 }}</td><td class="amount">{% if row.type_key == 'bill' %}{{ row.open_balance|floatformat:2 }}{% else %}-{% endif %}</td><td>{{ row.status }}</td><td>{{ row.memo|default:'-' }}</td></tr>
+      {% empty %}<tr><td colspan="9" class="empty">No transaction data for this filter.</td></tr>{% endfor %}
+      {% if rows %}<tr class="footer-total"><td colspan="5">TOTAL</td><td class="amount">{{ total_amount|floatformat:2 }}</td><td colspan="3"></td></tr>{% endif %}
+      </tbody>
+    </table>
+  </div>
+  <div class="note">Printed from AsianCam Vendor Center. Only the currently selected transaction filters are included.</div>
+</div>
+</body>
+</html>

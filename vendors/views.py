@@ -1,5 +1,6 @@
 from decimal import Decimal
 from io import BytesIO
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -8,6 +9,7 @@ from django.db.models import Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.urls import reverse
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 
@@ -288,6 +290,50 @@ def vendor_center(request):
                 messages.success(request, f"Deleted {deleted}; deactivated {deactivated} vendor(s) with accounting history.")
             return redirect("vendor_center")
 
+        if action in {"activity_void", "activity_delete"}:
+            activity_kind = (request.POST.get("activity_kind") or "").strip()
+            activity_id = request.POST.get("activity_id")
+            obj = None
+
+            if str(activity_id).isdigit():
+                if activity_kind == "bill":
+                    obj = PurchaseBill.objects.filter(company=company, id=activity_id).first()
+                elif activity_kind == "payment":
+                    obj = VendorPayment.objects.filter(company=company, id=activity_id).first()
+                elif activity_kind == "transaction":
+                    obj = VendorTransaction.objects.filter(company=company, id=activity_id).first()
+
+            if not obj:
+                messages.error(request, "Transaction was not found.")
+                return redirect("vendor_center")
+
+            # Protect bill/payment relationships so accounting history cannot become inconsistent.
+            if activity_kind == "bill" and obj.payment_allocations.filter(payment__status=VendorPayment.STATUS_POSTED).exists():
+                messages.error(request, "This bill has a posted payment allocation. Void the related payment first.")
+                return redirect(f"{request.path}?vendor={obj.vendor_id}")
+
+            if action == "activity_void":
+                if getattr(obj, "journal_entry_id", None):
+                    obj.journal_entry.delete()
+                    obj.journal_entry = None
+                obj.status = "void"
+                fields = ["status"]
+                if hasattr(obj, "journal_entry"):
+                    fields.append("journal_entry")
+                obj.save(update_fields=fields)
+                messages.success(request, "Transaction voided. Its journal entry was removed safely.")
+            else:
+                if getattr(obj, "status", "") == "posted":
+                    messages.error(request, "Posted transactions cannot be deleted directly. Void the transaction first.")
+                else:
+                    vendor_id = getattr(obj, "vendor_id", None)
+                    obj.delete()
+                    messages.success(request, "Transaction deleted.")
+                    return redirect(f"{request.path}?vendor={vendor_id}" if vendor_id else "vendor_center")
+
+            vendor_id = getattr(obj, "vendor_id", None)
+            return redirect(f"{request.path}?vendor={vendor_id}" if vendor_id else "vendor_center")
+
         if action == "merge":
             target_id = request.POST.get("merge_target")
             source_ids = [x for x in selected_ids if str(x) != str(target_id)]
@@ -321,11 +367,13 @@ def vendor_center(request):
     posted_transactions = VendorTransaction.objects.filter(company=company, status=VendorTransaction.STATUS_POSTED)
     legacy_purchase = posted_transactions.filter(transaction_type=VendorTransaction.TYPE_PURCHASE_ORDER).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
     total_cash_expense = posted_transactions.filter(transaction_type=VendorTransaction.TYPE_CASH_EXPENSE).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-    total_payment = posted_transactions.filter(transaction_type=VendorTransaction.TYPE_VENDOR_PAYMENT).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+    legacy_payment = posted_transactions.filter(transaction_type=VendorTransaction.TYPE_VENDOR_PAYMENT).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+    new_payment = VendorPayment.objects.filter(company=company, status=VendorPayment.STATUS_POSTED).aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
+    total_payment = legacy_payment + new_payment
     new_purchase = PurchaseBill.objects.filter(company=company, status=PurchaseBill.STATUS_POSTED).aggregate(total=Sum("total_amount"))["total"] or Decimal("0.00")
     opening_total = Vendor.objects.filter(company=company).aggregate(total=Sum("opening_balance"))["total"] or Decimal("0.00")
     total_purchase = legacy_purchase + new_purchase
-    ap_balance = opening_total + total_purchase - total_payment
+    ap_balance = sum((vendor.ap_balance for vendor in Vendor.objects.filter(company=company)), Decimal("0.00"))
 
     selected_vendor = None
     selected_vendor_id = request.GET.get("vendor")
@@ -337,11 +385,11 @@ def vendor_center(request):
     recent_activity = []
     if selected_vendor:
         for bill in selected_vendor.purchase_bills.filter(company=company).order_by("-bill_date", "-id")[:30]:
-            recent_activity.append({"date": bill.bill_date, "type": "Bill", "number": bill.number or f"BILL-{bill.id}", "amount": bill.total_amount, "status": bill.get_status_display(), "memo": bill.memo, "url_name": "purchase_bill_detail", "pk": bill.pk})
+            recent_activity.append({"date": bill.bill_date, "type": "Bill", "kind": "bill", "number": bill.number or f"BILL-{bill.id}", "po_number": bill.po_number or "", "amount": bill.total_amount, "open_balance": bill.open_balance, "status": bill.get_status_display(), "status_code": bill.status, "memo": bill.memo, "url_name": "purchase_bill_detail", "edit_url_name": "purchase_bill_edit", "pk": bill.pk})
         for pay in selected_vendor.payments.filter(company=company).order_by("-payment_date", "-id")[:30]:
-            recent_activity.append({"date": pay.payment_date, "type": "Payment", "number": pay.number or f"PAY-{pay.id}", "amount": -pay.total_amount, "status": pay.get_status_display(), "memo": pay.memo, "url_name": "", "pk": pay.pk})
+            recent_activity.append({"date": pay.payment_date, "type": "Payment", "kind": "payment", "number": pay.number or f"PAY-{pay.id}", "po_number": "", "amount": -pay.total_amount, "open_balance": Decimal("0.00"), "status": pay.get_status_display(), "status_code": pay.status, "memo": pay.memo, "url_name": "", "edit_url_name": "vendor_payment_edit", "pk": pay.pk})
         for txn in selected_vendor.transactions.filter(company=company).order_by("-transaction_date", "-id")[:30]:
-            recent_activity.append({"date": txn.transaction_date, "type": txn.get_transaction_type_display(), "number": txn.number or f"TXN-{txn.id}", "amount": txn.credit_amount - txn.debit_amount, "status": txn.get_status_display(), "memo": txn.memo, "url_name": "vendor_transaction_detail", "pk": txn.pk})
+            recent_activity.append({"date": txn.transaction_date, "type": txn.get_transaction_type_display(), "kind": "transaction", "number": txn.number or f"TXN-{txn.id}", "po_number": txn.po_number or "", "amount": txn.credit_amount - txn.debit_amount, "open_balance": Decimal("0.00"), "status": txn.get_status_display(), "status_code": txn.status, "memo": txn.memo, "url_name": "vendor_transaction_detail", "edit_url_name": "vendor_transaction_edit", "pk": txn.pk})
         recent_activity.sort(key=lambda x: (x["date"], x["pk"]), reverse=True)
         recent_activity = recent_activity[:50]
 
@@ -353,6 +401,94 @@ def vendor_center(request):
         "selected_vendor": selected_vendor, "recent_activity": recent_activity,
     })
 
+
+
+@login_required
+def vendor_print(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    vendor_id = request.GET.get("vendor")
+    vendor = get_object_or_404(Vendor, company=company, id=vendor_id)
+    tran_type = (request.GET.get("type") or "").strip().lower()
+    date_from = (request.GET.get("from") or "").strip()
+    date_to = (request.GET.get("to") or "").strip()
+
+    rows = []
+
+    for bill in vendor.purchase_bills.filter(company=company).order_by("-bill_date", "-id"):
+        rows.append({
+            "date": bill.bill_date,
+            "type": "Bill",
+            "type_key": "bill",
+            "number": bill.number or f"BILL-{bill.id}",
+            "po_number": bill.po_number or "",
+            "amount": bill.total_amount,
+            "open_balance": bill.open_balance,
+            "status": bill.get_status_display(),
+            "memo": bill.memo or "",
+            "pk": bill.pk,
+        })
+
+    for pay in vendor.payments.filter(company=company).order_by("-payment_date", "-id"):
+        rows.append({
+            "date": pay.payment_date,
+            "type": "Payment",
+            "type_key": "payment",
+            "number": pay.number or f"PAY-{pay.id}",
+            "po_number": "",
+            "amount": -pay.total_amount,
+            "open_balance": Decimal("0.00"),
+            "status": pay.get_status_display(),
+            "memo": pay.memo or "",
+            "pk": pay.pk,
+        })
+
+    for txn in vendor.transactions.filter(company=company).order_by("-transaction_date", "-id"):
+        display_type = txn.get_transaction_type_display()
+        type_text = (display_type or "").lower()
+        type_key = "transaction"
+        if "purchase" in type_text or "bill" in type_text:
+            type_key = "purchase"
+        elif "expense" in type_text:
+            type_key = "expense"
+        elif "payment" in type_text:
+            type_key = "payment"
+        elif "adjust" in type_text:
+            type_key = "adjustment"
+        rows.append({
+            "date": txn.transaction_date,
+            "type": display_type,
+            "type_key": type_key,
+            "number": txn.number or f"TXN-{txn.id}",
+            "po_number": txn.po_number or "",
+            "amount": txn.credit_amount - txn.debit_amount,
+            "open_balance": Decimal("0.00"),
+            "status": txn.get_status_display(),
+            "memo": txn.memo or "",
+            "pk": txn.pk,
+        })
+
+    if tran_type:
+        rows = [r for r in rows if r["type_key"] == tran_type or tran_type in r["type"].lower()]
+    if date_from:
+        rows = [r for r in rows if r["date"].isoformat() >= date_from]
+    if date_to:
+        rows = [r for r in rows if r["date"].isoformat() <= date_to]
+
+    rows.sort(key=lambda x: (x["date"], x["pk"]), reverse=True)
+    total_amount = sum((r["amount"] for r in rows), Decimal("0.00"))
+
+    return render(request, "vendors/vendor_print.html", {
+        "company": company,
+        "vendor": vendor,
+        "rows": rows,
+        "tran_type": tran_type,
+        "date_from": date_from,
+        "date_to": date_to,
+        "total_amount": total_amount,
+    })
 
 @login_required
 def vendor_export_excel(request):
@@ -368,7 +504,14 @@ def vendor_export_excel(request):
     for cell in ws[1]:
         cell.font = Font(bold=True)
 
-    for vendor in Vendor.objects.filter(company=company).order_by("name"):
+    query = (request.GET.get("q") or "").strip()
+    export_vendors = Vendor.objects.filter(company=company)
+    if query:
+        export_vendors = export_vendors.filter(
+            Q(code__icontains=query) | Q(name__icontains=query) | Q(phone__icontains=query)
+            | Q(email__icontains=query) | Q(contact_person__icontains=query)
+        )
+    for vendor in export_vendors.order_by("name"):
         ws.append([
             vendor.code,
             vendor.name,
@@ -393,11 +536,94 @@ def vendor_export_excel(request):
     return response
 
 
+
+def _vendor_import_sample_response(company):
+    """Build the vendor import template.
+
+    This helper is also called by vendor_import_excel with ?sample=1 so the
+    sample download works even on deployments where only the existing
+    vendor_import_excel URL has been loaded.
+    """
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Vendor Import"
+
+    headers = [
+        "Vendor Code",
+        "Vendor Name",
+        "Phone",
+        "Email",
+        "Contact Person",
+        "Address",
+        "Opening Balance",
+        "Memo",
+        "Active",
+    ]
+    ws.append(headers)
+    ws.append([
+        "V0001",
+        "Sample Supplier Co., Ltd.",
+        "012345678",
+        "supplier@example.com",
+        "Sok Dara",
+        "Phnom Penh",
+        0,
+        "Sample row - replace with your real vendor",
+        "Yes",
+    ])
+
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+    widths = [16, 30, 18, 28, 22, 34, 18, 38, 12]
+    for i, width in enumerate(widths, start=1):
+        ws.column_dimensions[chr(64 + i)].width = width
+    ws.freeze_panes = "A2"
+
+    note = wb.create_sheet("Instructions")
+    note["A1"] = "Vendor Excel Import Instructions"
+    note["A1"].font = Font(bold=True, size=14)
+    instructions = [
+        "Vendor Name is required.",
+        "Vendor Code is recommended and can be used to identify/update a vendor.",
+        "Opening Balance must be a number.",
+        "Active accepts Yes/No, True/False, 1/0, Active/Inactive.",
+        "Do not rename the column headers.",
+        "Delete the sample row before importing your real data.",
+    ]
+    for row, text in enumerate(instructions, start=3):
+        note.cell(row=row, column=1, value=f"{row-2}. {text}")
+    note.column_dimensions["A"].width = 90
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="Vendor_Import_Sample.xlsx"'
+    return response
+
+
+@login_required
+def vendor_import_sample(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+    return _vendor_import_sample_response(company)
+
+
 @login_required
 def vendor_import_excel(request):
     company, response = require_company_access(request)
     if response:
         return response
+
+    # Keep sample download on the already-existing import URL. This avoids
+    # NoReverseMatch on servers that have the import view deployed but do not
+    # yet have the separate vendor_import_sample URL pattern loaded.
+    if request.method == "GET" and request.GET.get("sample") in {"1", "true", "yes"}:
+        return _vendor_import_sample_response(company)
 
     if request.method == "POST":
         excel_file = request.FILES.get("excel_file")
@@ -571,7 +797,7 @@ def purchase_bill_list(request):
     })
 
 
-def _purchase_bill_formsets(request, company, instance):
+def _purchase_bill_formsets(request, company, instance, item_initial=None, expense_initial=None):
     kwargs = {
         "instance": instance,
         "prefix": "items",
@@ -582,9 +808,16 @@ def _purchase_bill_formsets(request, company, instance):
         "prefix": "expenses",
         "form_kwargs": {"company": company},
     }
+
     if request.method == "POST":
         kwargs["data"] = request.POST
         expense_kwargs["data"] = request.POST
+    else:
+        if item_initial:
+            kwargs["initial"] = item_initial
+        if expense_initial:
+            expense_kwargs["initial"] = expense_initial
+
     return PurchaseBillItemLineFormSet(**kwargs), PurchaseBillExpenseLineFormSet(**expense_kwargs)
 
 
@@ -594,15 +827,97 @@ def purchase_bill_create(request):
     if response:
         return response
 
-    bill = PurchaseBill(company=company, created_by=request.user, status=PurchaseBill.STATUS_POSTED)
+    bill = PurchaseBill(
+        company=company,
+        created_by=request.user,
+        status=PurchaseBill.STATUS_POSTED,
+    )
+
+    item_initial = []
+    expense_initial = []
+
     if request.method == "POST":
         form = PurchaseBillForm(request.POST, instance=bill, company=company)
     else:
-        form = PurchaseBillForm(instance=bill, company=company, initial={"bill_date": timezone.localdate()})
+        initial = {"bill_date": timezone.localdate()}
 
-    item_formset, expense_formset = _purchase_bill_formsets(request, company, bill)
+        # Open Purchase Bill directly from a selected Vendor.
+        requested_vendor = request.GET.get("vendor")
+        if requested_vendor and Vendor.objects.filter(
+            company=company, id=requested_vendor, is_active=True
+        ).exists():
+            initial["vendor"] = requested_vendor
 
-    if request.method == "POST" and form.is_valid() and item_formset.is_valid() and expense_formset.is_valid():
+        # Save & New keeps the accounting defaults only.
+        if request.GET.get("ap"):
+            initial["accounts_payable_account"] = request.GET.get("ap")
+        if request.GET.get("vat"):
+            initial["input_vat_account"] = request.GET.get("vat")
+
+        # Duplicate an existing bill into a NEW document.
+        duplicate_id = request.GET.get("duplicate")
+        source = None
+        if duplicate_id and str(duplicate_id).isdigit():
+            source = (
+                PurchaseBill.objects.filter(company=company, id=duplicate_id)
+                .prefetch_related("item_lines", "expense_lines")
+                .first()
+            )
+
+        if source:
+            initial.update({
+                "vendor": source.vendor_id,
+                "bill_date": timezone.localdate(),
+                "due_date": source.due_date,
+                "number": "",
+                "po_number": source.po_number,
+                "accounts_payable_account": source.accounts_payable_account_id,
+                "input_vat_account": source.input_vat_account_id,
+                "memo": source.memo,
+            })
+            item_initial = [
+                {
+                    "item": line.item_id,
+                    "description": line.description,
+                    "qty": line.qty,
+                    "unit_name": line.unit_name,
+                    "unit_cost": line.unit_cost,
+                    "account": line.account_id,
+                    "vat_amount": line.vat_amount,
+                }
+                for line in source.item_lines.all()
+            ]
+            expense_initial = [
+                {
+                    "description": line.description,
+                    "amount": line.amount,
+                    "account": line.account_id,
+                    "vat_amount": line.vat_amount,
+                }
+                for line in source.expense_lines.all()
+            ]
+            messages.info(
+                request,
+                f"Duplicating Purchase Bill {source.number or source.id}. "
+                "A new bill will be created when you save.",
+            )
+
+        form = PurchaseBillForm(instance=bill, company=company, initial=initial)
+
+    item_formset, expense_formset = _purchase_bill_formsets(
+        request,
+        company,
+        bill,
+        item_initial=item_initial,
+        expense_initial=expense_initial,
+    )
+
+    if (
+        request.method == "POST"
+        and form.is_valid()
+        and item_formset.is_valid()
+        and expense_formset.is_valid()
+    ):
         if validate_purchase_bill_lines(form, item_formset, expense_formset):
             try:
                 with transaction.atomic():
@@ -620,9 +935,30 @@ def purchase_bill_create(request):
                     bill.recalculate_totals(save=True)
                     create_purchase_bill_journal(bill, request.user)
 
-                messages.success(request, f"Purchase Bill {bill.number or bill.id} saved and journal generated.")
-                if request.POST.get("save_action") == "save_new":
-                    return redirect("purchase_bill_create")
+                messages.success(
+                    request,
+                    f"Purchase Bill {bill.number or bill.id} saved and journal generated.",
+                )
+
+                keep = {"ap": bill.accounts_payable_account_id}
+                if bill.input_vat_account_id:
+                    keep["vat"] = bill.input_vat_account_id
+
+                save_action = request.POST.get("save_action")
+                next_url = (
+                    f"{reverse('purchase_bill_create')}?{urlencode(keep)}"
+                    if save_action == "save_new"
+                    else reverse("purchase_bill_list")
+                )
+
+                if request.POST.get("print_after_save") == "1":
+                    query = urlencode({"autoprint": "1", "next": next_url})
+                    return redirect(
+                        f"{reverse('purchase_bill_print', args=[bill.id])}?{query}"
+                    )
+
+                if save_action == "save_new":
+                    return redirect(next_url)
                 return redirect("purchase_bill_list")
             except Exception as exc:
                 messages.error(request, f"Could not save Purchase Bill: {exc}")
@@ -637,6 +973,7 @@ def purchase_bill_create(request):
     })
 
 
+
 @login_required
 def purchase_bill_edit(request, bill_id):
     company, response = require_company_access(request)
@@ -647,7 +984,12 @@ def purchase_bill_edit(request, bill_id):
     form = PurchaseBillForm(request.POST or None, instance=bill, company=company)
     item_formset, expense_formset = _purchase_bill_formsets(request, company, bill)
 
-    if request.method == "POST" and form.is_valid() and item_formset.is_valid() and expense_formset.is_valid():
+    if (
+        request.method == "POST"
+        and form.is_valid()
+        and item_formset.is_valid()
+        and expense_formset.is_valid()
+    ):
         if validate_purchase_bill_lines(form, item_formset, expense_formset):
             try:
                 with transaction.atomic():
@@ -655,14 +997,37 @@ def purchase_bill_edit(request, bill_id):
                     bill.company = company
                     bill.status = PurchaseBill.STATUS_POSTED
                     bill.save()
+
                     item_formset.save()
                     expense_formset.save()
+
                     bill.recalculate_totals(save=True)
                     create_purchase_bill_journal(bill, request.user)
 
-                messages.success(request, "Purchase Bill updated and journal regenerated.")
-                if request.POST.get("save_action") == "save_new":
-                    return redirect("purchase_bill_create")
+                messages.success(
+                    request,
+                    "Purchase Bill updated and journal regenerated.",
+                )
+
+                keep = {"ap": bill.accounts_payable_account_id}
+                if bill.input_vat_account_id:
+                    keep["vat"] = bill.input_vat_account_id
+
+                save_action = request.POST.get("save_action")
+                next_url = (
+                    f"{reverse('purchase_bill_create')}?{urlencode(keep)}"
+                    if save_action == "save_new"
+                    else reverse("purchase_bill_list")
+                )
+
+                if request.POST.get("print_after_save") == "1":
+                    query = urlencode({"autoprint": "1", "next": next_url})
+                    return redirect(
+                        f"{reverse('purchase_bill_print', args=[bill.id])}?{query}"
+                    )
+
+                if save_action == "save_new":
+                    return redirect(next_url)
                 return redirect("purchase_bill_list")
             except Exception as exc:
                 messages.error(request, f"Could not update Purchase Bill: {exc}")
@@ -676,6 +1041,7 @@ def purchase_bill_edit(request, bill_id):
         "is_edit": True,
         "bill": bill,
     })
+
 
 
 @login_required
@@ -695,6 +1061,38 @@ def purchase_bill_detail(request, bill_id):
         company=company,
     )
     return render(request, "vendors/purchase_bill_detail.html", {"company": company, "bill": bill})
+
+
+@login_required
+def purchase_bill_print(request, bill_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    bill = get_object_or_404(
+        PurchaseBill.objects.select_related(
+            "vendor",
+            "accounts_payable_account",
+            "input_vat_account",
+        ).prefetch_related(
+            "item_lines__item",
+            "item_lines__account",
+            "expense_lines__account",
+        ),
+        id=bill_id,
+        company=company,
+    )
+
+    next_url = (request.GET.get("next") or "").strip()
+    if not next_url.startswith("/"):
+        next_url = reverse("purchase_bill_detail", args=[bill.id])
+
+    return render(request, "vendors/purchase_bill_print.html", {
+        "company": company,
+        "bill": bill,
+        "next_url": next_url,
+        "autoprint": request.GET.get("autoprint") == "1",
+    })
 
 
 # =========================================================
@@ -794,6 +1192,40 @@ def vendor_transaction_create(request, transaction_type=None):
 
 
 @login_required
+def vendor_transaction_edit(request, transaction_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    vendor_transaction = get_object_or_404(VendorTransaction, id=transaction_id, company=company)
+    if request.method == "POST":
+        form = VendorTransactionForm(request.POST, instance=vendor_transaction, company=company)
+        if form.is_valid():
+            with transaction.atomic():
+                vendor_transaction = form.save(commit=False)
+                vendor_transaction.company = company
+                vendor_transaction.save()
+                if vendor_transaction.status == VendorTransaction.STATUS_POSTED:
+                    create_vendor_journal(vendor_transaction, request.user)
+                elif vendor_transaction.journal_entry_id:
+                    vendor_transaction.journal_entry.delete()
+                    vendor_transaction.journal_entry = None
+                    vendor_transaction.save(update_fields=["journal_entry"])
+            messages.success(request, "Vendor transaction updated.")
+            return redirect(f"{reverse('vendor_center')}?vendor={vendor_transaction.vendor_id or ''}")
+    else:
+        form = VendorTransactionForm(instance=vendor_transaction, company=company)
+
+    return render(request, "vendors/vendor_transaction_form.html", {
+        "company": company,
+        "form": form,
+        "page_title": "Edit Vendor Transaction",
+        "button_text": "Save Changes",
+        "transaction": vendor_transaction,
+    })
+
+
+@login_required
 def vendor_transaction_detail(request, transaction_id):
     company, response = require_company_access(request)
     if response:
@@ -812,7 +1244,7 @@ def vendor_transaction_detail(request, transaction_id):
 # =========================================================
 # CUSTOMER REQUIREMENT PAYMENT IMPLEMENTATION
 # =========================================================
-from .forms import VendorPaymentForm, VendorPaymentAllocationFormSet, VendorPaymentOtherChargeFormSet
+from .forms import VendorPaymentForm, VendorPaymentAllocationFormSet, VendorPaymentOtherChargeFormSet, make_vendor_payment_allocation_formset
 from .models import VendorPayment, VendorPaymentAllocation, VendorPaymentOtherCharge
 
 
@@ -830,27 +1262,332 @@ def create_vendor_payment_journal(payment,user):
     return entry
 
 
-def _vendor_payment_formset(formset_class,data,instance,company,prefix,extra=None):
-    return formset_class(data=data,instance=instance,prefix=prefix,form_kwargs={"company":company,**(extra or {})}) if data is not None else formset_class(instance=instance,prefix=prefix,form_kwargs={"company":company,**(extra or {})})
+def _vendor_payment_formset(formset_class,data,instance,company,prefix,extra=None,initial=None):
+    kwargs={"instance":instance,"prefix":prefix,"form_kwargs":{"company":company,**(extra or {})}}
+    if data is not None:
+        kwargs["data"]=data
+    elif initial is not None:
+        kwargs["initial"]=initial
+    return formset_class(**kwargs)
 
 @login_required
 def vendor_payment_new(request):
-    company,response=require_company_access(request)
-    if response:return response
-    payment=VendorPayment(company=company,created_by=request.user)
-    vendor_id=(request.POST.get("vendor") if request.method=="POST" else request.GET.get("vendor")) or None
-    form=VendorPaymentForm(request.POST or None,instance=payment,company=company)
-    allocations=_vendor_payment_formset(VendorPaymentAllocationFormSet,request.POST if request.method=="POST" else None,payment,company,"alloc",{"vendor_id":vendor_id})
-    charges=_vendor_payment_formset(VendorPaymentOtherChargeFormSet,request.POST if request.method=="POST" else None,payment,company,"charge")
-    if request.method=="POST" and form.is_valid() and allocations.is_valid() and charges.is_valid():
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    payment = VendorPayment(company=company, created_by=request.user)
+    vendor_id = (
+        request.POST.get("vendor")
+        if request.method == "POST"
+        else request.GET.get("vendor")
+    ) or None
+
+    mode = (
+        request.POST.get("transaction_mode")
+        if request.method == "POST"
+        else request.GET.get("mode")
+    ) or "invoice"
+    if mode not in {"invoice", "expense"}:
+        mode = "invoice"
+
+    form_initial = {"vendor": vendor_id} if vendor_id else {}
+
+    # Duplicate copies the header/setup only. It intentionally does not copy
+    # invoice allocations or money amounts to avoid accidental double payment.
+    if request.method != "POST":
+        duplicate_id = request.GET.get("duplicate")
+        if duplicate_id and str(duplicate_id).isdigit():
+            source = VendorPayment.objects.filter(
+                company=company, id=duplicate_id
+            ).first()
+            if source:
+                vendor_id = source.vendor_id
+                form_initial.update({
+                    "vendor": source.vendor_id,
+                    "payment_date": timezone.localdate(),
+                    "number": "",
+                    "payment_method": source.payment_method,
+                    "payment_account": source.payment_account_id,
+                    "accounts_payable_account": source.accounts_payable_account_id,
+                    "currency": source.currency,
+                    "cheque_to": source.cheque_to,
+                    "cheque_no": "",
+                    "reference": "",
+                    "memo": source.memo,
+                })
+                mode = (
+                    "expense"
+                    if source.other_charges.exists() and not source.allocations.exists()
+                    else "invoice"
+                )
+                messages.info(
+                    request,
+                    "Payment setup duplicated. Amounts and invoice allocations were not copied.",
+                )
+
+    form = VendorPaymentForm(
+        request.POST or None,
+        instance=payment,
+        company=company,
+        initial=form_initial if request.method != "POST" else None,
+    )
+
+    allocation_initial = None
+    allocation_formset_class = VendorPaymentAllocationFormSet
+
+    if request.method != "POST" and vendor_id:
+        candidate_bills = PurchaseBill.objects.filter(
+            company=company,
+            vendor_id=vendor_id,
+            status=PurchaseBill.STATUS_POSTED,
+        ).order_by("bill_date", "id")
+        open_bills = [bill for bill in candidate_bills if bill.open_balance > 0]
+        allocation_initial = [
+            {
+                "bill": bill.pk,
+                "amount": Decimal("0.00"),
+                "discount": Decimal("0.00"),
+            }
+            for bill in open_bills
+        ]
+        allocation_formset_class = make_vendor_payment_allocation_formset(
+            len(open_bills)
+        )
+
+    allocations = _vendor_payment_formset(
+        allocation_formset_class,
+        request.POST if request.method == "POST" else None,
+        payment,
+        company,
+        "alloc",
+        {"vendor_id": vendor_id},
+        allocation_initial,
+    )
+    charges = _vendor_payment_formset(
+        VendorPaymentOtherChargeFormSet,
+        request.POST if request.method == "POST" else None,
+        payment,
+        company,
+        "charge",
+    )
+
+    if (
+        request.method == "POST"
+        and form.is_valid()
+        and allocations.is_valid()
+        and charges.is_valid()
+    ):
         try:
             with transaction.atomic():
-                payment=form.save(commit=False);payment.company=company;payment.created_by=request.user;payment.status=VendorPayment.STATUS_POSTED;payment.save()
-                allocations.instance=payment;allocations.save();charges.instance=payment;charges.save();payment.recalculate_total();create_vendor_payment_journal(payment,request.user)
-            messages.success(request,"Payment saved successfully.")
-            if request.POST.get("save_action")=="save_new":return redirect("vendor_payment_create")
-            return redirect("vendor_center")
-        except Exception as exc:messages.error(request,f"Could not save payment: {exc}")
-    bills=PurchaseBill.objects.filter(company=company,status=PurchaseBill.STATUS_POSTED)
-    if vendor_id:bills=bills.filter(vendor_id=vendor_id)
-    return render(request,"vendors/payment_form.html",{"company":company,"form":form,"allocation_formset":allocations,"charge_formset":charges,"bills":bills})
+                payment = form.save(commit=False)
+                payment.company = company
+                payment.created_by = request.user
+                payment.status = VendorPayment.STATUS_POSTED
+                payment.save()
+
+                allocations.instance = payment
+                allocations.save()
+                charges.instance = payment
+                charges.save()
+
+                payment.recalculate_total()
+                create_vendor_payment_journal(payment, request.user)
+
+            messages.success(request, "Payment saved successfully.")
+
+            save_action = request.POST.get("save_action")
+            next_url = (
+                reverse("vendor_payment_create")
+                if save_action == "save_new"
+                else f"{reverse('vendor_center')}?vendor={payment.vendor_id}"
+            )
+
+            if request.POST.get("print_after_save") == "1":
+                query = urlencode({"autoprint": "1", "next": next_url})
+                return redirect(
+                    f"{reverse('vendor_payment_print', args=[payment.id])}?{query}"
+                )
+
+            if save_action == "save_new":
+                return redirect("vendor_payment_create")
+            return redirect(f"{reverse('vendor_center')}?vendor={payment.vendor_id}")
+        except Exception as exc:
+            messages.error(request, f"Could not save payment: {exc}")
+
+    bills = PurchaseBill.objects.filter(
+        company=company, status=PurchaseBill.STATUS_POSTED
+    )
+    if vendor_id:
+        bills = bills.filter(vendor_id=vendor_id)
+
+    return render(
+        request,
+        "vendors/payment_form.html",
+        {
+            "company": company,
+            "form": form,
+            "allocation_formset": allocations,
+            "charge_formset": charges,
+            "bills": bills,
+            "transaction_mode": mode,
+            "is_edit": False,
+        },
+    )
+
+
+@login_required
+def vendor_payment_edit(request, payment_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    payment = get_object_or_404(VendorPayment, id=payment_id, company=company)
+    vendor_id = payment.vendor_id
+
+    mode = (
+        request.POST.get("transaction_mode")
+        if request.method == "POST"
+        else request.GET.get("mode")
+    )
+    if mode not in {"invoice", "expense"}:
+        mode = (
+            "expense"
+            if payment.other_charges.exists() and not payment.allocations.exists()
+            else "invoice"
+        )
+
+    form = VendorPaymentForm(
+        request.POST or None,
+        instance=payment,
+        company=company,
+    )
+    allocations = _vendor_payment_formset(
+        VendorPaymentAllocationFormSet,
+        request.POST if request.method == "POST" else None,
+        payment,
+        company,
+        "alloc",
+        {"vendor_id": vendor_id},
+    )
+    charges = _vendor_payment_formset(
+        VendorPaymentOtherChargeFormSet,
+        request.POST if request.method == "POST" else None,
+        payment,
+        company,
+        "charge",
+    )
+
+    if (
+        request.method == "POST"
+        and form.is_valid()
+        and allocations.is_valid()
+        and charges.is_valid()
+    ):
+        try:
+            with transaction.atomic():
+                payment = form.save(commit=False)
+                payment.company = company
+                payment.status = VendorPayment.STATUS_POSTED
+                payment.save()
+
+                allocations.instance = payment
+                allocations.save()
+                charges.instance = payment
+                charges.save()
+
+                payment.recalculate_total()
+                create_vendor_payment_journal(payment, request.user)
+
+            messages.success(request, "Payment updated successfully.")
+
+            save_action = request.POST.get("save_action")
+            next_url = (
+                reverse("vendor_payment_create")
+                if save_action == "save_new"
+                else f"{reverse('vendor_center')}?vendor={payment.vendor_id}"
+            )
+
+            if request.POST.get("print_after_save") == "1":
+                query = urlencode({"autoprint": "1", "next": next_url})
+                return redirect(
+                    f"{reverse('vendor_payment_print', args=[payment.id])}?{query}"
+                )
+
+            if save_action == "save_new":
+                return redirect("vendor_payment_create")
+            return redirect(f"{reverse('vendor_center')}?vendor={payment.vendor_id}")
+        except Exception as exc:
+            messages.error(request, f"Could not update payment: {exc}")
+
+    bills = PurchaseBill.objects.filter(
+        company=company,
+        vendor_id=vendor_id,
+        status=PurchaseBill.STATUS_POSTED,
+    )
+
+    return render(
+        request,
+        "vendors/payment_form.html",
+        {
+            "company": company,
+            "form": form,
+            "allocation_formset": allocations,
+            "charge_formset": charges,
+            "bills": bills,
+            "transaction_mode": mode,
+            "is_edit": True,
+            "payment": payment,
+        },
+    )
+
+
+@login_required
+def vendor_payment_print(request, payment_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    payment = get_object_or_404(
+        VendorPayment.objects.select_related(
+            "vendor",
+            "payment_account",
+            "accounts_payable_account",
+        ).prefetch_related(
+            "allocations__bill",
+            "other_charges__account",
+        ),
+        id=payment_id,
+        company=company,
+    )
+
+    next_url = (request.GET.get("next") or "").strip()
+    if not next_url.startswith("/"):
+        next_url = f"{reverse('vendor_center')}?vendor={payment.vendor_id}"
+
+    allocation_payment = (
+        payment.allocations.aggregate(total=Sum("amount"))["total"]
+        or Decimal("0.00")
+    )
+    allocation_discount = (
+        payment.allocations.aggregate(total=Sum("discount"))["total"]
+        or Decimal("0.00")
+    )
+    other_charge_total = (
+        payment.other_charges.aggregate(total=Sum("amount"))["total"]
+        or Decimal("0.00")
+    )
+
+    return render(
+        request,
+        "vendors/payment_print.html",
+        {
+            "company": company,
+            "payment": payment,
+            "next_url": next_url,
+            "autoprint": request.GET.get("autoprint") == "1",
+            "allocation_payment": allocation_payment,
+            "allocation_discount": allocation_discount,
+            "other_charge_total": other_charge_total,
+        },
+    )

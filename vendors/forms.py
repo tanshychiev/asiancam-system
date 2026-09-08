@@ -22,6 +22,25 @@ def _company_accounts(company):
     ).order_by("code", "name")
 
 
+
+
+class AccountModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.code} - {obj.name}"
+
+
+class VendorModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        code = (obj.code or "").strip()
+        return f"{code} - {obj.name}" if code else obj.name
+
+
+class PurchaseBillChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        number = obj.number or f"BILL-{obj.pk}"
+        return f"{number} | {obj.bill_date:%d-%m-%Y} | Total ${obj.total_amount:,.2f} | Open ${obj.open_balance:,.2f}"
+
+
 def find_default_ap_account(company):
     accounts = _company_accounts(company)
     return (
@@ -69,6 +88,16 @@ class VendorForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.company = kwargs.pop("company", None)
         super().__init__(*args, **kwargs)
+
+    def clean_name(self):
+        name = (self.cleaned_data.get("name") or "").strip()
+        if name and self.company:
+            qs = Vendor.objects.filter(company=self.company, name__iexact=name)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("This vendor already exists. Select the existing vendor instead of creating a duplicate.")
+        return name
 
     def clean_code(self):
         code = (self.cleaned_data.get("code") or "").strip()
@@ -147,6 +176,10 @@ class VendorTransactionForm(forms.ModelForm):
 
 
 class PurchaseBillForm(forms.ModelForm):
+    vendor = VendorModelChoiceField(queryset=Vendor.objects.none(), widget=forms.Select(attrs={"class":"form-control","id":"id_vendor"}))
+    accounts_payable_account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), widget=forms.Select(attrs={"class":"form-control"}))
+    input_vat_account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), required=False, widget=forms.Select(attrs={"class":"form-control"}))
+
     class Meta:
         model = PurchaseBill
         fields = [
@@ -210,6 +243,7 @@ class PurchaseBillForm(forms.ModelForm):
 
 
 class PurchaseBillItemLineForm(forms.ModelForm):
+    account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), required=False, widget=forms.Select(attrs={"class":"form-control"}))
     class Meta:
         model = PurchaseBillItemLine
         fields = ["item", "description", "qty", "unit_name", "unit_cost", "account", "vat_amount"]
@@ -218,9 +252,9 @@ class PurchaseBillItemLineForm(forms.ModelForm):
             "description": forms.TextInput(attrs={"class": "form-control", "placeholder": "Description"}),
             "qty": forms.NumberInput(attrs={"class": "form-control js-qty", "step": "0.01", "min": "0"}),
             "unit_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Unit"}),
-            "unit_cost": forms.NumberInput(attrs={"class": "form-control js-unit-cost", "step": "0.01", "min": "0"}),
+            "unit_cost": forms.TextInput(attrs={"class": "form-control js-unit-cost money-input", "inputmode":"decimal"}),
             "account": forms.Select(attrs={"class": "form-control"}),
-            "vat_amount": forms.NumberInput(attrs={"class": "form-control js-vat", "step": "0.01", "min": "0"}),
+            "vat_amount": forms.TextInput(attrs={"class": "form-control js-vat money-input", "inputmode":"decimal"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -238,14 +272,15 @@ class PurchaseBillItemLineForm(forms.ModelForm):
 
 
 class PurchaseBillExpenseLineForm(forms.ModelForm):
+    account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), widget=forms.Select(attrs={"class":"form-control"}))
     class Meta:
         model = PurchaseBillExpenseLine
         fields = ["description", "amount", "account", "vat_amount"]
         widgets = {
             "description": forms.TextInput(attrs={"class": "form-control", "placeholder": "Expense / service description"}),
-            "amount": forms.NumberInput(attrs={"class": "form-control js-expense-amount", "step": "0.01", "min": "0"}),
+            "amount": forms.TextInput(attrs={"class": "form-control js-expense-amount money-input", "inputmode":"decimal"}),
             "account": forms.Select(attrs={"class": "form-control"}),
-            "vat_amount": forms.NumberInput(attrs={"class": "form-control js-vat", "step": "0.01", "min": "0"}),
+            "vat_amount": forms.TextInput(attrs={"class": "form-control js-vat money-input", "inputmode":"decimal"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -276,13 +311,19 @@ PurchaseBillExpenseLineFormSet = inlineformset_factory(
 from .models import VendorPayment, VendorPaymentAllocation, VendorPaymentOtherCharge
 
 class VendorPaymentForm(forms.ModelForm):
+    vendor = VendorModelChoiceField(queryset=Vendor.objects.none(), widget=forms.Select(attrs={"class":"form-control searchable-select","id":"id_vendor"}))
+    payment_account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), widget=forms.Select(attrs={"class":"form-control"}))
+    accounts_payable_account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), widget=forms.Select(attrs={"class":"form-control"}))
     class Meta:
         model=VendorPayment
-        fields=["vendor","payment_date","number","payment_method","payment_account","accounts_payable_account","currency","memo"]
+        fields=["vendor","payment_date","number","payment_method","payment_account","accounts_payable_account","currency","cheque_to","cheque_no","reference","memo"]
         widgets={
             "vendor":forms.Select(attrs={"class":"form-control searchable-select","id":"id_vendor"}),
             "payment_date":forms.DateInput(attrs={"type":"date","class":"form-control"}),
             "number":forms.TextInput(attrs={"class":"form-control"}),
+            "cheque_to":forms.TextInput(attrs={"class":"form-control","placeholder":"Cheque to"}),
+            "cheque_no":forms.TextInput(attrs={"class":"form-control","placeholder":"Cheque no."}),
+            "reference":forms.TextInput(attrs={"class":"form-control","placeholder":"Reference"}),
             "payment_method":forms.TextInput(attrs={"class":"form-control"}),
             "payment_account":forms.Select(attrs={"class":"form-control"}),
             "accounts_payable_account":forms.Select(attrs={"class":"form-control"}),
@@ -302,23 +343,41 @@ class VendorPaymentForm(forms.ModelForm):
             self.fields["vendor"].queryset=Vendor.objects.none();self.fields["payment_account"].queryset=ChartOfAccount.objects.none();self.fields["accounts_payable_account"].queryset=ChartOfAccount.objects.none()
 
 class VendorPaymentAllocationForm(forms.ModelForm):
+    bill = PurchaseBillChoiceField(queryset=PurchaseBill.objects.none(), widget=forms.Select(attrs={"class":"form-control"}))
     class Meta:
         model=VendorPaymentAllocation; fields=["bill","discount","amount","memo"]
-        widgets={"bill":forms.Select(attrs={"class":"form-control"}),"discount":forms.NumberInput(attrs={"class":"form-control","step":"0.01"}),"amount":forms.NumberInput(attrs={"class":"form-control","step":"0.01"}),"memo":forms.TextInput(attrs={"class":"form-control"})}
+        widgets={"bill":forms.Select(attrs={"class":"form-control"}),"discount":forms.TextInput(attrs={"class":"form-control money-input","inputmode":"decimal"}),"amount":forms.TextInput(attrs={"class":"form-control money-input","inputmode":"decimal"}),"memo":forms.TextInput(attrs={"class":"form-control"})}
     def __init__(self,*args,**kwargs):
         company=kwargs.pop("company",None);vendor_id=kwargs.pop("vendor_id",None);super().__init__(*args,**kwargs)
         qs=PurchaseBill.objects.none()
         if company:
             qs=PurchaseBill.objects.filter(company=company,status=PurchaseBill.STATUS_POSTED)
-            if vendor_id:qs=qs.filter(vendor_id=vendor_id)
+            if vendor_id:
+                qs=qs.filter(vendor_id=vendor_id)
+            # Only unpaid/partly paid bills should appear in Payment Detail.
+            open_ids=[bill.pk for bill in qs.order_by("bill_date","id") if bill.open_balance > 0]
+            qs=qs.filter(pk__in=open_ids)
         self.fields["bill"].queryset=qs.order_by("bill_date","id")
 
 class VendorPaymentOtherChargeForm(forms.ModelForm):
+    account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), widget=forms.Select(attrs={"class":"form-control"}))
     class Meta:
-        model=VendorPaymentOtherCharge; fields=["memo","amount","account"]
-        widgets={"memo":forms.TextInput(attrs={"class":"form-control"}),"amount":forms.NumberInput(attrs={"class":"form-control","step":"0.01"}),"account":forms.Select(attrs={"class":"form-control"})}
+        model=VendorPaymentOtherCharge; fields=["memo","amount","account","tax_code"]
+        widgets={
+            "memo":forms.TextInput(attrs={"class":"form-control"}),
+            "amount":forms.TextInput(attrs={"class":"form-control money-input","inputmode":"decimal"}),
+            "account":forms.Select(attrs={"class":"form-control"}),
+            "tax_code":forms.Select(attrs={"class":"form-control"}),
+        }
     def __init__(self,*args,**kwargs):
         company=kwargs.pop("company",None);super().__init__(*args,**kwargs);self.fields["account"].queryset=_company_accounts(company) if company else ChartOfAccount.objects.none()
 
 VendorPaymentAllocationFormSet=inlineformset_factory(VendorPayment,VendorPaymentAllocation,form=VendorPaymentAllocationForm,extra=1,can_delete=True)
 VendorPaymentOtherChargeFormSet=inlineformset_factory(VendorPayment,VendorPaymentOtherCharge,form=VendorPaymentOtherChargeForm,extra=1,can_delete=True)
+
+def make_vendor_payment_allocation_formset(extra=1):
+    """Build enough Payment Detail rows to show every open bill for the selected vendor."""
+    return inlineformset_factory(
+        VendorPayment, VendorPaymentAllocation, form=VendorPaymentAllocationForm,
+        extra=max(1, int(extra or 1)), can_delete=True
+    )

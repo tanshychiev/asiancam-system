@@ -1409,6 +1409,527 @@
     .asiancam-main-logo{width:96px!important;max-width:96px!important;height:38px!important}
 }
 
+
+/* AsianCam local UI standard: important actions stay on the right. */
+.form-actions,
+.bottom-actions,
+.table-actions,
+.header-actions,
+.page-actions,
+.search-actions,
+.filter-actions,
+.vc-actions,
+.vc-filter-actions,
+.upload-actions,
+.permission-toolbar,
+.coa-actions {
+    display: flex;
+    justify-content: flex-end !important;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.card-head { align-items: flex-start; }
+.card-head > .form-actions,
+.card-head > .header-actions,
+.card-head > .page-actions { width: auto !important; margin-left: auto; }
+@media (max-width: 640px) {
+    .form-actions,
+    .bottom-actions,
+    .table-actions,
+    .header-actions,
+    .page-actions,
+    .search-actions,
+    .filter-actions,
+    .vc-actions,
+    .vc-filter-actions,
+    .upload-actions {
+        justify-content: flex-end !important;
+    }
+}
+
+
+/* =========================================================
+   AsianCam 15-inch desktop responsive standard
+   Keeps the main navigation on one clean row without a
+   horizontal scrollbar on common 1366/1440/1536px screens.
+   ========================================================= */
+html, body { max-width:100%; overflow-x:hidden; }
+
+.page-content{
+    width:100%;
+    max-width:1600px;
+    margin:0 auto;
+    padding:20px 22px 42px;
+}
+
+.main-navbar{
+    width:100%;
+    min-height:68px;
+    padding:8px 16px;
+    gap:10px;
+    flex-wrap:nowrap;
+    overflow:visible;
+}
+
+.nav-left{
+    gap:2px;
+    flex:1 1 auto;
+    min-width:0;
+    justify-content:flex-start;
+    overflow:visible;
+}
+
+.nav-right{
+    gap:6px;
+    flex:0 0 auto;
+    min-width:0;
+}
+
+.nav-link{
+    min-height:38px;
+    padding:0 9px;
+    gap:5px;
+    font-size:12px;
+}
+
+.mini-icon{
+    width:25px;
+    height:25px;
+}
+
+.brand-logo-only{
+    width:116px!important;
+    min-width:116px!important;
+    height:44px!important;
+    margin-right:5px!important;
+}
+.asiancam-main-logo{
+    width:116px!important;
+    max-width:116px!important;
+    height:40px!important;
+}
+
+.company-chip,
+.nav-user-chip,
+.nav-logout-button{
+    min-height:38px;
+}
+.company-chip{ padding:0 9px; }
+.nav-user-chip{ padding:4px 9px 4px 5px; }
+.nav-logout-button{ padding:0 10px; }
+
+@media (max-width: 1550px){
+    .page-content{ padding:18px 18px 38px; }
+    .main-navbar{ padding:7px 12px; gap:7px; }
+    .brand-logo-only{
+        width:104px!important;
+        min-width:104px!important;
+        margin-right:2px!important;
+    }
+    .asiancam-main-logo{
+        width:104px!important;
+        max-width:104px!important;
+        height:38px!important;
+    }
+    .nav-link{ padding:0 7px; font-size:11.5px; }
+    .mini-icon{ width:23px; height:23px; }
+    .company-chip-copy small{ display:none!important; }
+    .company-chip-copy strong{ max-width:76px!important; font-size:11px!important; }
+    .nav-user-details small{ display:none; }
+    .nav-user-details strong{ max-width:72px; font-size:10.5px; }
+}
+
+@media (max-width: 1380px){
+    .main-navbar{
+        min-height:62px;
+        padding:6px 10px;
+        gap:5px;
+        align-items:center;
+        flex-direction:row;
+    }
+    .brand-logo-only{
+        width:94px!important;
+        min-width:94px!important;
+        height:40px!important;
+    }
+    .asiancam-main-logo{
+        width:94px!important;
+        max-width:94px!important;
+        height:36px!important;
+    }
+    .nav-left{
+        width:auto;
+        overflow:visible;
+        padding-bottom:0;
+    }
+    .nav-link{
+        min-height:36px;
+        padding:0 6px;
+        font-size:11px;
+    }
+    .mini-icon{ display:none!important; }
+    .workspace-strip{ display:none!important; }
+    .company-chip-copy strong{ max-width:62px!important; }
+    .nav-user-details{ display:none!important; }
+    .nav-user-chip{
+        width:36px;
+        padding:2px!important;
+        justify-content:center;
+    }
+    .nav-user-avatar{ width:30px; height:30px; }
+    .logout-label{ display:none!important; }
+    .nav-logout-button{
+        width:36px;
+        padding:0!important;
+    }
+}
+
+@media (max-width: 1180px){
+    .main-navbar{
+        flex-wrap:wrap;
+        align-items:center;
+        padding:8px 12px;
+    }
+    .brand-logo-only{
+        width:100px!important;
+        min-width:100px!important;
+    }
+    .asiancam-main-logo{
+        width:100px!important;
+        max-width:100px!important;
+    }
+    .nav-left{
+        order:3;
+        flex:0 0 100%;
+        width:100%;
+        display:flex;
+        flex-wrap:wrap;
+        gap:4px;
+        overflow:visible;
+        padding:3px 0 0;
+    }
+    .nav-right{
+        margin-left:auto;
+        position:static!important;
+        width:auto!important;
+        top:auto!important;
+        right:auto!important;
+        flex-wrap:nowrap!important;
+    }
+    .nav-link{
+        min-height:34px;
+        padding:0 8px;
+    }
+}
+
+@media (max-width: 760px){
+    .page-content{ padding:12px; }
+    .nav-left{
+        flex-wrap:nowrap;
+        overflow-x:auto;
+        scrollbar-width:thin;
+    }
+    .nav-link{ flex:0 0 auto; }
+    .company-chip-copy{ display:none!important; }
+}
+
+
+/* =========================================================
+   AsianCam navigation dropdowns — CLICK TO OPEN
+   Vendor / Item / Customer / Accounting / Report
+   ========================================================= */
+.main-navbar .nav-item > .dropdown-menu{
+    display:none !important;
+    opacity:0 !important;
+    visibility:hidden !important;
+    pointer-events:none !important;
+    transform:translateY(6px) !important;
+}
+.main-navbar .nav-item.open > .dropdown-menu{
+    display:block !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    pointer-events:auto !important;
+    transform:translateY(0) !important;
+    z-index:5000 !important;
+}
+
+/* Do not open a top menu only because the mouse is hovering it. */
+.main-navbar .nav-item:hover > .dropdown-menu{
+    display:none !important;
+    opacity:0 !important;
+    visibility:hidden !important;
+    pointer-events:none !important;
+}
+.main-navbar .nav-item.open:hover > .dropdown-menu{
+    display:block !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    pointer-events:auto !important;
+}
+
+/* Nested selections such as Accounting > Bulk Update and Report groups. */
+.main-navbar .submenu-wrap > .dropdown-menu.submenu{
+    display:none !important;
+    opacity:0 !important;
+    visibility:hidden !important;
+    pointer-events:none !important;
+}
+.main-navbar .submenu-wrap.open > .dropdown-menu.submenu{
+    display:block !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    pointer-events:auto !important;
+    z-index:5100 !important;
+}
+.main-navbar .submenu-wrap:hover > .dropdown-menu.submenu{
+    display:none !important;
+    opacity:0 !important;
+    visibility:hidden !important;
+    pointer-events:none !important;
+}
+.main-navbar .submenu-wrap.open:hover > .dropdown-menu.submenu{
+    display:block !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    pointer-events:auto !important;
+}
+
+/* Clear visual state for the selected/open navigation button. */
+.main-navbar .nav-item.open > .nav-link{
+    background:#35afe6 !important;
+    color:#fff !important;
+    border-color:#159de0 !important;
+}
+.main-navbar .nav-item.open > .nav-link .mini-icon{
+    background:rgba(255,255,255,.20) !important;
+    color:#fff !important;
+}
+
+
+/* AsianCam navbar: no horizontal scrollbar; dropdowns float over page content. */
+.main-navbar,
+.nav-left,
+.nav-right,
+.nav-item {
+    overflow: visible !important;
+}
+
+.nav-left {
+    flex-wrap: nowrap !important;
+    scrollbar-width: none !important;
+}
+.nav-left::-webkit-scrollbar {
+    display: none !important;
+}
+
+.main-navbar {
+    position: relative !important;
+    z-index: 9000 !important;
+}
+
+.main-navbar .nav-item {
+    position: relative !important;
+}
+
+.main-navbar .nav-item > .dropdown-menu {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    left: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 10000 !important;
+    box-shadow: 0 12px 30px rgba(7,55,99,.16) !important;
+}
+
+.main-navbar .submenu-wrap {
+    position: relative !important;
+}
+
+.main-navbar .submenu-wrap > .dropdown-menu.submenu {
+    position: absolute !important;
+    top: 0 !important;
+    left: calc(100% + 6px) !important;
+    max-height: none !important;
+    overflow: visible !important;
+    z-index: 10010 !important;
+}
+
+@media (max-width: 760px) {
+    .nav-left {
+        overflow: visible !important;
+        flex-wrap: wrap !important;
+    }
+}
+
+
+/* AsianCam nav dropdown placement: open directly BELOW the navbar button. */
+.main-navbar{
+    position:relative !important;
+    overflow:visible !important;
+    z-index:9000 !important;
+}
+
+.main-navbar .nav-left,
+.main-navbar .nav-right{
+    overflow:visible !important;
+}
+
+.main-navbar .nav-item{
+    position:relative !important;
+    overflow:visible !important;
+}
+
+/* Top-level dropdown sits below its selected nav button */
+.main-navbar .nav-item > .dropdown-menu{
+    position:absolute !important;
+    top:100% !important;
+    left:0 !important;
+    right:auto !important;
+    margin-top:6px !important;
+    min-width:220px !important;
+    width:max-content !important;
+    max-width:320px !important;
+    max-height:70vh !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    z-index:10000 !important;
+}
+
+/* Never let a dropdown become part of the navbar row/layout */
+.main-navbar .nav-item > .dropdown-menu{
+    flex:none !important;
+    order:initial !important;
+}
+
+/* Nested submenu opens to the RIGHT of the first dropdown */
+.main-navbar .submenu-wrap{
+    position:relative !important;
+}
+.main-navbar .submenu-wrap > .dropdown-menu.submenu{
+    position:absolute !important;
+    top:0 !important;
+    left:100% !important;
+    margin-left:6px !important;
+    min-width:210px !important;
+    width:max-content !important;
+    max-width:300px !important;
+    z-index:10010 !important;
+}
+
+/* Keep dropdown above page content */
+.page-content,
+.workspace-strip,
+.company-page{
+    position:relative;
+    z-index:1;
+}
+
+
+/* =========================================================
+   AsianCam SIMPLE NAV — flat, no nested menus, no menu scroll
+   ========================================================= */
+.main-navbar .simple-nav-menu{
+    min-width:230px !important;
+    width:230px !important;
+    max-width:280px !important;
+    max-height:none !important;
+    overflow:visible !important;
+    padding:8px !important;
+    border-radius:12px !important;
+    background:#fff !important;
+    border:1px solid #d9eaf4 !important;
+    box-shadow:0 12px 28px rgba(7,55,99,.15) !important;
+}
+
+.main-navbar .report-menu{
+    width:260px !important;
+    max-width:260px !important;
+}
+
+.main-navbar .simple-nav-menu .dropdown-item{
+    min-height:36px !important;
+    padding:8px 10px !important;
+    border-radius:8px !important;
+    display:flex !important;
+    align-items:center !important;
+    font-size:12.5px !important;
+    font-weight:650 !important;
+    color:#153b5b !important;
+    white-space:normal !important;
+}
+
+.main-navbar .simple-nav-menu .dropdown-item:hover,
+.main-navbar .simple-nav-menu .dropdown-item.active{
+    background:#edf8fe !important;
+    color:#087bb9 !important;
+}
+
+.main-navbar .menu-label{
+    padding:5px 10px 4px !important;
+    color:#7b8b9c !important;
+    font-size:10px !important;
+    font-weight:800 !important;
+    text-transform:uppercase !important;
+    letter-spacing:.06em !important;
+}
+
+.main-navbar .menu-divider{
+    height:1px !important;
+    margin:6px 4px !important;
+    background:#e7eef3 !important;
+}
+
+/* Disable all old nested-menu UI completely. */
+.main-navbar .submenu-wrap,
+.main-navbar .dropdown-menu.submenu{
+    display:none !important;
+}
+
+/* Keep every dropdown directly under its nav button and above page content. */
+.main-navbar .nav-item > .dropdown-menu{
+    top:calc(100% + 5px) !important;
+    left:0 !important;
+    right:auto !important;
+    overflow:visible !important;
+}
+
+/* No navbar or dropdown scrollbar on desktop. */
+.main-navbar,
+.main-navbar .nav-left,
+.main-navbar .nav-right,
+.main-navbar .nav-item{
+    overflow:visible !important;
+}
+.main-navbar .nav-left{
+    scrollbar-width:none !important;
+}
+.main-navbar .nav-left::-webkit-scrollbar{
+    display:none !important;
+}
+
+
+/* AsianCam nav functional repair */
+.main-navbar .nav-item > .dropdown-menu{
+    display:none !important;
+    opacity:0 !important;
+    visibility:hidden !important;
+    pointer-events:none !important;
+}
+.main-navbar .nav-item.open > .dropdown-menu{
+    display:block !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    pointer-events:auto !important;
+}
+.main-navbar .nav-item.open:hover > .dropdown-menu{
+    display:block !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    pointer-events:auto !important;
+}
+
 </style>
 
 
@@ -1698,6 +2219,20 @@
     <link rel="shortcut icon" type="image/png" href="{% static 'images/asiancam_favicon.png' %}?v=20260901-6">
     <link rel="apple-touch-icon" href="{% static 'images/asiancam_favicon.png' %}?v=20260901-6">
 
+
+<style id="client-responsive-fix">
+/* Client screen-size fix: keep logo, menus and working-company controls from overlapping. */
+.main-navbar{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto auto!important;align-items:center!important;column-gap:12px!important;overflow:visible!important}
+.brand-logo-only{grid-column:1;flex:none!important;min-width:110px!important}
+.nav-left{grid-column:2;min-width:0!important;overflow-x:auto!important;overflow-y:visible!important;display:flex!important;flex-wrap:nowrap!important;scrollbar-width:thin;padding-bottom:3px}
+.nav-left>.nav-item{flex:0 0 auto!important}.workspace-strip{grid-column:3;position:static!important;max-width:180px;min-width:110px;overflow:hidden}.workspace-strip b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-right{grid-column:4;position:static!important;display:flex!important;min-width:0;gap:8px!important}.right-chip,.nav-user-chip,.nav-logout-button{flex:0 0 auto}.company-chip{max-width:190px}.company-chip-copy{min-width:0}.company-chip-copy strong{display:block;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.page-content{max-width:100%;overflow-x:hidden}.card{max-width:100%;box-sizing:border-box}.table-wrap{max-width:100%;overflow-x:auto!important;-webkit-overflow-scrolling:touch}.table-wrap table{margin:0}.card-head>*{min-width:0}
+@media(max-width:1450px){.main-navbar{column-gap:8px!important;padding-left:14px!important;padding-right:14px!important}.brand-logo-only{min-width:94px!important}.asiancam-main-logo{max-width:94px!important}.nav-link{padding-left:9px!important;padding-right:9px!important;font-size:12px!important}.workspace-strip{max-width:135px}.nav-user-details{display:none!important}.company-chip{max-width:150px}}
+@media(max-width:1180px){.main-navbar{grid-template-columns:auto minmax(0,1fr) auto!important;align-items:center!important;flex-direction:unset!important}.workspace-strip{display:none!important}.nav-right{grid-column:3!important}.nav-left{width:auto!important}.nav-right{position:static!important;right:auto!important;top:auto!important}.right-chip.company-chip{max-width:132px}.logout-label{display:none!important}}
+@media(max-width:900px){.main-navbar{grid-template-columns:auto minmax(0,1fr)!important}.nav-right{display:none!important}.nav-left{grid-column:2!important}.brand-logo-only{min-width:72px!important}.asiancam-main-logo{max-width:72px!important}.dropdown-menu{position:fixed!important;top:78px!important;left:12px!important;max-width:calc(100vw - 24px)!important}.page-content{padding:16px!important}}
+@media(max-width:600px){.main-navbar{padding:10px!important}.brand-logo-only{min-width:58px!important}.asiancam-main-logo{max-width:58px!important}.nav-link{padding:0 8px!important}.card{padding:14px!important;border-radius:16px!important}.page-content{padding:10px!important}}
+</style>
 </head>
 
 <body>
@@ -1747,7 +2282,7 @@
         {% if request.session.selected_company_id %}
 
         <div class="nav-item">
-            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'vendor_center' or request.resolver_match.url_name == 'vendor_create' or request.resolver_match.url_name == 'vendor_edit' or request.resolver_match.url_name == 'vendor_transaction_list' or request.resolver_match.url_name == 'vendor_transaction_create' or request.resolver_match.url_name == 'vendor_transaction_detail' or request.resolver_match.url_name == 'purchase_order_create' or request.resolver_match.url_name == 'cash_expense_create' or request.resolver_match.url_name == 'vendor_payment_create' %}active{% endif %}">
+            <button type="button" aria-expanded="false" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'vendor_center' or request.resolver_match.url_name == 'vendor_create' or request.resolver_match.url_name == 'vendor_edit' or request.resolver_match.url_name == 'vendor_transaction_list' or request.resolver_match.url_name == 'vendor_transaction_create' or request.resolver_match.url_name == 'vendor_transaction_detail' or request.resolver_match.url_name == 'purchase_order_create' or request.resolver_match.url_name == 'vendor_payment_create' or request.resolver_match.url_name == 'cash_expense_create' or request.resolver_match.url_name == 'vendor_payment_create' %}active{% endif %}">
                 <span class="mini-icon"><span class="ui-icon"><svg viewBox="0 0 24 24"><path d="M3 10h18"/><path d="M5 10V5h14v5"/><path d="M6 10v9h12v-9"/></svg></span></span>
                 Vendor ▾
             </button>
@@ -1756,13 +2291,12 @@
                 <a href="{% url 'vendor_center' %}" class="dropdown-item">Vendor Center</a>
                 <a href="{% url 'vendor_transaction_list' %}" class="dropdown-item">Vendor Transaction</a>
                 <a href="{% url 'purchase_order_create' %}" class="dropdown-item">Purchase Bill</a>
-                <a href="{% url 'cash_expense_create' %}" class="dropdown-item">Cash Expense</a>
-                <a href="{% url 'vendor_payment_create' %}" class="dropdown-item">Vendor Payment</a>
+                <a href="{% url 'vendor_payment_create' %}" class="dropdown-item">Payment</a>
             </div>
         </div>
 
         <div class="nav-item">
-            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'stock_item_list' or request.resolver_match.url_name == 'stock_item_create' or request.resolver_match.url_name == 'stock_item_group_list' or request.resolver_match.url_name == 'stock_item_brand_list' or request.resolver_match.url_name == 'stock_unit_set_list' or request.resolver_match.url_name == 'stock_issue_list' or request.resolver_match.url_name == 'stock_adjustment_list' or request.resolver_match.url_name == 'stock_assembly_list' or request.resolver_match.url_name == 'stock_transfer_list' %}active{% endif %}">
+            <button type="button" aria-expanded="false" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'stock_item_list' or request.resolver_match.url_name == 'stock_item_create' or request.resolver_match.url_name == 'stock_item_group_list' or request.resolver_match.url_name == 'stock_item_brand_list' or request.resolver_match.url_name == 'stock_unit_set_list' or request.resolver_match.url_name == 'stock_issue_list' or request.resolver_match.url_name == 'stock_adjustment_list' or request.resolver_match.url_name == 'stock_assembly_list' or request.resolver_match.url_name == 'stock_transfer_list' %}active{% endif %}">
                 <span class="mini-icon"><span class="ui-icon"><svg viewBox="0 0 24 24"><path d="m12 3 8 4-8 4-8-4 8-4Z"/><path d="M4 12l8 4 8-4"/><path d="M4 17l8 4 8-4"/></svg></span></span>
                 Item ▾
             </button>
@@ -1780,7 +2314,7 @@
         </div>
 
         <div class="nav-item">
-            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'customer_center' or request.resolver_match.url_name == 'customer_transaction_list' or request.resolver_match.url_name == 'quotation_list' or request.resolver_match.url_name == 'sale_order_list' or request.resolver_match.url_name == 'customer_type_list' or request.resolver_match.url_name == 'salesperson_list' or request.resolver_match.url_name == 'price_level_list' or request.resolver_match.url_name == 'region_list' %}active{% endif %}">
+            <button type="button" aria-expanded="false" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'customer_center' or request.resolver_match.url_name == 'customer_transaction_list' or request.resolver_match.url_name == 'quotation_list' or request.resolver_match.url_name == 'sale_order_list' or request.resolver_match.url_name == 'customer_type_list' or request.resolver_match.url_name == 'salesperson_list' or request.resolver_match.url_name == 'price_level_list' or request.resolver_match.url_name == 'region_list' or request.resolver_match.url_name == 'customer_invoice_list' or request.resolver_match.url_name == 'customer_invoice_create' or request.resolver_match.url_name == 'sale_receipt_list' or request.resolver_match.url_name == 'sale_receipt_create' or request.resolver_match.url_name == 'receive_payment_create' %}active{% endif %}">
                 <span class="mini-icon"><span class="ui-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2"/></svg></span></span>
                 Customer ▾
             </button>
@@ -1789,7 +2323,9 @@
                 <a href="{% url 'customer_center' %}" class="dropdown-item">Customer Center</a>
                 <a href="{% url 'customer_transaction_list' %}" class="dropdown-item">Customer Transaction</a>
                 <a href="{% url 'quotation_list' %}" class="dropdown-item">Quotation</a>
-                <a href="{% url 'sale_order_list' %}" class="dropdown-item">Sale Invoice</a>
+                <a href="{% url 'customer_invoice_list' %}" class="dropdown-item">Sale Invoice / Invoice</a>
+                <a href="{% url 'sale_receipt_list' %}" class="dropdown-item">Sale Receipt</a>
+                <a href="{% url 'receive_payment_create' %}" class="dropdown-item">Receipt / Collection</a>
                 <a href="{% url 'customer_type_list' %}" class="dropdown-item">Customer Type</a>
                 <a href="{% url 'salesperson_list' %}" class="dropdown-item">Salesperson</a>
                 <a href="{% url 'price_level_list' %}" class="dropdown-item">Price Level</a>
@@ -1798,96 +2334,52 @@
         </div>
 
         <div class="nav-item">
-            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'chart_of_accounts' or request.resolver_match.url_name == 'report_mapping' or request.resolver_match.url_name == 'journal_list' or request.resolver_match.url_name == 'journal_create' or request.resolver_match.url_name == 'journal_detail' or request.resolver_match.url_name == 'journal_edit' or request.resolver_match.url_name == 'accounting_import_excel' or request.resolver_match.url_name == 'bulk_update_menu' or request.resolver_match.url_name == 'bulk_update_vendors' or request.resolver_match.url_name == 'bulk_update_items' or request.resolver_match.url_name == 'bulk_update_customers' or request.resolver_match.url_name == 'bulk_update_report' %}active{% endif %}">
+            <button type="button" aria-expanded="false" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'chart_of_accounts' or request.resolver_match.url_name == 'report_mapping' or request.resolver_match.url_name == 'journal_list' or request.resolver_match.url_name == 'journal_create' or request.resolver_match.url_name == 'journal_detail' or request.resolver_match.url_name == 'journal_edit' or request.resolver_match.url_name == 'accounting_import_excel' or request.resolver_match.url_name == 'bulk_update_menu' or request.resolver_match.url_name == 'bulk_update_vendors' or request.resolver_match.url_name == 'bulk_update_items' or request.resolver_match.url_name == 'bulk_update_customers' or request.resolver_match.url_name == 'bulk_update_report' %}active{% endif %}">
                 <span class="mini-icon"><span class="ui-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h3M14 12h3M7 16h3M14 16h3"/></svg></span></span>
                 Accounting ▾
             </button>
 
-            <div class="dropdown-menu">
+            <div class="dropdown-menu simple-nav-menu accounting-menu">
+                <div class="menu-label">Accounting</div>
                 <a href="{% url 'chart_of_accounts' %}" class="dropdown-item">Chart of Accounts</a>
                 <a href="{% url 'report_mapping' %}" class="dropdown-item">Report Mapping</a>
-
                 <a href="{% url 'journal_list' %}" class="dropdown-item">Journal Entry</a>
                 <a href="{% url 'accounting_import_excel' %}" class="dropdown-item">Simple Journal Excel</a>
 
-                <div class="submenu-wrap">
-                    <div class="dropdown-item has-sub js-submenu-toggle">Bulk Update</div>
-                    <div class="dropdown-menu submenu">
-                        <a href="{% url 'bulk_update_vendors' %}" class="dropdown-item {% if request.resolver_match.url_name == 'bulk_update_vendors' %}active{% endif %}">
-                            Update Vendors
-                        </a>
-                        <a href="{% url 'bulk_update_items' %}" class="dropdown-item {% if request.resolver_match.url_name == 'bulk_update_items' or request.resolver_match.url_name == 'bulk_update_menu' %}active{% endif %}">
-                            Update Items
-                        </a>
-                        <a href="{% url 'bulk_update_customers' %}" class="dropdown-item {% if request.resolver_match.url_name == 'bulk_update_customers' %}active{% endif %}">
-                            Update Customers
-                        </a>
-                    </div>
-                </div>
+                <div class="menu-divider"></div>
+                <div class="menu-label">Bulk Update</div>
+                <a href="{% url 'bulk_update_vendors' %}" class="dropdown-item {% if request.resolver_match.url_name == 'bulk_update_vendors' %}active{% endif %}">Update Vendors</a>
+                <a href="{% url 'bulk_update_items' %}" class="dropdown-item {% if request.resolver_match.url_name == 'bulk_update_items' or request.resolver_match.url_name == 'bulk_update_menu' %}active{% endif %}">Update Items</a>
+                <a href="{% url 'bulk_update_customers' %}" class="dropdown-item {% if request.resolver_match.url_name == 'bulk_update_customers' %}active{% endif %}">Update Customers</a>
             </div>
         </div>
-
-        <div class="nav-item">
-            <button type="button" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'accounting_reports' or request.resolver_match.url_name == 'report_profit_loss_by_month' or request.resolver_match.url_name == 'report_general_ledger' or request.resolver_match.url_name == 'report_ap_aging' or request.resolver_match.url_name == 'report_ar_aging' or request.resolver_match.url_name == 'report_balance_sheet' or request.resolver_match.url_name == 'report_profit_loss_standard' or request.resolver_match.url_name == 'report_journal_report' or request.resolver_match.url_name == 'report_trial_balance' or request.resolver_match.url_name == 'report_cash_flow' or request.resolver_match.url_name == 'report_ledger_detail' %}active{% endif %}">
+<div class="nav-item">
+            <button type="button" aria-expanded="false" class="nav-link js-menu-toggle {% if request.resolver_match.url_name == 'accounting_reports' or request.resolver_match.url_name == 'report_profit_loss_by_month' or request.resolver_match.url_name == 'report_general_ledger' or request.resolver_match.url_name == 'report_ap_aging' or request.resolver_match.url_name == 'report_ar_aging' or request.resolver_match.url_name == 'report_balance_sheet' or request.resolver_match.url_name == 'report_profit_loss_standard' or request.resolver_match.url_name == 'report_journal_report' or request.resolver_match.url_name == 'report_trial_balance' or request.resolver_match.url_name == 'report_cash_flow' or request.resolver_match.url_name == 'report_ledger_detail' %}active{% endif %}">
                 <span class="mini-icon"><span class="ui-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></span>
                 Report ▾
             </button>
 
-            <div class="dropdown-menu">
-                <a href="{% url 'accounting_reports' %}" class="dropdown-item {% if request.resolver_match.url_name == 'accounting_reports' %}active{% endif %}">
-                    All Reports
-                </a>
+            <div class="dropdown-menu simple-nav-menu report-menu">
+                <div class="menu-label">Reports</div>
+                <a href="{% url 'accounting_reports' %}" class="dropdown-item {% if request.resolver_match.url_name == 'accounting_reports' %}active{% endif %}">All Reports</a>
+                <a href="{% url 'report_profit_loss_standard' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_profit_loss_standard' %}active{% endif %}">Profit & Loss Statement</a>
+                <a href="{% url 'report_balance_sheet' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_balance_sheet' %}active{% endif %}">Balance Sheet</a>
+                <a href="{% url 'report_cash_flow' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_cash_flow' %}active{% endif %}">Cash Flow</a>
+                <a href="{% url 'report_profit_loss_by_month' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_profit_loss_by_month' %}active{% endif %}">Profit/Loss by Month</a>
 
-                <div class="submenu-wrap">
-                    <div class="dropdown-item has-sub js-submenu-toggle">Company & Finance</div>
-                    <div class="dropdown-menu submenu">
-                        <a href="{% url 'report_profit_loss_standard' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_profit_loss_standard' %}active{% endif %}">
-                            Profit & Loss Statement
-                        </a>
-                        <a href="{% url 'report_balance_sheet' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_balance_sheet' %}active{% endif %}">
-                            Balance Sheet
-                        </a>
-                        <a href="{% url 'report_cash_flow' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_cash_flow' %}active{% endif %}">
-                            Cash Flow
-                        </a>
-                        <a href="{% url 'report_profit_loss_by_month' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_profit_loss_by_month' %}active{% endif %}">
-                            Profit/Loss by Month
-                        </a>
-                    </div>
-                </div>
+                <div class="menu-divider"></div>
+                <div class="menu-label">Aging</div>
+                <a href="{% url 'report_ap_aging' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_ap_aging' %}active{% endif %}">AP Aging Detail</a>
+                <a href="{% url 'report_ar_aging' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_ar_aging' %}active{% endif %}">AR Aging Detail</a>
 
-                <div class="submenu-wrap">
-                    <div class="dropdown-item has-sub js-submenu-toggle">Aging Reports</div>
-                    <div class="dropdown-menu submenu">
-                        <a href="{% url 'report_ap_aging' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_ap_aging' %}active{% endif %}">
-                            AP Aging Detail
-                        </a>
-                        <a href="{% url 'report_ar_aging' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_ar_aging' %}active{% endif %}">
-                            AR Aging Detail
-                        </a>
-                    </div>
-                </div>
-
-                <div class="submenu-wrap">
-                    <div class="dropdown-item has-sub js-submenu-toggle">Accounting Reports</div>
-                    <div class="dropdown-menu submenu">
-                        <a href="{% url 'report_trial_balance' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_trial_balance' %}active{% endif %}">
-                            Trial Balance
-                        </a>
-                        <a href="{% url 'report_general_ledger' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_general_ledger' %}active{% endif %}">
-                            General Ledger
-                        </a>
-                        <a href="{% url 'report_journal_report' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_journal_report' %}active{% endif %}">
-                            Journal Report
-                        </a>
-                        <a href="{% url 'accounting_reports' %}" class="dropdown-item">
-                            Excel / PDF Export
-                        </a>
-                    </div>
-                </div>
+                <div class="menu-divider"></div>
+                <div class="menu-label">Accounting Reports</div>
+                <a href="{% url 'report_trial_balance' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_trial_balance' %}active{% endif %}">Trial Balance</a>
+                <a href="{% url 'report_general_ledger' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_general_ledger' %}active{% endif %}">General Ledger</a>
+                <a href="{% url 'report_journal_report' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report_journal_report' %}active{% endif %}">Journal Report</a>
             </div>
         </div>
-        {% endif %}
+{% endif %}
     </div>
 
     {% if request.session.selected_company_id %}
@@ -1970,90 +2462,81 @@
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const menuButtons = document.querySelectorAll(".js-menu-toggle");
-        const submenuButtons = document.querySelectorAll(".js-submenu-toggle");
+document.addEventListener("DOMContentLoaded", function () {
+    const menuButtons = document.querySelectorAll(".js-menu-toggle");
 
-        function closeAllMenus() {
-            document.querySelectorAll(".nav-item.open, .submenu-wrap.open").forEach(function (item) {
+    function closeAllMenus(exceptItem = null) {
+        document.querySelectorAll(".main-navbar .nav-item.open").forEach(function (item) {
+            if (item !== exceptItem) {
                 item.classList.remove("open");
-            });
-        }
-
-        menuButtons.forEach(function (btn) {
-            btn.addEventListener("click", function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-
-                const navItem = btn.closest(".nav-item");
-                const isOpen = navItem.classList.contains("open");
-
-                closeAllMenus();
-
-                if (!isOpen) {
-                    navItem.classList.add("open");
-                }
-            });
+                const button = item.querySelector(":scope > .js-menu-toggle");
+                if (button) button.setAttribute("aria-expanded", "false");
+            }
         });
+    }
 
-        submenuButtons.forEach(function (btn) {
-            btn.addEventListener("click", function (event) {
-                event.preventDefault();
-                event.stopPropagation();
+    menuButtons.forEach(function (button) {
+        button.setAttribute("aria-haspopup", "true");
+        button.setAttribute("aria-expanded", "false");
 
-                const wrap = btn.closest(".submenu-wrap");
-                const parentMenu = btn.closest(".nav-item");
-                const isOpen = wrap.classList.contains("open");
+        button.addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
 
-                if (parentMenu) {
-                    parentMenu.querySelectorAll(".submenu-wrap.open").forEach(function (item) {
-                        if (item !== wrap && !item.contains(wrap)) {
-                            item.classList.remove("open");
-                        }
-                    });
-                }
+            const item = button.closest(".nav-item");
+            if (!item) return;
 
-                if (isOpen) {
-                    wrap.classList.remove("open");
-                } else {
-                    wrap.classList.add("open");
-                }
-            });
+            const shouldOpen = !item.classList.contains("open");
+            closeAllMenus(item);
+
+            item.classList.toggle("open", shouldOpen);
+            button.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
         });
+    });
 
-        document.addEventListener("click", function () {
+    document.querySelectorAll(".main-navbar .dropdown-menu").forEach(function (menu) {
+        menu.addEventListener("click", function (event) {
+            event.stopPropagation();
+        });
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!event.target.closest(".main-navbar .nav-item")) {
             closeAllMenus();
-        });
+        }
+    });
 
-        document.querySelectorAll(".dropdown-menu").forEach(function (menu) {
-            menu.addEventListener("click", function (event) {
-                event.stopPropagation();
-            });
-        });
-
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            closeAllMenus();
+        }
+    });
 
     // Active / Inactive segmented buttons used by master-data forms.
     document.querySelectorAll('[data-status-toggle]').forEach(function (wrap) {
         const checkbox = wrap.querySelector('input[type="checkbox"]');
         const buttons = wrap.querySelectorAll('.status-choice');
         if (!checkbox || !buttons.length) return;
-        function paint(){
-            buttons.forEach(function(btn){
+
+        function paint() {
+            buttons.forEach(function (btn) {
                 const active = (btn.dataset.value === '1') === checkbox.checked;
                 btn.classList.toggle('selected', active);
                 btn.setAttribute('aria-pressed', active ? 'true' : 'false');
             });
         }
-        buttons.forEach(function(btn){
-            btn.addEventListener('click', function(){
+
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
                 checkbox.checked = btn.dataset.value === '1';
-                checkbox.dispatchEvent(new Event('change', {bubbles:true}));
+                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
                 paint();
             });
         });
+
         paint();
     });
-    });
+});
 </script>
 
 {% block extra_js %}{% endblock %}

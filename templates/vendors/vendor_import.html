@@ -1,19 +1,76 @@
 {% extends "base.html" %}
 {% block title %}Import Vendors{% endblock %}
 {% block content %}
+<style>
+  .import-sample{margin-top:16px;border:1px solid #dbe9f2;border-radius:12px;overflow:hidden;background:#fff}
+  .import-sample-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#f7fbfe;border-bottom:1px solid #e3edf4;flex-wrap:wrap}
+  .import-sample-head h3{margin:0;font-size:16px}.import-sample-head p{margin:3px 0 0;color:#6b7b88;font-size:13px}
+  .sample-table-wrap{overflow:auto}.sample-table{width:100%;border-collapse:collapse;min-width:1100px}
+  .sample-table th,.sample-table td{padding:9px 10px;border-bottom:1px solid #edf2f6;text-align:left;white-space:nowrap;font-size:13px}
+  .sample-table th{background:#eef8fd;color:#28576f;font-weight:700}.sample-table td{background:#fff}
+  .required-mark{color:#d13b3b;font-weight:700}.sample-note{padding:10px 14px;background:#fffbea;color:#6c5d21;font-size:13px}
+  .upload-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+</style>
 <div class="card">
   <div class="card-head">
     <div><h2>Import Vendor Excel</h2><p>Bulk add or update vendors for {{ company.name }}.</p></div>
     <a href="{% url 'vendor_center' %}" class="btn btn-light">✕ Close</a>
   </div>
+
   <div class="message">
     Required column: <strong>Vendor Name</strong>. Optional columns: Vendor Code, Phone, Email, Contact Person, Address, Opening Balance, Memo, Active.
-    <br>Download the sample first, keep the same column names, then upload your completed Excel file.
+    <br>You can see the sample format below. Download it, replace the sample row with your vendor data, then import the completed Excel file.
   </div>
-  <form method="post" enctype="multipart/form-data">
+
+  <div class="import-sample">
+    <div class="import-sample-head">
+      <div>
+        <h3>Vendor Import Sample</h3>
+        <p>This sample is built into the AsianCam system.</p>
+      </div>
+      <a class="btn" href="{% url 'vendor_import_sample' %}" download>⬇ Download Sample Excel</a>
+    </div>
+    <div class="sample-table-wrap">
+      <table class="sample-table">
+        <thead>
+          <tr>
+            <th>Vendor Code</th>
+            <th>Vendor Name <span class="required-mark">*</span></th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Contact Person</th>
+            <th>Address</th>
+            <th>Opening Balance</th>
+            <th>Memo</th>
+            <th>Active</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>V0001</td>
+            <td>Sample Supplier Co., Ltd.</td>
+            <td>012345678</td>
+            <td>supplier@example.com</td>
+            <td>Sok Dara</td>
+            <td>Phnom Penh</td>
+            <td>0.00</td>
+            <td>Replace this row with real vendor data</td>
+            <td>Yes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="sample-note"><strong>Important:</strong> Keep the header names exactly the same. Vendor Name is required. Active accepts Yes/No, True/False, 1/0, Active/Inactive.</div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" style="margin-top:16px">
     {% csrf_token %}
     <div class="form-group"><label>Excel File (.xlsx)</label><input type="file" name="excel_file" accept=".xlsx" required></div>
-    <div class="form-actions"><a class="btn btn-light" href="{% url 'vendor_import_sample' %}">⬇ Get Sample Excel</a><a class="btn btn-light" href="{% url 'vendor_export_excel' %}">📥 Download Current List</a><button class="btn" type="submit">📤 Import Excel</button></div>
+    <div class="form-actions upload-actions">
+      <a class="btn btn-light" href="{% url 'vendor_import_sample' %}" download>⬇ Download Sample Excel</a>
+      <a class="btn btn-light" href="{% url 'vendor_export_excel' %}">📥 Download Current List</a>
+      <button class="btn" type="submit">📤 Import Excel</button>
+    </div>
   </form>
 </div>
 {% endblock %}

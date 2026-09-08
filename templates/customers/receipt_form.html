@@ -1,12 +1,1445 @@
-{% extends "base.html" %}{% block title %}Receipt / Collection{% endblock %}{% block content %}
-<div class="card accounting-sheet"><form method="post">{% csrf_token %}
-<div class="card-head"><div><h2>Receipt / Collection</h2><p>Apply customer payment to invoices or record other incoming money.</p></div></div>
-<div class="account-grid account-grid-4"><div><label>Customer*</label>{{ form.customer }}</div><div><label>Date*</label>{{ form.receipt_date }}</div><div><label>Number</label>{{ form.number }}</div><div><label>Currency</label>{{ form.currency }}</div><div><label>Amount Paid</label><input id="receiptTotal" readonly value="0.00"></div><div><label>Payment Method</label>{{ form.payment_method }}</div><div><label>Deposit To*</label>{{ form.deposit_account }}</div><div><label>Memo</label>{{ form.memo }}</div></div>
-<div class="sheet-tabs"><button type="button" class="sheet-tab active" data-tab="pay">Payment Detail</button><button type="button" class="sheet-tab" data-tab="charge">Other Charge</button></div>
-<div id="pay" class="tab-panel active">{{ allocation_formset.management_form }}<div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Discount</th><th>Payment</th><th>Memo</th><th></th></tr></thead><tbody id="receiptAllocRows">{% for f in allocation_formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.invoice }}</td><td>{{ f.discount }}</td><td class="payment-amount">{{ f.amount }}</td><td>{{ f.memo }}</td><td style="text-align:right;"><span style="display:none;">{{ f.DELETE }}</span><button type="button" class="btn btn-light js-remove-receipt-row">Remove</button></td></tr>{% endfor %}</tbody></table></div><div class="table-actions" style="margin-top:10px;"><button type="button" class="btn btn-light js-add-receipt-row" data-prefix="alloc" data-body="receiptAllocRows">＋ Add Invoice Row</button></div></div>
-<div id="charge" class="tab-panel">{{ charge_formset.management_form }}<div class="table-wrap"><table><thead><tr><th>Memo / Description</th><th>Amount($)</th><th>Account</th><th></th></tr></thead><tbody id="receiptChargeRows">{% for f in charge_formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.memo }}</td><td class="charge-amount">{{ f.amount }}</td><td>{{ f.account }}</td><td style="text-align:right;"><span style="display:none;">{{ f.DELETE }}</span><button type="button" class="btn btn-light js-remove-receipt-row">Remove</button></td></tr>{% endfor %}</tbody></table></div><div class="table-actions" style="margin-top:10px;"><button type="button" class="btn btn-light js-add-receipt-row" data-prefix="charge" data-body="receiptChargeRows">＋ Add Other Charge Row</button></div></div>
-<div class="bottom-actions"><button class="btn" name="save_action" value="save_new">Save & New</button><button class="btn" name="save_action" value="save_close">Save & Close</button><a class="btn btn-light" href="{% url 'customer_center' %}">Close</a></div></form></div>
+{% extends "base.html" %}
+{% block title %}Receipt / Collection{% endblock %}
+{% block content %}
+<style>
+
+
+:root{
+  --pb-green:#0b9a5a;
+  --pb-green-dark:#087646;
+  --pb-green-soft:#edf9f3;
+  --pb-blue:#169ee6;
+  --pb-blue-dark:#0877b3;
+  --pb-navy:#103b5a;
+  --pb-text:#2d4859;
+  --pb-muted:#7b8f9b;
+  --pb-line:#dbe8ee;
+  --pb-soft:#f7fbfd;
+  --pb-danger:#dc5454;
+}
+.pb-card{
+  max-width:1500px;
+  margin:0 auto;
+  background:#fff;
+  border:1px solid #d8e8ef;
+  border-radius:18px;
+  box-shadow:0 10px 30px rgba(24,66,88,.07);
+  overflow:hidden;
+}
+.pb-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:18px;
+  padding:20px 22px 16px;
+  border-bottom:1px solid var(--pb-line);
+}
+.pb-header h2{
+  margin:0;
+  color:var(--pb-navy);
+  font-size:24px;
+  font-weight:900;
+  letter-spacing:-.4px;
+}
+.pb-header p{
+  margin:5px 0 0;
+  color:var(--pb-muted);
+  font-size:11px;
+}
+.pb-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pb-body{padding:18px 20px 16px}
+
+.pb-top-grid{
+  display:grid;
+  grid-template-columns:1.2fr 1fr 1fr 1fr 310px;
+  grid-template-areas:
+    "vendor date bill currency summary"
+    "due po ap vat summary"
+    "memo memo memo memo summary";
+  gap:14px 16px;
+  align-items:start;
+}
+.pb-field{min-width:0}
+.pb-field.vendor-field{grid-area:vendor}
+.pb-field.date-field{grid-area:date}
+.pb-field.billno-field{grid-area:bill}
+.pb-field.currency-field{grid-area:currency}
+.pb-field.due-field{grid-area:due}
+.pb-field.po-field{grid-area:po}
+.pb-field.ap-field{grid-area:ap}
+.pb-field.vat-field{grid-area:vat}
+.pb-field.memo-field{grid-area:memo}
+.pb-field.memo-field textarea{
+  min-height:64px;
+  max-height:90px;
+}
+.pb-top-summary{
+  grid-area:summary;
+  border:1px solid #d7e8ee;
+  border-radius:12px;
+  background:linear-gradient(180deg,#fbfeff,#f4f9fb);
+  padding:12px 13px;
+  align-self:stretch;
+  min-height:100%;
+}
+.pb-top-summary-title{
+  font-size:10px;
+  font-weight:900;
+  color:#496273;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  margin-bottom:7px;
+}
+.pb-top-summary .pb-summary-row{min-height:34px}
+.pb-top-summary .pb-summary-row.total{margin-top:5px}
+
+.pb-summary-discount{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:6px 10px;
+  align-items:center;
+  padding:8px 0;
+  border-bottom:1px solid #e6eff3;
+}
+.pb-summary-discount-label{
+  color:#6f818b;
+  font-size:10px;
+  font-weight:750;
+}
+.pb-summary-discount-controls{
+  display:flex;
+  gap:5px;
+  align-items:center;
+}
+.pb-summary-discount-controls input{
+  width:88px!important;
+  min-height:30px!important;
+  height:30px!important;
+  padding:4px 7px!important;
+  text-align:right;
+  border-radius:7px!important;
+  font-size:10px!important;
+}
+.pb-summary-discount-controls select{
+  width:55px!important;
+  min-height:30px!important;
+  height:30px!important;
+  padding:4px 6px!important;
+  border-radius:7px!important;
+  font-size:10px!important;
+}
+.pb-summary-discount-result{
+  grid-column:1 / -1;
+  justify-self:end;
+  color:#cf5151;
+  font-size:10px;
+}
+.pb-field label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  color:#315066;
+  font-size:10.5px;
+  font-weight:900;
+  margin-bottom:6px;
+}
+.pb-field label span.req{color:#e65454}
+.pb-create-vendor{
+  font-size:10px;
+  color:var(--pb-blue-dark);
+  text-decoration:none;
+  font-weight:850;
+}
+.pb-create-vendor:hover{text-decoration:underline}
+.pb-card input,
+.pb-card select,
+.pb-card textarea{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid #d5e4eb;
+  border-radius:9px;
+  background:#fff;
+  min-height:38px;
+  padding:8px 10px;
+  color:#29495b;
+  font-size:11px;
+  outline:none;
+}
+.pb-card textarea{min-height:84px;resize:vertical}
+.pb-card input:focus,
+.pb-card select:focus,
+.pb-card textarea:focus{
+  border-color:#56b7df;
+  box-shadow:0 0 0 3px rgba(22,158,230,.08);
+}
+.pb-card small{
+  display:block;
+  color:#889aa4;
+  font-size:9px;
+  margin-top:5px;
+}
+.pb-readonly{
+  min-height:38px;
+  border:1px solid #d5e4eb;
+  border-radius:9px;
+  background:#f8fbfc;
+  display:flex;
+  align-items:center;
+  padding:0 11px;
+  color:#496271;
+  font-size:11px;
+}
+.pb-errors,.errorlist{
+  color:#c84444;
+  font-size:9px;
+  margin:5px 0 0;
+  padding-left:16px;
+}
+
+.vendor-combo{position:relative}
+.vendor-input-wrap{position:relative}
+.vendor-input-wrap input{padding-left:34px;padding-right:34px}
+.vendor-search-icon{
+  position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  color:#7d929e;font-size:14px;pointer-events:none
+}
+.vendor-clear{
+  position:absolute;right:7px;top:50%;transform:translateY(-50%);
+  width:25px;height:25px;border:0;border-radius:7px;background:#edf3f6;
+  color:#81939d;cursor:pointer;font-size:14px
+}
+.vendor-clear:hover{background:#feecec;color:#d25151}
+.vendor-results{
+  position:absolute;z-index:9999;left:0;right:0;top:calc(100% + 5px);
+  max-height:290px;overflow:auto;background:#fff;border:1px solid #cfe1ea;
+  border-radius:11px;box-shadow:0 14px 35px rgba(26,63,83,.17);padding:6px
+}
+.vendor-option,.vendor-create-option{
+  display:block;width:100%;box-sizing:border-box;border:0;background:#fff;
+  padding:9px 10px;border-radius:8px;text-align:left;color:#38586a;
+  font-size:11px;cursor:pointer;text-decoration:none
+}
+.vendor-option:hover,.vendor-create-option:hover{background:#eef9f4;color:var(--pb-green-dark)}
+.vendor-create-option{
+  color:var(--pb-blue-dark);font-weight:850;border-bottom:1px solid #edf2f4;
+  border-radius:7px 7px 0 0;margin-bottom:5px
+}
+.vendor-empty{padding:10px;color:#8a9aa3;font-size:10px}
+.hidden-vendor-select{display:none!important}
+
+.hidden-item-select{display:none!important}
+
+.search-select{position:relative}
+.search-select-display{position:relative}
+.search-select-input{
+  width:100%!important;
+  min-height:38px!important;
+  padding:8px 34px 8px 10px!important;
+  border:1px solid #d5e4eb!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#29495b!important;
+  font-size:11px!important;
+  outline:none!important;
+}
+.search-select-input:focus{
+  border-color:#56b7df!important;
+  box-shadow:0 0 0 3px rgba(22,158,230,.08)!important;
+}
+.search-select-arrow{
+  position:absolute;right:11px;top:50%;transform:translateY(-50%);
+  color:#7a8e99;font-size:11px;pointer-events:none
+}
+.search-select-menu{
+  position:absolute;z-index:10020;left:0;right:0;top:calc(100% + 5px);
+  max-height:300px;overflow:auto;background:#fff;border:1px solid #cfe1ea;
+  border-radius:10px;box-shadow:0 14px 36px rgba(24,62,82,.18);padding:5px
+}
+.search-select-option{
+  display:block;width:100%;border:0;background:#fff;text-align:left;
+  padding:8px 9px;border-radius:7px;color:#355668;font-size:10px;cursor:pointer
+}
+.search-select-option:hover,.search-select-option.active{
+  background:#eaf6ff;color:#0b74b5
+}
+.search-select-empty{padding:9px;color:#8799a3;font-size:9px}
+.search-select-original{display:none!important}
+.pb-table .search-select-input{
+  min-height:31px!important;height:31px!important;padding:4px 28px 4px 7px!important;
+  border-radius:6px!important;font-size:10px!important
+}
+.pb-table .search-select-arrow{right:8px}
+.pb-table .search-select-menu{min-width:230px;max-height:240px}
+.item-combo{position:relative;min-width:0}
+.item-input-wrap{position:relative}
+.item-input-wrap input{padding-left:27px!important;padding-right:29px!important}
+.item-search-icon{
+  position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  color:#7f949f;font-size:12px;pointer-events:none;z-index:2
+}
+.item-clear{
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;border:0;border-radius:6px;background:#eef3f6;
+  color:#8799a3;cursor:pointer;font-size:12px;z-index:3
+}
+.item-clear:hover{background:#feecec;color:#d24e4e}
+.item-results{
+  position:absolute;z-index:9998;left:0;right:0;top:calc(100% + 4px);
+  max-height:240px;overflow:auto;background:#fff;border:1px solid #cfe1ea;
+  border-radius:9px;box-shadow:0 12px 30px rgba(28,64,83,.16);padding:5px
+}
+.item-option{
+  display:block;width:100%;border:0;background:#fff;padding:8px 9px;
+  border-radius:7px;text-align:left;color:#39596a;font-size:10px;cursor:pointer
+}
+.item-option:hover,.item-option.active{background:#eef8ff;color:#0b76b7}
+.item-option small{display:block;margin-top:2px;color:#8ba0aa;font-size:8px}
+.item-empty{padding:9px;color:#8a9ba5;font-size:9px}
+
+.pb-tabs{
+  display:flex;
+  align-items:flex-end;
+  gap:5px;
+  margin-top:14px;
+  border-bottom:1px solid var(--pb-line);
+}
+.pb-tab{
+  border:1px solid transparent;
+  border-bottom:0;
+  background:transparent;
+  color:#5f7684;
+  padding:10px 15px;
+  border-radius:9px 9px 0 0;
+  font-size:11px;
+  font-weight:900;
+  cursor:pointer;
+}
+.pb-tab.active{
+  color:var(--pb-green-dark);
+  background:#fff;
+  border-color:#d7e7de;
+  box-shadow:inset 0 -2px 0 var(--pb-green);
+}
+.pb-tab .tab-count{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:17px;height:17px;border-radius:9px;margin-left:5px;
+  background:#edf3f6;color:#71838d;font-size:9px
+}
+.pb-tab.active .tab-count{background:#dff4e9;color:var(--pb-green-dark)}
+.pb-panel{display:none}
+.pb-panel.active{display:block}
+
+.pb-table-wrap{
+  width:100%;
+  overflow:auto;
+  border:1px solid var(--pb-line);
+  border-top:0;
+  border-radius:0 0 11px 11px;
+  background:#fff;
+}
+.pb-table{
+  width:100%;
+  min-width:1320px;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:auto;
+}
+.pb-table th{
+  background:#f1f7fa;
+  color:#4b6575;
+  border-bottom:1px solid #d7e6ed;
+  padding:8px 7px;
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  white-space:nowrap;
+  text-align:left;
+}
+.pb-table td{
+  border-bottom:1px solid #edf2f5;
+  padding:5px;
+  vertical-align:middle;
+  background:#fff;
+}
+.pb-table tbody tr:nth-child(even) td{background:#fcfefe}
+.pb-table tbody tr:hover td{background:#f7fbfd}
+.pb-table input,.pb-table select{
+  min-height:31px;height:31px;padding:4px 7px;border-radius:6px;font-size:10px
+}
+.pb-item-col{min-width:190px}
+.pb-code-col{min-width:110px}
+.pb-desc-col{min-width:180px}
+.pb-account-col{min-width:190px}
+.pb-unit-col{min-width:90px}
+.pb-code-display{
+  min-height:31px;
+  border:1px solid #e0eaee;
+  border-radius:6px;
+  background:#f7fafb;
+  display:flex;
+  align-items:center;
+  padding:0 8px;
+  color:#5d7480;
+  font-size:10px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.pb-amount-display{
+  min-height:31px;
+  display:flex;align-items:center;justify-content:flex-end;
+  padding:0 7px;color:#117cae;font-size:10px;font-weight:850
+}
+.pb-money{text-align:right;font-variant-numeric:tabular-nums}
+.pb-row-index{
+  width:22px;text-align:center;color:#82939d;font-size:10px;font-weight:800
+}
+.pb-delete{
+  width:30px;height:30px;border:1px solid #f3caca;background:#fff7f7;
+  border-radius:8px;color:var(--pb-danger);cursor:pointer;font-size:13px;
+  display:inline-grid;place-items:center;line-height:1
+}
+.pb-delete:hover{background:#feeaea;border-color:#efaaaa;transform:translateY(-1px)}
+.pb-row-actions{display:flex;justify-content:flex-end;padding:9px 0 0}
+
+.pb-summary-area{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:14px;
+}
+.pb-summary{
+  width:370px;
+  border:1px solid #d7e8ee;
+  border-radius:12px;
+  background:linear-gradient(180deg,#fbfeff,#f4f9fb);
+  padding:7px 12px;
+}
+.pb-summary-row{
+  min-height:31px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid #e6eff3;
+  color:#6f818b;
+  font-size:10px;
+  font-weight:750;
+}
+.pb-summary-row:last-child{border-bottom:0}
+.pb-summary-row strong{color:#2b4a5b}
+.pb-summary-row.total{
+  margin-top:3px;
+  padding:0 8px;
+  background:#e9f8f0;
+  border-radius:8px;
+}
+.pb-summary-row.total span,.pb-summary-row.total strong{
+  color:var(--pb-green-dark);
+  font-size:13px;
+  font-weight:900;
+}
+
+.pb-footer{
+  position:sticky;
+  bottom:0;
+  z-index:15;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:18px -20px -16px;
+  padding:12px 20px;
+  border-top:1px solid var(--pb-line);
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(8px);
+}
+.pb-footer-left,.pb-footer-right{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.pb-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-height:36px;
+  padding:0 13px;
+  border-radius:9px;
+  border:1px solid #c8dce6;
+  background:#fff;
+  color:#1c6e99;
+  text-decoration:none;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+.pb-btn:hover{background:#f1f8fb}
+.pb-btn.green{background:var(--pb-green);border-color:var(--pb-green);color:#fff}
+.pb-btn.green:hover{background:var(--pb-green-dark)}
+.pb-btn.blue{background:var(--pb-blue);border-color:var(--pb-blue);color:#fff}
+.pb-btn.blue:hover{background:var(--pb-blue-dark)}
+.pb-btn.danger{color:#d54c4c;border-color:#f0c9c9}
+.pb-btn.danger:hover{background:#fff1f1}
+.pb-print-after{
+  display:inline-flex;align-items:center;gap:7px;
+  color:#657b88;font-size:10px;font-weight:700;margin-right:4px
+}
+.pb-print-after input{width:15px;height:15px;min-height:auto;accent-color:var(--pb-green)}
+.pb-section-note{
+  font-size:9px;color:#889aa3;margin:7px 0 0
+}
+
+@media(max-width:1280px){
+  .pb-top-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-template-areas:
+      "vendor date bill currency"
+      "due po ap vat"
+      "memo memo memo memo"
+      "summary summary summary summary";
+  }
+  .pb-top-summary{min-height:auto}
+}
+@media(max-width:900px){
+  .pb-top-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:
+      "vendor date"
+      "bill currency"
+      "due po"
+      "ap vat"
+      "memo memo"
+      "summary summary";
+  }
+  .pb-footer{position:static}
+  .pb-top-summary{grid-column:span 2}
+}
+
+@media(max-width:620px){
+  .pb-card{border-radius:13px}
+  .pb-header,.pb-body{padding-left:13px;padding-right:13px}
+  .pb-top-grid{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "vendor"
+      "date"
+      "bill"
+      "currency"
+      "due"
+      "po"
+      "ap"
+      "vat"
+      "memo"
+      "summary";
+  }
+  .pb-summary{width:100%}
+  .pb-footer{margin-left:-13px;margin-right:-13px;flex-direction:column;align-items:stretch}
+  .pb-footer-left,.pb-footer-right{justify-content:flex-end}
+}
+@media print{
+  .pb-header-actions,.pb-tabs,.pb-row-actions,.pb-footer,.pb-delete{display:none!important}
+  .pb-card{border:0;box-shadow:none}
+}
+
+
+/* ===== Sale Invoice mapping onto Purchase Bill design system ===== */
+
+.si-top-grid{
+  display:grid;
+  grid-template-columns:1.2fr 1fr 1fr 1fr 310px;
+  grid-template-areas:
+    "customer date number taxmode summary"
+    "ar due warehouse exchange summary"
+    "currency quotation address pricelevel summary"
+    "credit saleorder truck salesperson summary"
+    "memo memo po po summary";
+  gap:12px 16px;
+  align-items:start;
+}
+.si-customer{grid-area:customer}
+.si-date{grid-area:date}
+.si-number{grid-area:number}
+.si-taxmode{grid-area:taxmode}
+.si-ar{grid-area:ar}
+.si-due{grid-area:due}
+.si-warehouse{grid-area:warehouse}
+.si-exchange{grid-area:exchange}
+.si-currency{grid-area:currency}
+.si-quotation{grid-area:quotation}
+.si-address{grid-area:address}
+.si-pricelevel{grid-area:pricelevel}
+.si-credit{grid-area:credit}
+.si-saleorder{grid-area:saleorder}
+.si-truck{grid-area:truck}
+.si-salesperson{grid-area:salesperson}
+.si-memo{grid-area:memo}
+.si-po{grid-area:po}
+.si-summary{grid-area:summary}
+
+/* Customer search: same appearance as Purchase Bill Vendor search */
+.entity-combobox,.account-combobox{position:relative}
+.combo-input-wrap{position:relative}
+.combo-input-wrap input{
+  padding-left:34px!important;
+  padding-right:34px!important;
+}
+.combo-search-icon{
+  position:absolute;
+  left:11px;
+  top:50%;
+  transform:translateY(-50%);
+  color:#7d929e;
+  font-size:14px;
+  pointer-events:none;
+  z-index:2;
+}
+.combo-clear{
+  position:absolute;
+  right:7px;
+  top:50%;
+  transform:translateY(-50%);
+  width:25px!important;
+  min-height:25px!important;
+  height:25px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:#edf3f6!important;
+  color:#81939d!important;
+  cursor:pointer;
+  font-size:14px!important;
+  z-index:3;
+}
+.combo-clear:hover{background:#feecec!important;color:#d25151!important}
+.entity-results,.account-results{
+  position:absolute;
+  z-index:10020;
+  left:0;
+  right:0;
+  top:calc(100% + 5px);
+  max-height:290px;
+  overflow:auto;
+  background:#fff;
+  border:1px solid #cfe1ea;
+  border-radius:11px;
+  box-shadow:0 14px 35px rgba(26,63,83,.17);
+  padding:6px;
+}
+.entity-option,.account-option{
+  display:block;
+  width:100%;
+  box-sizing:border-box;
+  border:0;
+  background:#fff;
+  padding:9px 10px;
+  border-radius:8px;
+  text-align:left;
+  color:#38586a;
+  font-size:11px;
+  cursor:pointer;
+}
+.entity-option:hover,.account-option:hover,.account-option.active{
+  background:#eef9f4;
+  color:var(--pb-green-dark)
+}
+.entity-empty,.account-empty{padding:10px;color:#8a9aa3;font-size:10px}
+.entity-add-customer{
+  display:block;
+  width:100%;
+  border:0;
+  border-top:1px solid #edf2f4;
+  background:#fff;
+  padding:9px 10px;
+  color:var(--pb-blue-dark);
+  font-size:10px;
+  font-weight:850;
+  cursor:pointer;
+}
+.entity-add-customer:hover{background:#eef9f4}
+.hidden-model-select{display:none!important}
+
+/* Sale form fields use the exact Purchase Bill sizing */
+.pb-field textarea{
+  min-height:64px;
+  max-height:90px;
+}
+.pb-field small,.field-help{
+  display:block;
+  color:#889aa4;
+  font-size:9px;
+  margin-top:5px;
+}
+
+/* Summary */
+.si-summary .pb-summary-row{
+  min-height:34px;
+}
+.si-summary .pb-summary-row.total{
+  margin-top:5px;
+}
+
+/* Sale tabs retain current JS selectors but visually use Purchase Bill tabs */
+.sheet-tabs.pb-tabs{margin-top:14px}
+.sheet-tab.pb-tab{font-family:inherit}
+.invoice-panel{display:none}
+.invoice-panel.active{display:block}
+
+/* Invoice table */
+.invoice-table.pb-table{
+  min-width:1540px;
+}
+.invoice-table.pb-table th{text-align:left}
+.invoice-table.pb-table .num-head{text-align:right}
+.invoice-table.pb-table td{
+  padding:5px;
+}
+.invoice-table.pb-table input,
+.invoice-table.pb-table select{
+  min-height:31px;
+  height:31px;
+  padding:4px 7px;
+  border-radius:6px;
+  font-size:10px;
+}
+.item-code-display{
+  width:100%;
+  min-height:31px!important;
+  height:31px!important;
+  border:1px solid #e0eaee!important;
+  border-radius:6px!important;
+  background:#f7fafb!important;
+  color:#5d7480!important;
+}
+.value-cell,
+.line-amount,.line-grand,.standard-price{
+  min-height:31px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  padding:0 7px;
+  color:#117cae;
+  font-size:10px;
+  font-weight:850;
+}
+.standard-price{color:#526c7a}
+.line-grand{color:#0877b3}
+.delete-cell{text-align:center}
+.trash-row{
+  width:30px!important;
+  height:30px!important;
+  min-height:30px!important;
+  padding:0!important;
+  border:1px solid #f3caca!important;
+  background:#fff7f7!important;
+  border-radius:8px!important;
+  color:var(--pb-danger)!important;
+  cursor:pointer;
+  font-size:13px!important;
+}
+.trash-row:hover{background:#feeaea!important;border-color:#efaaaa!important}
+
+/* Credit-account table */
+.credit-table{
+  width:100%;
+  min-width:900px;
+  border-collapse:separate;
+  border-spacing:0;
+}
+.credit-table th{
+  background:#f1f7fa;
+  color:#4b6575;
+  border-bottom:1px solid #d7e6ed;
+  padding:8px 7px;
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  white-space:nowrap;
+  text-align:left;
+}
+.credit-table td{
+  border-bottom:1px solid #edf2f5;
+  padding:5px;
+  background:#fff;
+}
+.credit-table input,.credit-table select{
+  width:100%;
+  min-height:31px;
+  height:31px;
+  padding:4px 7px;
+  border:1px solid #d5e4eb;
+  border-radius:6px;
+  font-size:10px;
+}
+.credit-help{
+  font-size:9px;
+  color:#889aa3;
+  margin:7px 0;
+}
+
+/* Footer button aliases */
+.btn.pb-btn{box-sizing:border-box}
+.btn-green.pb-btn{background:var(--pb-green);border-color:var(--pb-green);color:#fff}
+.btn-green.pb-btn:hover{background:var(--pb-green-dark)}
+.btn-blue.pb-btn{background:var(--pb-blue);border-color:var(--pb-blue);color:#fff}
+.btn-blue.pb-btn:hover{background:var(--pb-blue-dark)}
+.btn-close-bottom.pb-btn{color:#d54c4c;border-color:#f0c9c9;background:#fff}
+.btn-close-bottom.pb-btn:hover{background:#fff1f1}
+
+/* Make the footer match Purchase Bill exactly */
+.bottom-actions.pb-footer{
+  margin:18px -20px -16px;
+}
+.left-actions,.right-actions{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.print-after{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  color:#657b88;
+  font-size:10px;
+  font-weight:700;
+  margin-right:4px;
+}
+.print-after input{
+  width:15px!important;
+  height:15px!important;
+  min-height:auto!important;
+  accent-color:var(--pb-green)
+}
+
+/* Responsive */
+@media(max-width:1280px){
+  .si-top-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-template-areas:
+      "customer date number taxmode"
+      "ar due warehouse exchange"
+      "currency quotation address pricelevel"
+      "credit saleorder truck salesperson"
+      "memo memo po po"
+      "summary summary summary summary";
+  }
+  .si-summary{min-height:auto}
+}
+@media(max-width:900px){
+  .si-top-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:
+      "customer date"
+      "number taxmode"
+      "ar due"
+      "warehouse exchange"
+      "currency quotation"
+      "address pricelevel"
+      "credit saleorder"
+      "truck salesperson"
+      "memo memo"
+      "po po"
+      "summary summary";
+  }
+}
+@media(max-width:620px){
+  .si-top-grid{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "customer" "date" "number" "taxmode"
+      "ar" "due" "warehouse" "exchange"
+      "currency" "quotation" "address" "pricelevel"
+      "credit" "saleorder" "truck" "salesperson"
+      "memo" "po" "summary";
+  }
+}
+
+
+/* Searchable Credit Account (same behavior/style as Purchase Bill account search) */
+.credit-search-select{position:relative;min-width:210px}
+.credit-search-select .credit-account-input{
+  width:100%!important;min-height:31px!important;height:31px!important;
+  padding:4px 28px 4px 8px!important;border:1px solid #d5e4eb!important;
+  border-radius:6px!important;background:#fff!important;color:#29495b!important;
+  font-size:10px!important;outline:none!important;
+}
+.credit-search-select .credit-account-input:focus{
+  border-color:#56b7df!important;box-shadow:0 0 0 3px rgba(22,158,230,.08)!important;
+}
+.credit-search-arrow{position:absolute;right:9px;top:15px;transform:translateY(-50%);color:#7a8e99;font-size:11px;pointer-events:none}
+.credit-search-menu{
+  position:absolute;z-index:10050;left:0;right:0;top:calc(100% + 5px);
+  min-width:250px;max-height:260px;overflow:auto;background:#fff;
+  border:1px solid #cfe1ea;border-radius:10px;box-shadow:0 14px 36px rgba(24,62,82,.18);padding:5px;
+}
+.credit-search-option{display:block;width:100%;border:0;background:#fff;text-align:left;padding:8px 9px;border-radius:7px;color:#355668;font-size:10px;cursor:pointer}
+.credit-search-option:hover,.credit-search-option.active{background:#eaf6ff;color:#0b74b5}
+.credit-search-empty{padding:9px;color:#8799a3;font-size:9px}
+.credit-search-select .js-credit-account{display:none!important}
+
+
+/* ===== Receipt / Collection mapped to Purchase Bill design ===== */
+.rc-grid{
+  display:grid;
+  grid-template-columns:1.15fr 1fr 1fr 310px;
+  grid-template-areas:
+    "customer number summary summary"
+    "date currency summary summary"
+    "amount salesperson summary summary"
+    "method deposit summary summary"
+    "memo memo summary summary";
+  gap:13px 16px;
+  align-items:start;
+}
+.rc-customer{grid-area:customer}
+.rc-number{grid-area:number}
+.rc-date{grid-area:date}
+.rc-currency{grid-area:currency}
+.rc-amount{grid-area:amount}
+.rc-salesperson{grid-area:salesperson}
+.rc-method{grid-area:method}
+.rc-deposit{grid-area:deposit}
+.rc-memo{grid-area:memo}
+.rc-summary{grid-area:summary}
+
+.rc-summary{
+  border:1px solid #d7e8ee;
+  border-radius:12px;
+  background:linear-gradient(180deg,#fbfeff,#f4f9fb);
+  padding:12px 13px;
+  min-height:100%;
+}
+.rc-summary-title{
+  font-size:10px;
+  font-weight:900;
+  color:#496273;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  margin-bottom:7px;
+}
+.rc-summary-row{
+  min-height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid #e6eff3;
+  color:#6f818b;
+  font-size:10px;
+  font-weight:750;
+}
+.rc-summary-row strong{color:#2b4a5b}
+.rc-summary-row.total{
+  margin-top:5px;
+  padding:0 8px;
+  background:#e9f8f0;
+  border-radius:8px;
+  border-bottom:0;
+}
+.rc-summary-row.total span,.rc-summary-row.total strong{
+  color:var(--pb-green-dark);
+  font-size:13px;
+  font-weight:900;
+}
+
+/* Searchable Customer */
+.rc-customer-combo{position:relative}
+.rc-input-wrap{position:relative}
+.rc-input-wrap input{padding-left:34px!important;padding-right:34px!important}
+.rc-search-icon{
+  position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  color:#7d929e;font-size:14px;pointer-events:none;z-index:2
+}
+.rc-clear{
+  position:absolute;right:7px;top:50%;transform:translateY(-50%);
+  width:25px!important;height:25px!important;min-height:25px!important;
+  padding:0!important;border:0!important;border-radius:7px!important;
+  background:#edf3f6!important;color:#81939d!important;cursor:pointer;font-size:14px!important
+}
+.rc-clear:hover{background:#feecec!important;color:#d25151!important}
+.rc-customer-results{
+  position:absolute;z-index:12000;left:0;right:0;top:calc(100% + 5px);
+  max-height:290px;overflow:auto;background:#fff;border:1px solid #cfe1ea;
+  border-radius:11px;box-shadow:0 14px 35px rgba(26,63,83,.17);padding:6px
+}
+.rc-customer-option{
+  display:block;width:100%;border:0;background:#fff;padding:9px 10px;border-radius:8px;
+  text-align:left;color:#38586a;font-size:11px;cursor:pointer
+}
+.rc-customer-option:hover{background:#eef9f4;color:var(--pb-green-dark)}
+.rc-customer-empty{padding:10px;color:#8a9aa3;font-size:10px}
+.rc-customer-add{
+  display:block;width:100%;border:0;border-top:1px solid #edf2f4;background:#fff;
+  padding:9px 10px;color:var(--pb-blue-dark);font-size:10px;font-weight:850;cursor:pointer
+}
+.rc-customer-add:hover{background:#eef9f4}
+.rc-hidden-select{display:none!important}
+
+/* Tabs */
+.rc-tabs{
+  display:flex;align-items:flex-end;gap:5px;margin-top:15px;border-bottom:1px solid var(--pb-line)
+}
+.rc-tab{
+  border:1px solid transparent;border-bottom:0;background:transparent;color:#5f7684;
+  padding:10px 15px;border-radius:9px 9px 0 0;font-size:11px;font-weight:900;cursor:pointer
+}
+.rc-tab.active{
+  color:var(--pb-green-dark);background:#fff;border-color:#d7e7de;
+  box-shadow:inset 0 -2px 0 var(--pb-green)
+}
+.rc-panel{display:none}
+.rc-panel.active{display:block}
+
+/* Tables */
+.rc-table-wrap{
+  width:100%;overflow:auto;border:1px solid var(--pb-line);border-top:0;
+  border-radius:0 0 11px 11px;background:#fff
+}
+.rc-table{
+  width:100%;min-width:1120px;border-collapse:separate;border-spacing:0;table-layout:auto
+}
+.rc-table th{
+  background:#f1f7fa;color:#4b6575;border-bottom:1px solid #d7e6ed;
+  padding:8px 7px;font-size:9px;font-weight:900;text-transform:uppercase;
+  letter-spacing:.03em;white-space:nowrap;text-align:left
+}
+.rc-table td{
+  border-bottom:1px solid #edf2f5;padding:5px;vertical-align:middle;background:#fff
+}
+.rc-table tbody tr:nth-child(even) td{background:#fcfefe}
+.rc-table tbody tr:hover td{background:#f7fbfd}
+.rc-table input,.rc-table select{
+  width:100%;min-height:31px;height:31px;padding:4px 7px;border:1px solid #d5e4eb;
+  border-radius:6px;font-size:10px;box-sizing:border-box
+}
+.rc-num{text-align:right;font-variant-numeric:tabular-nums}
+.rc-delete{
+  width:30px!important;height:30px!important;min-height:30px!important;padding:0!important;
+  border:1px solid #f3caca!important;background:#fff7f7!important;border-radius:8px!important;
+  color:var(--pb-danger)!important;cursor:pointer;font-size:13px!important
+}
+.rc-delete:hover{background:#feeaea!important;border-color:#efaaaa!important}
+.rc-row-actions{display:flex;justify-content:flex-end;padding:9px 0 0}
+.rc-note{font-size:9px;color:#889aa3;margin:7px 0 0}
+
+/* Searchable account for Other Charge */
+.rc-account-search{position:relative}
+.rc-account-search input{
+  width:100%!important;min-height:31px!important;height:31px!important;
+  padding:4px 28px 4px 8px!important
+}
+.rc-account-menu{
+  position:absolute!important;z-index:99999!important;left:0;right:0;top:calc(100% + 4px);
+  min-width:250px;max-height:260px;overflow:auto;background:#fff;border:1px solid #cfe1ea;
+  border-radius:10px;box-shadow:0 14px 36px rgba(24,62,82,.18);padding:5px
+}
+.rc-account-option{
+  display:block;width:100%;border:0;background:#fff;text-align:left;padding:8px 9px;
+  border-radius:7px;color:#355668;font-size:10px;cursor:pointer
+}
+.rc-account-option:hover,.rc-account-option.active{background:#eaf6ff;color:#0b74b5}
+.rc-account-original{display:none!important}
+.rc-row:focus-within{position:relative;z-index:9000}
+
+/* Footer */
+.rc-footer{
+  position:sticky;bottom:0;z-index:15;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;margin:18px -20px -16px;padding:12px 20px;border-top:1px solid var(--pb-line);
+  background:rgba(255,255,255,.96);backdrop-filter:blur(8px)
+}
+.rc-footer-left,.rc-footer-right{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rc-print-after{display:inline-flex;align-items:center;gap:7px;color:#657b88;font-size:10px;font-weight:700}
+.rc-print-after input{width:15px!important;height:15px!important;min-height:auto!important;accent-color:var(--pb-green)}
+
+@media(max-width:1100px){
+  .rc-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:
+      "customer number"
+      "date currency"
+      "amount salesperson"
+      "method deposit"
+      "memo memo"
+      "summary summary";
+  }
+}
+@media(max-width:620px){
+  .rc-grid{
+    grid-template-columns:1fr;
+    grid-template-areas:"customer" "number" "date" "currency" "amount" "salesperson" "method" "deposit" "memo" "summary";
+  }
+  .rc-footer{position:static;flex-direction:column;align-items:stretch}
+  .rc-footer-left,.rc-footer-right{justify-content:flex-end}
+}
+
+</style>
+
+<div class="pb-card">
+  <div class="pb-header">
+    <div>
+      <h2>Receipt / Collection</h2>
+      <p>Record customer collections, apply payment to invoices, or record other charges.</p>
+    </div>
+    <div class="pb-header-actions">
+      <a class="pb-btn danger" href="{% url 'customer_center' %}">× Close</a>
+    </div>
+  </div>
+
+  <form method="post" id="receiptForm">
+    {% csrf_token %}
+    <div class="pb-body">
+
+      {% if form.non_field_errors %}
+      <div class="pb-errors">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="rc-grid">
+        <div class="pb-field rc-customer">
+          <label>Customer Name <span class="req">*</span></label>
+          <div class="rc-customer-combo" id="receiptCustomerBox" data-add-url="{% url 'customer_create' %}">
+            <div class="rc-input-wrap">
+              <span class="rc-search-icon">⌕</span>
+              <input type="text" id="receiptCustomerSearch" autocomplete="off" placeholder="Type customer name, code or phone...">
+              <button type="button" class="rc-clear" id="receiptCustomerClear">×</button>
+            </div>
+            <div class="rc-customer-results" id="receiptCustomerResults" hidden></div>
+          </div>
+          <div class="rc-hidden-select">{{ form.customer }}</div>
+          {{ form.customer.errors }}
+          <small>Search and select an existing customer to avoid duplicate records.</small>
+        </div>
+
+        <div class="pb-field rc-number">
+          <label>Number</label>
+          {{ form.number }}{{ form.number.errors }}
+        </div>
+
+        <div class="pb-field rc-date">
+          <label>Date <span class="req">*</span></label>
+          {{ form.receipt_date }}{{ form.receipt_date.errors }}
+        </div>
+
+        <div class="pb-field rc-currency">
+          <label>Currency <span class="req">*</span></label>
+          {{ form.currency }}{{ form.currency.errors }}
+        </div>
+
+        <div class="pb-field rc-amount">
+          <label>Amount Paid</label>
+          <input type="text" id="receiptAmountPaid" value="0.00" readonly>
+          <small>Calculated from Payment Detail and Other Charge.</small>
+        </div>
+
+        <div class="pb-field rc-salesperson">
+          <label>Salesperson</label>
+          {{ form.salesperson }}{{ form.salesperson.errors }}
+        </div>
+
+        <div class="pb-field rc-method">
+          <label>Payment Method</label>
+          {{ form.payment_method }}{{ form.payment_method.errors }}
+        </div>
+
+        <div class="pb-field rc-deposit">
+          <label>Deposit To <span class="req">*</span></label>
+          {{ form.deposit_account }}{{ form.deposit_account.errors }}
+        </div>
+
+        <div class="pb-field rc-memo">
+          <label>Memo</label>
+          {{ form.memo }}{{ form.memo.errors }}
+        </div>
+
+        <aside class="rc-summary">
+          <div class="rc-summary-title">Receipt Summary</div>
+          <div class="rc-summary-row"><span>Invoice Payment</span><strong>$<span id="rcInvoiceTotal">0.00</span></strong></div>
+          <div class="rc-summary-row"><span>Discount</span><strong>$<span id="rcDiscountTotal">0.00</span></strong></div>
+          <div class="rc-summary-row"><span>Other Charge</span><strong>$<span id="rcChargeTotal">0.00</span></strong></div>
+          <div class="rc-summary-row total"><span>Grand Total</span><strong>$<span id="rcGrandTotal">0.00</span></strong></div>
+        </aside>
+      </div>
+
+      <div class="rc-tabs">
+        <button type="button" class="rc-tab active" data-panel="paymentPanel">▦ Payment Detail</button>
+        <button type="button" class="rc-tab" data-panel="chargePanel">▤ Other Charge</button>
+      </div>
+
+      {{ allocation_formset.management_form }}
+      <section id="paymentPanel" class="rc-panel active">
+        <div class="rc-table-wrap">
+          <table class="rc-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Invoice / Number</th>
+                <th>Date</th>
+                <th class="rc-num">Invoice Amount ($)</th>
+                <th class="rc-num">Open Balance ($)</th>
+                <th class="rc-num">Payment ($)</th>
+                <th class="rc-num">Discount ($)</th>
+                <th>Memo</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="allocationBody">
+            {% for f in allocation_formset %}
+              <tr class="rc-row allocation-row" data-index="{{ forloop.counter0 }}">
+                {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                <td>{{ forloop.counter }}</td>
+                <td>{{ f.invoice }}{{ f.invoice.errors }}</td>
+                <td><span class="alloc-date">—</span></td>
+                <td class="rc-num"><span class="alloc-total">0.00</span></td>
+                <td class="rc-num"><span class="alloc-open">0.00</span></td>
+                <td>{{ f.amount }}{{ f.amount.errors }}</td>
+                <td>{{ f.discount }}{{ f.discount.errors }}</td>
+                <td>{{ f.memo }}{{ f.memo.errors }}</td>
+                <td>
+                  <span style="display:none">{{ f.DELETE }}</span>
+                  <button type="button" class="rc-delete">🗑</button>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="rc-row-actions">
+          <button type="button" class="pb-btn" id="addAllocationRow">＋ Add Payment Row</button>
+        </div>
+        <div class="rc-note">Use Payment Detail when a customer pays an outstanding invoice. Payment and discount reduce Accounts Receivable.</div>
+      </section>
+
+      {{ charge_formset.management_form }}
+      <section id="chargePanel" class="rc-panel">
+        <div class="rc-table-wrap" style="overflow:visible">
+          <table class="rc-table" style="min-width:850px">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Memo</th>
+                <th class="rc-num">Amount ($)</th>
+                <th>Account</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="chargeBody">
+            {% for f in charge_formset %}
+              <tr class="rc-row charge-row" data-index="{{ forloop.counter0 }}">
+                {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                <td>{{ forloop.counter }}</td>
+                <td>{{ f.memo }}{{ f.memo.errors }}</td>
+                <td>{{ f.amount }}{{ f.amount.errors }}</td>
+                <td>{{ f.account }}{{ f.account.errors }}</td>
+                <td>
+                  <span style="display:none">{{ f.DELETE }}</span>
+                  <button type="button" class="rc-delete">🗑</button>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="rc-row-actions">
+          <button type="button" class="pb-btn" id="addChargeRow">＋ Add Other Charge Row</button>
+        </div>
+        <div class="rc-note">Use Other Charge for an additional charge recorded with this customer receipt. Each row can use a different account.</div>
+      </section>
+
+      <div class="rc-footer">
+        <div class="rc-footer-left">
+          <button type="button" class="pb-btn" id="receiptPrintPreview">▣ Print Preview</button>
+        </div>
+        <div class="rc-footer-right">
+          <label class="rc-print-after"><input type="checkbox" id="receiptPrintAfterSave"> Print After Save</label>
+          <button class="pb-btn green" name="save_action" value="save_new">▣ Save & New</button>
+          <button class="pb-btn blue" name="save_action" value="save_close">▣ Save & Close</button>
+          <a class="pb-btn danger" href="{% url 'customer_center' %}">× Close</a>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
 <script>
-function wireReceiptRemove(scope=document){scope.querySelectorAll('.js-remove-receipt-row').forEach(b=>{if(b.dataset.wired)return;b.dataset.wired='1';b.onclick=()=>{const r=b.closest('tr'),d=r.querySelector('input[name$="-DELETE"]');if(d){d.checked=true;r.style.display='none'}else r.remove();total();};});}
-document.querySelectorAll('.js-add-receipt-row').forEach(b=>b.onclick=()=>{const prefix=b.dataset.prefix,body=document.getElementById(b.dataset.body),totalForms=document.querySelector('input[name="'+prefix+'-TOTAL_FORMS"]');if(!body||!totalForms)return;const rows=body.querySelectorAll('tr');if(!rows.length)return;const idx=parseInt(totalForms.value||'0',10),r=rows[rows.length-1].cloneNode(true);r.innerHTML=r.innerHTML.replace(new RegExp(prefix+'-(\\d+)-','g'),prefix+'-'+idx+'-').replace(new RegExp('id_'+prefix+'-(\\d+)-','g'),'id_'+prefix+'-'+idx+'-');r.style.display='';r.querySelectorAll('input,select,textarea').forEach(e=>{if(e.type==='hidden'){if(e.name&&e.name.endsWith('-id'))e.value='';}else if(e.type==='checkbox'||e.type==='radio')e.checked=false;else if(e.tagName==='SELECT')e.selectedIndex=0;else e.value='';});r.querySelectorAll('.js-remove-receipt-row').forEach(x=>delete x.dataset.wired);body.appendChild(r);totalForms.value=idx+1;wireReceiptRemove(r);total();});wireReceiptRemove();
-document.querySelectorAll('.sheet-tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.sheet-tab,.tab-panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.tab).classList.add('active')});function total(){let x=0;document.querySelectorAll('.payment-amount input,.charge-amount input').forEach(i=>x+=(parseFloat(i.value)||0));document.getElementById('receiptTotal').value=x.toFixed(2)}document.addEventListener('input',total);total();</script>{% endblock %}
+(function(){
+  const money=v=>{const n=parseFloat(String(v||0).replace(/,/g,''));return Number.isFinite(n)?n:0};
+  const fmt=v=>money(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  /* Tabs */
+  document.querySelectorAll('.rc-tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.rc-tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.rc-panel').forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.panel)?.classList.add('active');
+    });
+  });
+
+  /* Searchable Customer */
+  const customerSelect=document.getElementById('id_customer');
+  const customerSearch=document.getElementById('receiptCustomerSearch');
+  const customerResults=document.getElementById('receiptCustomerResults');
+  const customerBox=document.getElementById('receiptCustomerBox');
+  const customerClear=document.getElementById('receiptCustomerClear');
+
+  if(customerSelect && customerSearch && customerResults){
+    const options=[...customerSelect.options].filter(o=>o.value);
+    function syncCustomer(){
+      const o=options.find(x=>x.value===customerSelect.value);
+      customerSearch.value=o?o.text.trim():'';
+    }
+    function renderCustomers(){
+      const q=customerSearch.value.trim().toLowerCase();
+      customerResults.innerHTML='';
+      const matches=options.filter(o=>!q || (o.text||'').toLowerCase().includes(q)).slice(0,80);
+      if(matches.length){
+        matches.forEach(o=>{
+          const b=document.createElement('button');
+          b.type='button'; b.className='rc-customer-option'; b.textContent=o.text;
+          b.addEventListener('click',()=>{
+            customerSelect.value=o.value;
+            customerSearch.value=o.text.trim();
+            customerResults.hidden=true;
+            customerSelect.dispatchEvent(new Event('change',{bubbles:true}));
+          });
+          customerResults.appendChild(b);
+        });
+      }else{
+        const e=document.createElement('div');e.className='rc-customer-empty';e.textContent='No customer found';customerResults.appendChild(e);
+      }
+      const add=document.createElement('button');
+      add.type='button';add.className='rc-customer-add';add.textContent='＋ Add Customer';
+      add.addEventListener('click',()=>{const u=customerBox.dataset.addUrl;if(u)window.open(u,'_blank')});
+      customerResults.appendChild(add);
+      customerResults.hidden=false;
+    }
+    customerSearch.addEventListener('focus',renderCustomers);
+    customerSearch.addEventListener('input',()=>{customerSelect.value='';renderCustomers()});
+    customerClear?.addEventListener('click',()=>{customerSelect.value='';customerSearch.value='';customerSearch.focus();renderCustomers()});
+    document.addEventListener('click',e=>{if(!customerBox.contains(e.target))customerResults.hidden=true});
+    syncCustomer();
+  }
+
+  /* Totals */
+  function recalc(){
+    let payment=0,discount=0,charge=0;
+    document.querySelectorAll('.allocation-row').forEach(r=>{
+      if(r.style.display==='none'||r.querySelector('input[name$="-DELETE"]')?.checked)return;
+      payment+=money(r.querySelector('input[name$="-amount"]')?.value);
+      discount+=money(r.querySelector('input[name$="-discount"]')?.value);
+    });
+    document.querySelectorAll('.charge-row').forEach(r=>{
+      if(r.style.display==='none'||r.querySelector('input[name$="-DELETE"]')?.checked)return;
+      charge+=money(r.querySelector('input[name$="-amount"]')?.value);
+    });
+    document.getElementById('rcInvoiceTotal').textContent=fmt(payment);
+    document.getElementById('rcDiscountTotal').textContent=fmt(discount);
+    document.getElementById('rcChargeTotal').textContent=fmt(charge);
+    document.getElementById('rcGrandTotal').textContent=fmt(payment+charge);
+    document.getElementById('receiptAmountPaid').value=fmt(payment+charge);
+  }
+  document.addEventListener('input',e=>{
+    if(e.target.matches('input[name$="-amount"],input[name$="-discount"]'))recalc();
+  });
+
+  /* Generic formset cloning */
+  function addFormsetRow(bodyId,totalId,rowSelector){
+    const body=document.getElementById(bodyId),total=document.getElementById(totalId);
+    const rows=[...body.querySelectorAll(rowSelector)];
+    if(!body||!total||!rows.length)return;
+    const idx=parseInt(total.value||0,10);
+    const row=rows[rows.length-1].cloneNode(true);
+    row.innerHTML=row.innerHTML.replace(/-(\d+)-/g,`-${idx}-`).replace(/_(\d+)_/g,`_${idx}_`);
+    row.dataset.index=idx;
+    row.style.display='';
+    row.querySelectorAll('input,select,textarea').forEach(el=>{
+      if(el.type==='checkbox')el.checked=false;
+      else if(el.tagName==='SELECT')el.selectedIndex=0;
+      else el.value='';
+      delete el.dataset.searchReady;
+    });
+    const first=row.querySelector('td:first-child');if(first)first.textContent=idx+1;
+    body.appendChild(row);total.value=idx+1;wireRows(row);wireChargeAccounts(row);recalc();
+  }
+
+  document.getElementById('addAllocationRow')?.addEventListener('click',()=>addFormsetRow('allocationBody','id_alloc-TOTAL_FORMS','.allocation-row'));
+  document.getElementById('addChargeRow')?.addEventListener('click',()=>addFormsetRow('chargeBody','id_charge-TOTAL_FORMS','.charge-row'));
+
+  function wireRows(scope=document){
+    scope.querySelectorAll('.rc-delete').forEach(btn=>{
+      if(btn.dataset.wired)return;btn.dataset.wired='1';
+      btn.addEventListener('click',()=>{
+        const row=btn.closest('.rc-row');
+        const del=row?.querySelector('input[name$="-DELETE"]');
+        if(del){del.checked=true;row.style.display='none'}else row?.remove();
+        recalc();
+      });
+    });
+  }
+
+  /* Searchable account on Other Charge rows */
+  function initAccountSearch(row){
+    const select=row.querySelector('select[name$="-account"]');
+    if(!select||select.dataset.searchReady==='1')return;
+    select.dataset.searchReady='1';
+    select.classList.add('rc-account-original');
+    const wrap=document.createElement('div');wrap.className='rc-account-search';
+    const inp=document.createElement('input');inp.type='text';inp.autocomplete='off';inp.placeholder='Type account code or name...';
+    const menu=document.createElement('div');menu.className='rc-account-menu';menu.hidden=true;
+    select.parentNode.insertBefore(wrap,select);wrap.append(inp,menu,select);
+    const opts=()=>[...select.options].filter(o=>o.value);
+    const sync=()=>{const o=opts().find(x=>x.value===select.value);inp.value=o?o.text.trim():''};
+    const render=()=>{
+      const q=inp.value.trim().toLowerCase();menu.innerHTML='';
+      const found=opts().filter(o=>!q||(o.text||'').toLowerCase().includes(q)).slice(0,100);
+      if(!found.length){const e=document.createElement('div');e.className='rc-customer-empty';e.textContent='No account found';menu.appendChild(e)}
+      found.forEach(o=>{
+        const b=document.createElement('button');b.type='button';b.className='rc-account-option';b.textContent=o.text;
+        b.addEventListener('click',()=>{select.value=o.value;inp.value=o.text.trim();menu.hidden=true;select.dispatchEvent(new Event('change',{bubbles:true}))});
+        menu.appendChild(b);
+      });menu.hidden=false;
+    };
+    inp.addEventListener('focus',render);inp.addEventListener('input',()=>{select.value='';render()});
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const b=menu.querySelector('.rc-account-option');if(b){e.preventDefault();b.click()}}if(e.key==='Escape')menu.hidden=true});
+    document.addEventListener('click',e=>{if(!wrap.contains(e.target))menu.hidden=true});
+    sync();
+  }
+  function wireChargeAccounts(scope=document){scope.querySelectorAll('.charge-row').forEach(initAccountSearch)}
+
+  /* Print preview */
+  document.getElementById('receiptPrintPreview')?.addEventListener('click',()=>{
+    recalc();
+    const customer=(customerSearch?.value||'—');
+    const number=document.getElementById('id_number')?.value||'—';
+    const date=document.getElementById('id_receipt_date')?.value||'—';
+    const currency=document.getElementById('id_currency')?.value||'USD';
+    const memo=document.getElementById('id_memo')?.value||'';
+    const total=document.getElementById('rcGrandTotal').textContent;
+    const w=window.open('','_blank','width=1100,height=780,scrollbars=yes,resizable=yes');
+    if(!w){alert('Please allow pop-ups to open Print Preview.');return}
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Receipt / Collection</title>
+    <style>
+      body{font-family:Arial;margin:0;background:#eef6fa;color:#173b4e}
+      .bar{padding:12px 22px;background:#fff;text-align:right;border-bottom:1px solid #d9e7ed}
+      button{height:34px;padding:0 15px;border-radius:7px;border:1px solid #c9dce5;background:#fff;font-weight:700}
+      .print{background:#0b9a5a;color:#fff;border-color:#0b9a5a}
+      .sheet{max-width:1000px;margin:20px auto;background:#fff;border:1px solid #d6e5ec;border-radius:14px;overflow:hidden}
+      .head{padding:24px;border-bottom:1px solid #dbe8ee}.head h1{margin:0;color:#083b59}
+      .info{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:18px 24px;background:#fbfdfe}
+      .box{padding:10px;border:1px solid #d9e6ec;border-radius:7px}.box small{display:block;color:#879ba5;margin-bottom:5px}
+      .total{margin:20px 24px;padding:14px;background:#eaf8ef;border-radius:8px;display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#008c49}
+      .memo{margin:0 24px 24px;padding:12px;border:1px solid #d9e6ec;border-radius:8px}
+      @media print{.bar{display:none}.sheet{margin:0;border:0}@page{size:A4 portrait;margin:10mm}}
+    </style></head><body>
+    <div class="bar"><button onclick="window.close()">Close</button> <button class="print" onclick="window.print()">Print</button></div>
+    <div class="sheet"><div class="head"><h1>Receipt / Collection</h1><p>Customer payment receipt</p></div>
+    <div class="info"><div class="box"><small>Customer</small><strong>${customer}</strong></div>
+    <div class="box"><small>Number</small><strong>${number}</strong></div>
+    <div class="box"><small>Date</small><strong>${date}</strong></div>
+    <div class="box"><small>Currency</small><strong>${currency}</strong></div></div>
+    <div class="memo"><small>Memo</small><div>${memo||'—'}</div></div>
+    <div class="total"><span>Grand Total</span><span>$ ${total}</span></div></div></body></html>`);
+    w.document.close();w.focus();
+  });
+
+  wireRows();wireChargeAccounts();recalc();
+})();
+</script>
+{% endblock %}

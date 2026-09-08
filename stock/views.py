@@ -4,8 +4,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
+from django.core.paginator import Paginator
+from django.http import HttpResponse, JsonResponse
+from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+
+from openpyxl import Workbook, load_workbook
 
 from accounting.models import JournalEntry, JournalEntryLine
 from core.models import Company
@@ -155,16 +160,31 @@ def create_stock_journal(stock_doc, user):
 # ITEM MASTER
 # =========================================================
 
-@login_required
-def item_list(request):
-    company, response = require_company_access(request)
-    if response:
-        return response
+def _item_has_field(name):
+    try:
+        Item._meta.get_field(name)
+        return True
+    except Exception:
+        return False
 
+
+def _safe_decimal(value, default=None):
+    from decimal import Decimal, InvalidOperation
+    if value is None or str(value).strip() == "":
+        return default
+    try:
+        return Decimal(str(value).replace(",", "").strip())
+    except (InvalidOperation, ValueError, TypeError):
+        return default
+
+
+def _item_filter_queryset(request, company):
     query = (request.GET.get("q") or "").strip()
     item_type = (request.GET.get("item_type") or "").strip()
     group_id = (request.GET.get("group") or "").strip()
     brand_id = (request.GET.get("brand") or "").strip()
+    unit_id = (request.GET.get("unit") or "").strip()
+    active = (request.GET.get("active") or "").strip()
 
     items = (
         Item.objects
@@ -173,45 +193,592 @@ def item_list(request):
     )
 
     if query:
-        items = items.filter(
+        search = (
             Q(code__icontains=query)
             | Q(name__icontains=query)
             | Q(memo__icontains=query)
         )
+        if _item_has_field("description"):
+            search |= Q(description__icontains=query)
+        if _item_has_field("barcode"):
+            search |= Q(barcode__icontains=query)
+        items = items.filter(search)
 
     if item_type:
         items = items.filter(item_type=item_type)
-
     if group_id:
         items = items.filter(item_group_id=group_id)
-
     if brand_id:
         items = items.filter(item_brand_id=brand_id)
+    if unit_id:
+        items = items.filter(unit_set_id=unit_id)
+    if active == "1":
+        items = items.filter(is_active=True)
+    elif active == "0":
+        items = items.filter(is_active=False)
 
-    items = items.order_by("code", "name")
+    sort = (request.GET.get("sort") or "name").strip()
+    sort_map = {
+        "name": "name",
+        "-name": "-name",
+        "code": "code",
+        "-code": "-code",
+        "cost": "cost_price",
+        "-cost": "-cost_price",
+        "sale": "sale_price",
+        "-sale": "-sale_price",
+    }
+    items = items.order_by(sort_map.get(sort, "name"), "code")
 
-    groups = ItemGroup.objects.filter(
-        company=company,
-        is_active=True,
-    ).order_by("name")
-
-    brands = ItemBrand.objects.filter(
-        company=company,
-        is_active=True,
-    ).order_by("name")
-
-    return render(request, "stock/item_list.html", {
-        "company": company,
-        "items": items,
+    return items, {
         "query": query,
         "item_type": item_type,
         "group_id": group_id,
         "brand_id": brand_id,
+        "unit_id": unit_id,
+        "active": active,
+        "sort": sort,
+    }
+
+
+@login_required
+def item_list(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    # Toolbar / row actions all post back to this one page.
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+        selected_ids = [
+            int(x) for x in request.POST.getlist("selected")
+            if str(x).isdigit()
+        ]
+        selected = Item.objects.filter(company=company, id__in=selected_ids)
+
+        if action == "delete":
+            if not selected_ids:
+                messages.warning(request, "Select at least one item.")
+            else:
+                deleted = 0
+                protected = 0
+                for item in selected:
+                    try:
+                        item.delete()
+                        deleted += 1
+                    except Exception:
+                        # Safer than breaking accounting/stock history.
+                        item.is_active = False
+                        item.save(update_fields=["is_active"])
+                        protected += 1
+                if deleted:
+                    messages.success(request, f"{deleted} item(s) deleted.")
+                if protected:
+                    messages.warning(
+                        request,
+                        f"{protected} item(s) had history and were deactivated instead.",
+                    )
+            return redirect(request.get_full_path())
+
+        if action == "bulk_update":
+            if not selected_ids:
+                messages.warning(request, "Select at least one item.")
+                return redirect(request.get_full_path())
+
+            changed = 0
+            field = (request.POST.get("bulk_field") or "").strip()
+            value = (request.POST.get("bulk_value") or "").strip()
+
+            allowed = {"is_active", "item_type", "item_group", "item_brand", "unit_set", "cost_price", "sale_price"}
+            if field not in allowed:
+                messages.error(request, "Invalid bulk update field.")
+                return redirect(request.get_full_path())
+
+            for item in selected:
+                if field == "is_active":
+                    setattr(item, field, value == "1")
+                elif field in {"item_group", "item_brand", "unit_set"}:
+                    setattr(item, f"{field}_id", int(value) if value.isdigit() else None)
+                elif field in {"cost_price", "sale_price"}:
+                    amount = _safe_decimal(value)
+                    if amount is None or amount < 0:
+                        continue
+                    setattr(item, field, amount)
+                else:
+                    valid_types = {x[0] for x in Item.ITEM_TYPE_CHOICES}
+                    if value not in valid_types:
+                        continue
+                    item.item_type = value
+                item.save()
+                changed += 1
+
+            messages.success(request, f"{changed} item(s) updated.")
+            return redirect(request.get_full_path())
+
+        if action == "price_update":
+            item_id = request.POST.get("item_id")
+            item = get_object_or_404(Item, company=company, id=item_id)
+            cost = _safe_decimal(request.POST.get("cost_price"))
+            sale = _safe_decimal(request.POST.get("sale_price"))
+            if cost is not None and cost >= 0:
+                item.cost_price = cost
+            if sale is not None and sale >= 0:
+                item.sale_price = sale
+            update_fields = ["cost_price", "sale_price"]
+
+            if _item_has_field("barcode"):
+                setattr(item, "barcode", (request.POST.get("barcode") or "").strip())
+                update_fields.append("barcode")
+            if _item_has_field("base_price"):
+                base_price = _safe_decimal(request.POST.get("base_price"))
+                if base_price is not None and base_price >= 0:
+                    setattr(item, "base_price", base_price)
+                    update_fields.append("base_price")
+
+            item.save(update_fields=list(dict.fromkeys(update_fields)))
+            messages.success(request, f"{item.name} price information updated.")
+            return redirect(request.get_full_path())
+
+        if action == "duplicate":
+            item_id = request.POST.get("item_id")
+            source = get_object_or_404(Item, company=company, id=item_id)
+
+            original_code = source.code or "ITEM"
+            suffix = 1
+            new_code = f"{original_code}-COPY"
+            while Item.objects.filter(company=company, code=new_code).exists():
+                suffix += 1
+                new_code = f"{original_code}-COPY{suffix}"
+
+            clone = Item()
+            for field in Item._meta.concrete_fields:
+                if field.primary_key or field.name in {"id", "company"}:
+                    continue
+                if field.name == "code":
+                    setattr(clone, field.name, new_code)
+                elif field.name == "name":
+                    setattr(clone, field.name, f"{source.name} Copy")
+                else:
+                    setattr(clone, field.attname, getattr(source, field.attname))
+            clone.company = company
+            clone.save()
+            messages.success(request, f"Duplicated as {clone.code} - {clone.name}.")
+            return redirect("stock_item_edit", item_id=clone.id)
+
+    items, filters = _item_filter_queryset(request, company)
+
+    try:
+        per_page = int(request.GET.get("per_page") or 10)
+    except (TypeError, ValueError):
+        per_page = 10
+    if per_page not in {10, 25, 50, 100}:
+        per_page = 10
+
+    paginator = Paginator(items, per_page)
+    page_obj = paginator.get_page(request.GET.get("page") or 1)
+
+    groups = ItemGroup.objects.filter(company=company, is_active=True).order_by("name")
+    brands = ItemBrand.objects.filter(company=company, is_active=True).order_by("name")
+    units = UnitSet.objects.filter(company=company, is_active=True).order_by("name")
+
+    context = {
+        "company": company,
+        "items": page_obj.object_list,
+        "page_obj": page_obj,
+        "paginator": paginator,
+        "per_page": per_page,
         "item_type_choices": Item.ITEM_TYPE_CHOICES,
         "groups": groups,
         "brands": brands,
+        "units": units,
+        "has_barcode": _item_has_field("barcode"),
+        "has_description": _item_has_field("description"),
+        "has_cost_method": _item_has_field("cost_method"),
+        "has_base_price": _item_has_field("base_price"),
+        **filters,
+    }
+    return render(request, "stock/item_list.html", context)
+
+
+@login_required
+def item_delete(request, item_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+    item = get_object_or_404(Item, id=item_id, company=company)
+    if request.method != "POST":
+        return redirect("stock_item_list")
+    try:
+        name = item.name
+        item.delete()
+        messages.success(request, f"{name} deleted.")
+    except Exception:
+        item.is_active = False
+        item.save(update_fields=["is_active"])
+        messages.warning(
+            request,
+            f"{item.name} has transaction history, so it was deactivated instead of deleted.",
+        )
+    return redirect("stock_item_list")
+
+
+@login_required
+def item_duplicate(request, item_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+    if request.method != "POST":
+        return redirect("stock_item_list")
+
+    source = get_object_or_404(Item, id=item_id, company=company)
+    base = source.code or "ITEM"
+    code = f"{base}-COPY"
+    n = 2
+    while Item.objects.filter(company=company, code=code).exists():
+        code = f"{base}-COPY{n}"
+        n += 1
+
+    clone = Item()
+    for field in Item._meta.concrete_fields:
+        if field.primary_key or field.name in {"id", "company"}:
+            continue
+        if field.name == "code":
+            setattr(clone, field.name, code)
+        elif field.name == "name":
+            setattr(clone, field.name, f"{source.name} Copy")
+        else:
+            setattr(clone, field.attname, getattr(source, field.attname))
+    clone.company = company
+    clone.save()
+    messages.success(request, f"Item duplicated as {clone.code}.")
+    return redirect("stock_item_edit", item_id=clone.id)
+
+
+@login_required
+def item_export_excel(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    items, _ = _item_filter_queryset(request, company)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Items"
+
+    headers = [
+        "ITEM_CODE", "ITEM_NAME", "ITEM_TYPE", "ITEM_GROUP", "ITEM_BRAND",
+        "UNIT_SET", "COST_PRICE", "SALE_PRICE", "ACTIVE", "MEMO"
+    ]
+    optional = []
+    if _item_has_field("barcode"):
+        optional.append(("BARCODE", "barcode"))
+    if _item_has_field("description"):
+        optional.append(("DESCRIPTION", "description"))
+    if _item_has_field("cost_method"):
+        optional.append(("COST_METHOD", "cost_method"))
+    if _item_has_field("base_price"):
+        optional.append(("BASE_PRICE", "base_price"))
+
+    # Keep commonly requested optional columns close to Code/Name.
+    headers = ["ITEM_CODE"] + [h for h, _ in optional if h == "BARCODE"] + ["ITEM_NAME"] + \
+              [h for h, _ in optional if h in {"DESCRIPTION", "COST_METHOD"}] + \
+              ["ITEM_TYPE", "ITEM_GROUP", "ITEM_BRAND", "UNIT_SET", "COST_PRICE"] + \
+              [h for h, _ in optional if h == "BASE_PRICE"] + ["SALE_PRICE", "ACTIVE", "MEMO"]
+    ws.append(headers)
+
+    for item in items:
+        data = {
+            "ITEM_CODE": item.code,
+            "ITEM_NAME": item.name,
+            "ITEM_TYPE": item.item_type,
+            "ITEM_GROUP": item.item_group.name if item.item_group else "",
+            "ITEM_BRAND": item.item_brand.name if item.item_brand else "",
+            "UNIT_SET": item.unit_set.name if item.unit_set else "",
+            "COST_PRICE": item.cost_price,
+            "SALE_PRICE": item.sale_price,
+            "ACTIVE": "Yes" if item.is_active else "No",
+            "MEMO": item.memo,
+            "BARCODE": getattr(item, "barcode", ""),
+            "DESCRIPTION": getattr(item, "description", ""),
+            "COST_METHOD": getattr(item, "cost_method", ""),
+            "BASE_PRICE": getattr(item, "base_price", ""),
+        }
+        ws.append([data.get(h, "") for h in headers])
+
+    ws.freeze_panes = "A2"
+    for col in ws.columns:
+        letter = col[0].column_letter
+        ws.column_dimensions[letter].width = min(
+            34,
+            max(12, max(len(str(c.value or "")) for c in col) + 2)
+        )
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="item_list.xlsx"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def item_import_excel(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    errors = []
+    if request.method == "POST":
+        upload = request.FILES.get("file")
+        if not upload:
+            errors.append("Choose an Excel file.")
+        else:
+            try:
+                wb = load_workbook(upload, data_only=True)
+                ws = wb.active
+                rows = list(ws.iter_rows(values_only=True))
+                if not rows:
+                    errors.append("The Excel file is empty.")
+                else:
+                    headers = [str(x or "").strip().upper() for x in rows[0]]
+                    index = {name: i for i, name in enumerate(headers)}
+
+                    def value(row, name, default=""):
+                        i = index.get(name)
+                        return default if i is None or i >= len(row) else row[i]
+
+                    success = 0
+                    with transaction.atomic():
+                        for row_no, row in enumerate(rows[1:], 2):
+                            code = str(value(row, "ITEM_CODE") or "").strip()
+                            name = str(value(row, "ITEM_NAME") or "").strip()
+                            if not code and not name:
+                                continue
+                            if not code or not name:
+                                errors.append(f"Row {row_no}: ITEM_CODE and ITEM_NAME are required.")
+                                continue
+
+                            group_name = str(value(row, "ITEM_GROUP") or "").strip()
+                            brand_name = str(value(row, "ITEM_BRAND") or "").strip()
+                            unit_name = str(value(row, "UNIT_SET") or "").strip()
+
+                            group = None
+                            brand = None
+                            unit = None
+                            if group_name:
+                                group, _ = ItemGroup.objects.get_or_create(
+                                    company=company, name=group_name,
+                                    defaults={"is_active": True},
+                                )
+                            if brand_name:
+                                brand, _ = ItemBrand.objects.get_or_create(
+                                    company=company, name=brand_name,
+                                    defaults={"is_active": True},
+                                )
+                            if unit_name:
+                                unit, _ = UnitSet.objects.get_or_create(
+                                    company=company, name=unit_name,
+                                    defaults={
+                                        "base_unit": "pcs",
+                                        "default_purchase": "pcs",
+                                        "default_sale": "pcs",
+                                        "is_active": True,
+                                    },
+                                )
+
+                            item_type = str(value(row, "ITEM_TYPE") or Item.TYPE_STOCK_PART).strip()
+                            valid_types = {x[0] for x in Item.ITEM_TYPE_CHOICES}
+                            if item_type not in valid_types:
+                                # also accept display labels such as "Service"
+                                label_map = {label.lower(): key for key, label in Item.ITEM_TYPE_CHOICES}
+                                item_type = label_map.get(item_type.lower(), Item.TYPE_STOCK_PART)
+
+                            defaults = {
+                                "name": name,
+                                "item_type": item_type,
+                                "item_group": group,
+                                "item_brand": brand,
+                                "unit_set": unit,
+                                "cost_price": _safe_decimal(value(row, "COST_PRICE"), Decimal("0.00")) or Decimal("0.00"),
+                                "sale_price": _safe_decimal(value(row, "SALE_PRICE"), Decimal("0.00")) or Decimal("0.00"),
+                                "memo": str(value(row, "MEMO") or "").strip(),
+                                "is_active": str(value(row, "ACTIVE") or "Yes").strip().lower() not in {"0","false","no","inactive"},
+                            }
+
+                            if _item_has_field("barcode"):
+                                defaults["barcode"] = str(value(row, "BARCODE") or "").strip()
+                            if _item_has_field("description"):
+                                defaults["description"] = str(value(row, "DESCRIPTION") or "").strip()
+                            if _item_has_field("cost_method"):
+                                cm = str(value(row, "COST_METHOD") or "").strip()
+                                if cm:
+                                    defaults["cost_method"] = cm
+                            if _item_has_field("base_price"):
+                                defaults["base_price"] = _safe_decimal(value(row, "BASE_PRICE"), Decimal("0.00")) or Decimal("0.00")
+
+                            Item.objects.update_or_create(
+                                company=company,
+                                code=code,
+                                defaults=defaults,
+                            )
+                            success += 1
+
+                    if errors:
+                        messages.warning(
+                            request,
+                            f"Imported/updated {success} item(s), with {len(errors)} row issue(s)."
+                        )
+                    else:
+                        messages.success(request, f"Imported/updated {success} item(s).")
+                        return redirect("stock_item_list")
+            except Exception as exc:
+                errors.append(f"Could not import Excel: {exc}")
+
+    return render(request, "stock/item_import.html", {
+        "company": company,
+        "errors": errors,
+        "has_barcode": _item_has_field("barcode"),
+        "has_description": _item_has_field("description"),
+        "has_cost_method": _item_has_field("cost_method"),
+        "has_base_price": _item_has_field("base_price"),
     })
 
+
+@login_required
+def item_import_sample(request):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Items"
+    headers = [
+        "ITEM_CODE",
+        "ITEM_NAME",
+        "ITEM_TYPE",
+        "ITEM_GROUP",
+        "ITEM_BRAND",
+        "UNIT_SET",
+        "COST_PRICE",
+        "SALE_PRICE",
+        "ACTIVE",
+        "MEMO",
+    ]
+    if _item_has_field("barcode"):
+        headers.insert(1, "BARCODE")
+    if _item_has_field("description"):
+        headers.insert(headers.index("ITEM_TYPE"), "DESCRIPTION")
+    if _item_has_field("cost_method"):
+        headers.insert(headers.index("ITEM_TYPE"), "COST_METHOD")
+    if _item_has_field("base_price"):
+        headers.insert(headers.index("SALE_PRICE"), "BASE_PRICE")
+
+    ws.append(headers)
+    sample = {
+        "ITEM_CODE": "IT-001",
+        "BARCODE": "885001",
+        "ITEM_NAME": "Sample Item",
+        "DESCRIPTION": "Sample description",
+        "COST_METHOD": "average",
+        "ITEM_TYPE": Item.TYPE_STOCK_PART,
+        "ITEM_GROUP": "General",
+        "ITEM_BRAND": "General",
+        "UNIT_SET": "PCS",
+        "COST_PRICE": 1.00,
+        "BASE_PRICE": 1.25,
+        "SALE_PRICE": 1.50,
+        "ACTIVE": "Yes",
+        "MEMO": "Replace or delete this sample row.",
+    }
+    ws.append([sample.get(h, "") for h in headers])
+    ws.freeze_panes = "A2"
+    for c in ws[1]:
+        c.font = c.font.copy(bold=True)
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="item_import_sample.xlsx"'
+    wb.save(response)
+    return response
+
+
+
+
+@login_required
+def item_using_info(request, item_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+
+    item = get_object_or_404(Item, id=item_id, company=company)
+    rows = []
+
+    try:
+        for line in item.purchase_bill_lines.select_related("bill__vendor").order_by("-bill__bill_date", "-bill_id"):
+            bill = line.bill
+            edit_url = ""
+            try:
+                edit_url = reverse("purchase_bill_edit", args=[bill.id])
+            except Exception:
+                pass
+            rows.append({
+                "type": "Purchase",
+                "number": bill.number or str(bill.id),
+                "date": bill.bill_date.strftime("%d-%m-%Y") if bill.bill_date else "",
+                "name": getattr(bill.vendor, "name", "") or str(bill.vendor),
+                "qty": str(line.qty or ""),
+                "amount": str(line.line_amount or ""),
+                "edit_url": edit_url,
+            })
+    except Exception:
+        pass
+
+    try:
+        for line in item.sales_invoice_lines.select_related("invoice__customer").order_by("-invoice__invoice_date", "-invoice_id"):
+            inv = line.invoice
+            rows.append({
+                "type": inv.get_document_type_display() if hasattr(inv, "get_document_type_display") else "Sale",
+                "number": inv.number or str(inv.id),
+                "date": inv.invoice_date.strftime("%d-%m-%Y") if inv.invoice_date else "",
+                "name": getattr(inv.customer, "name", "") or str(inv.customer),
+                "qty": str(line.qty or ""),
+                "amount": str(line.line_amount or ""),
+                "edit_url": "",
+            })
+    except Exception:
+        pass
+
+    try:
+        for line in item.stock_lines.select_related("document").order_by("-document__document_date", "-document_id"):
+            doc = line.document
+            rows.append({
+                "type": doc.get_document_type_display() if hasattr(doc, "get_document_type_display") else "Stock",
+                "number": doc.number or str(doc.id),
+                "date": doc.document_date.strftime("%d-%m-%Y") if doc.document_date else "",
+                "name": str(doc.warehouse or doc.from_warehouse or doc.to_warehouse or ""),
+                "qty": str(line.qty or ""),
+                "amount": str(line.amount or ""),
+                "edit_url": "",
+            })
+    except Exception:
+        pass
+
+    from datetime import datetime
+    def sort_key(row):
+        try:
+            return datetime.strptime(row["date"], "%d-%m-%Y")
+        except Exception:
+            return datetime.min
+    rows.sort(key=sort_key, reverse=True)
+
+    return JsonResponse({
+        "item": {"id": item.id, "code": item.code, "name": item.name},
+        "count": len(rows),
+        "rows": rows,
+    })
 
 @login_required
 def item_create(request):

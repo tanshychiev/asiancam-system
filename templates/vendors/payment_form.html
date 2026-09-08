@@ -1,180 +1,1334 @@
-{% extends "base.html" %}{% block title %}{% if "cash-expense" in request.path %}Cash Expense{% else %}Vendor Payment{% endif %}{% endblock %}{% block content %}
+{% extends "base.html" %}
+{% block title %}Payment{% endblock %}
+{% block content %}
 <style>
-.payment-mode-card{border-top:4px solid #16a34a;padding:18px 20px}
-.payment-mode-card.cash-mode{border-top-color:#f59e0b}
-.payment-mode-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
-.payment-mode-title{display:flex;align-items:center;gap:10px}
-.payment-mode-title h2{margin:0 0 2px;font-size:20px}
-.payment-mode-title p{margin:0;color:#64748b;font-size:12px}
-.payment-mode-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:#dcfce7;color:#15803d;font-size:18px;font-weight:800}
-.cash-mode .payment-mode-icon{background:#fef3c7;color:#b45309}
-.payment-mode-badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:800;background:#dcfce7;color:#166534}
-.cash-mode .payment-mode-badge{background:#fef3c7;color:#92400e}
-.mode-guide{margin:-2px 0 14px;padding:9px 11px;border-radius:9px;background:#f0fdf4;color:#166534;font-size:12px;border:1px solid #dcfce7}
-.cash-mode .mode-guide{background:#fffbeb;color:#92400e;border-color:#fde68a}
+:root{
+  --pay-green:#0aa35d;
+  --pay-green-dark:#087b47;
+  --pay-green-soft:#eaf8f1;
+  --pay-blue:#169ee6;
+  --pay-blue-dark:#0b78b4;
+  --pay-navy:#113d5c;
+  --pay-text:#315267;
+  --pay-muted:#7d909c;
+  --pay-line:#d8e7ee;
+  --pay-soft:#f6fafc;
+  --pay-danger:#dc5454;
+}
+.payment-card{
+  max-width:1500px;
+  margin:0 auto;
+  background:#fff;
+  border:1px solid var(--pay-line);
+  border-radius:18px;
+  box-shadow:0 10px 30px rgba(23,65,87,.07);
+  overflow:hidden;
+}
+.payment-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  padding:20px 22px 16px;
+  border-bottom:1px solid var(--pay-line);
+}
+.payment-header h2{
+  margin:0;
+  color:var(--pay-navy);
+  font-size:24px;
+  font-weight:900;
+  letter-spacing:-.4px;
+}
+.payment-header p{
+  margin:5px 0 0;
+  color:var(--pay-muted);
+  font-size:11px;
+}
+.payment-body{padding:18px 20px 16px}
 
-/* Compact form: two columns instead of one long full-width field per row */
-.payment-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px;margin-bottom:14px}
-.payment-form-grid .field{min-width:0}
-.payment-form-grid .span-2{grid-column:1/-1}
-.payment-form-grid label{display:block;margin:0 0 4px;font-size:12px;font-weight:700;color:#0f3f68}
-.payment-form-grid input,
-.payment-form-grid select,
-.payment-form-grid textarea{width:100%;box-sizing:border-box;min-height:38px;padding:7px 10px;border:1px solid #cfe4f2;border-radius:9px;background:#fff}
-.payment-form-grid textarea{min-height:62px;max-height:90px;resize:vertical}
+.payment-top{
+  display:grid;
+  grid-template-columns:1.1fr 1fr 1fr 340px;
+  grid-template-areas:
+    "vendor type reference summary"
+    "date method reference summary"
+    "account ap memo summary"
+    "currency cheque memo summary";
+  gap:13px 16px;
+  align-items:start;
+}
+.field{min-width:0}
+.field.vendor{grid-area:vendor}
+.field.type{grid-area:type}
+.field.reference{grid-area:reference}
+.field.date{grid-area:date}
+.field.method{grid-area:method}
+.field.account{grid-area:account}
+.field.ap{grid-area:ap}
+.field.currency{grid-area:currency}
+.field.cheque{grid-area:cheque}
+.field.memo{grid-area:memo}
+.field label{
+  display:block;
+  margin:0 0 6px;
+  color:#315066;
+  font-size:10.5px;
+  font-weight:900;
+}
+.field .req{color:#e45353}
+.payment-card input,
+.payment-card select,
+.payment-card textarea{
+  width:100%;
+  box-sizing:border-box;
+  min-height:38px;
+  padding:8px 10px;
+  border:1px solid #d5e4eb;
+  border-radius:9px;
+  background:#fff;
+  color:#29495b;
+  font-size:11px;
+  outline:none;
+}
+.payment-card textarea{min-height:68px;max-height:86px;resize:vertical}
+.payment-card input:focus,
+.payment-card select:focus,
+.payment-card textarea:focus{
+  border-color:#56b7df;
+  box-shadow:0 0 0 3px rgba(22,158,230,.08);
+}
+.payment-card small{
+  display:block;
+  margin-top:5px;
+  color:#8a9ba5;
+  font-size:9px;
+  line-height:1.4;
+}
+.errorlist{
+  margin:5px 0 0;
+  padding-left:16px;
+  color:#c84444;
+  font-size:9px;
+}
+.hidden-select{display:none!important}
 
-/* Clean segmented tabs */
-.payment-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#f1f5f9;border:1px solid #dbe7ef;border-radius:11px;padding:5px;margin:6px 0 10px}
-.payment-tabs .sheet-tab{border:0!important;border-radius:8px!important;background:transparent!important;color:#52657a!important;padding:9px 12px!important;font-weight:800!important;font-size:12px!important;cursor:pointer}
-.payment-tabs .sheet-tab.active{background:#fff!important;color:#1478b8!important;box-shadow:0 1px 4px rgba(15,23,42,.10)!important}
-.cash-mode .payment-tabs .sheet-tab.active{color:#b45309!important}
+.vendor-combo{position:relative}
+.vendor-input-wrap{position:relative}
+.vendor-input-wrap input{padding-left:32px;padding-right:33px}
+.vendor-search-icon{
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  color:#7e929e;font-size:13px;pointer-events:none
+}
+.vendor-clear{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  width:25px;height:25px;min-height:25px!important;padding:0!important;
+  border:0!important;border-radius:7px!important;background:#edf3f6!important;
+  color:#8496a0!important;cursor:pointer
+}
+.vendor-clear:hover{background:#feecec!important;color:#d25151!important}
+.vendor-results{
+  position:absolute;z-index:10050;left:0;right:0;top:calc(100% + 5px);
+  max-height:290px;overflow:auto;padding:6px;background:#fff;
+  border:1px solid #cfe1ea;border-radius:11px;
+  box-shadow:0 14px 35px rgba(26,63,83,.17)
+}
+.vendor-create,.vendor-option{
+  display:block;width:100%;box-sizing:border-box;border:0;background:#fff;
+  padding:9px 10px;border-radius:8px;text-align:left;color:#38586a;
+  font-size:10px;cursor:pointer;text-decoration:none
+}
+.vendor-create{
+  color:var(--pay-blue-dark);font-weight:900;border-bottom:1px solid #edf2f4;
+  border-radius:7px 7px 0 0;margin-bottom:5px
+}
+.vendor-create:hover,.vendor-option:hover{background:#eef9f4;color:var(--pay-green-dark)}
+.vendor-empty{padding:10px;color:#8b9ba4;font-size:9px}
 
-/* Line tables */
-.section-caption{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:4px 2px 8px;font-size:12px;color:#64748b}
-.section-caption strong{color:#0f3f68;font-size:13px}
-.payment-mode-card .table-wrap{border:1px solid #d8e8f2;border-radius:11px;overflow:hidden;background:#fff}
-.payment-mode-card table{width:100%;border-collapse:collapse}
-.payment-mode-card th{background:#eef8fd;padding:8px 10px;font-size:11px;text-align:left;color:#17486d}
-.payment-mode-card td{padding:8px 10px;border-top:1px solid #e8f1f6;vertical-align:middle}
-.payment-mode-card td input,
-.payment-mode-card td select{width:100%;box-sizing:border-box;min-height:36px;padding:6px 9px;border:1px solid #d2e5f1;border-radius:8px;background:#fff}
-.action-col{width:92px;text-align:center}
-.cash-mode .cash-ap-field{opacity:.58}
-.cash-mode .cash-ap-field label:after{content:" (used only for vendor bill allocation)";font-weight:400;color:#94a3b8}
-.secondary-choice{opacity:.72}
-.table-actions{display:flex;justify-content:flex-end;margin:8px 0 0}
-.add-row-btn{border:1px solid #b9d9ec;background:#fff;color:#1478b8;border-radius:8px;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer}
-.add-row-btn:hover{background:#eef8fd}
-.cash-mode .add-row-btn{border-color:#f6cf8b;color:#b45309}
-.cash-mode .add-row-btn:hover{background:#fffbeb}
-.delete-box{display:none}
-.remove-line{border:1px solid #fecaca;background:#fff5f5;color:#dc2626;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer}
-.remove-line:hover{background:#fee2e2}
-.bottom-actions{margin-top:14px;display:flex;gap:8px;align-items:center;justify-content:flex-end;width:100%}
-.cash-mode .bottom-actions .btn:not(.btn-light){background:#d97706;border-color:#d97706}
+.tran-type-buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+.tran-type-btn{
+  min-height:38px;
+  border:1px solid #cddfe7;
+  border-radius:9px;
+  background:#fff;
+  color:#496575;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+  padding:7px 9px;
+}
+.tran-type-btn:hover{background:#f4fafc}
+.tran-type-btn.active{
+  background:var(--pay-green);
+  border-color:var(--pay-green);
+  color:#fff;
+  box-shadow:0 5px 12px rgba(10,163,93,.16);
+}
 
-@media(max-width:800px){
-  .payment-form-grid{grid-template-columns:1fr}
-  .payment-form-grid .span-2{grid-column:auto}
-  .payment-tabs{grid-template-columns:1fr}
+.search-select{position:relative}
+.search-select-input{padding-right:31px!important}
+.search-select-arrow{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  pointer-events:none;color:#7d919c;font-size:11px
+}
+.search-select-menu{
+  position:absolute;z-index:10030;left:0;right:0;top:calc(100% + 5px);
+  max-height:290px;overflow:auto;background:#fff;border:1px solid #cfe1ea;
+  border-radius:10px;box-shadow:0 14px 35px rgba(26,63,83,.16);padding:5px
+}
+.search-select-option{
+  display:block;width:100%;border:0;background:#fff;padding:8px 9px;
+  border-radius:7px;text-align:left;color:#38586a;font-size:10px;cursor:pointer
+}
+.search-select-option:hover,.search-select-option.active{
+  background:#eaf6ff;color:#0b75b6
+}
+.search-select-empty{padding:9px;color:#8b9ba4;font-size:9px}
+
+.payment-summary{
+  grid-area:summary;
+  border:1px solid #d7e8ee;
+  border-radius:12px;
+  background:linear-gradient(180deg,#fbfeff,#f4f9fb);
+  padding:12px 13px;
+  align-self:stretch;
+}
+.payment-summary-title{
+  font-size:10px;font-weight:900;color:#496273;text-transform:uppercase;
+  letter-spacing:.04em;margin-bottom:7px
+}
+.summary-row{
+  min-height:35px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border-bottom:1px solid #e6eff3;
+  color:#6f818b;
+  font-size:10px;
+  font-weight:750;
+}
+.summary-row strong{color:#2c4a5b;font-variant-numeric:tabular-nums}
+.summary-row.total{
+  border-bottom:0;
+  margin-top:5px;
+  padding:0 8px;
+  background:#e9f8f0;
+  border-radius:8px;
+}
+.summary-row.total span,.summary-row.total strong{
+  color:var(--pay-green-dark);
+  font-size:13px;
+  font-weight:900;
+}
+.amount-paid{
+  margin-top:9px;padding-top:8px;border-top:1px dashed #d7e5eb
+}
+.amount-paid label{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:9px;color:#758995;font-weight:800;margin-bottom:5px
+}
+.amount-paid input{
+  background:#fff!important;text-align:right;font-weight:900;color:#117cab!important
+}
+
+.payment-tabs{
+  display:flex;
+  align-items:flex-end;
+  gap:5px;
+  margin-top:18px;
+  border-bottom:1px solid var(--pay-line);
+}
+.payment-tab{
+  border:1px solid transparent;
+  border-bottom:0;
+  background:transparent;
+  color:#5f7684;
+  padding:10px 15px;
+  border-radius:9px 9px 0 0;
+  font-size:11px;
+  font-weight:900;
+  cursor:pointer;
+}
+.payment-tab.active{
+  color:var(--pay-green-dark);
+  background:#fff;
+  border-color:#d7e7de;
+  box-shadow:inset 0 -2px 0 var(--pay-green);
+}
+.payment-tab .count{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;border-radius:10px;margin-left:5px;
+  background:#edf3f6;color:#71838d;font-size:9px
+}
+.payment-tab.active .count{background:#dff4e9;color:var(--pay-green-dark)}
+.panel{display:none}
+.panel.active{display:block}
+
+.table-wrap{
+  overflow:auto;
+  border:1px solid var(--pay-line);
+  border-top:0;
+  border-radius:0 0 11px 11px;
+}
+.pay-table{
+  width:100%;
+  min-width:1180px;
+  border-collapse:separate;
+  border-spacing:0;
+}
+.pay-table th{
+  background:#f1f7fa;
+  color:#4b6575;
+  border-bottom:1px solid #d7e6ed;
+  padding:8px 7px;
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  white-space:nowrap;
+  text-align:left;
+}
+.pay-table td{
+  border-bottom:1px solid #edf2f5;
+  padding:5px 6px;
+  color:#49616f;
+  font-size:10px;
+  vertical-align:middle;
+}
+.pay-table tbody tr:nth-child(even) td{background:#fcfefe}
+.pay-table tbody tr:hover td{background:#f7fbfd}
+.pay-table input,.pay-table select{
+  min-height:31px;height:31px;padding:4px 7px;border-radius:6px;font-size:10px
+}
+.pay-table .num{text-align:right;font-variant-numeric:tabular-nums}
+.read-cell{
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.bill-model-select{display:none!important}
+
+.manual-invoice-row .bill-model-select{
+  display:block!important;
+}
+.manual-invoice-row .bill-model-select select{
+  display:block!important;
+  width:100%!important;
+  min-width:170px;
+  min-height:31px!important;
+  height:31px!important;
+  padding:4px 7px!important;
+  border:1px solid #d5e4eb!important;
+  border-radius:6px!important;
+  background:#fff!important;
+  color:#29495b!important;
+  font-size:10px!important;
+}
+.apply-check{
+  width:16px!important;height:16px!important;min-height:16px!important;
+  accent-color:var(--pay-green);cursor:pointer
+}
+.row-disabled{opacity:.55}
+.row-disabled td{background:#fafcfd!important}
+.trash{
+  width:30px!important;height:30px!important;min-height:30px!important;padding:0!important;
+  border:1px solid #f2c7c7!important;background:#fff7f7!important;border-radius:8px!important;
+  color:var(--pay-danger)!important;cursor:pointer;font-size:13px!important
+}
+.trash:hover{background:#feeaea!important}
+.delete-field{display:none!important}
+.empty-row{text-align:center;color:#8a9ba5;padding:24px!important}
+
+#chargeRows .charge-row input[name$="-memo"]{
+  min-height:31px!important;
+  height:31px!important;
+  padding:4px 7px!important;
+  border-radius:6px!important;
+  font-size:10px!important;
+}
+#chargeRows .charge-row input[name$="-amount"]{
+  min-height:31px!important;
+  height:31px!important;
+}
+.charge-account .search-select-input{
+  min-height:31px!important;height:31px!important;padding:4px 28px 4px 7px!important;
+  border-radius:6px!important;font-size:10px!important
+}
+.charge-account .search-select-menu{min-width:240px;max-height:240px}
+
+.charge-tax select{
+  min-height:31px!important;
+  height:31px!important;
+  padding:4px 7px!important;
+  border-radius:6px!important;
+  font-size:10px!important;
+  background:#fff!important;
+}
+
+.table-actions{
+  display:flex;
+  justify-content:flex-end;
+  padding:9px 0 0;
+}
+
+.section-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:9px 0 8px;
+}
+.section-toolbar strong{
+  display:block;
+  color:#35566a;
+  font-size:10.5px;
+  font-weight:900;
+}
+.section-toolbar small{
+  margin-top:2px;
+}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  min-height:36px;padding:0 13px;border-radius:9px;border:1px solid #c8dce6;
+  background:#fff;color:#1c6e99;text-decoration:none;font-size:10px;font-weight:900;cursor:pointer
+}
+.btn:hover{background:#f1f8fb}
+.btn.green{background:var(--pay-green);border-color:var(--pay-green);color:#fff}
+.btn.green:hover{background:var(--pay-green-dark)}
+.btn.blue{background:var(--pay-blue);border-color:var(--pay-blue);color:#fff}
+.btn.blue:hover{background:var(--pay-blue-dark)}
+.btn.danger{color:#d54c4c;border-color:#f0c9c9}
+.btn.danger:hover{background:#fff1f1}
+
+.footer{
+  position:sticky;
+  bottom:0;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:18px -20px -16px;
+  padding:12px 20px;
+  border-top:1px solid var(--pay-line);
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(8px);
+}
+.footer-left,.footer-right{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.print-after{
+  display:inline-flex;align-items:center;gap:7px;
+  color:#657b88;font-size:10px;font-weight:700
+}
+.print-after input{
+  width:15px!important;height:15px!important;min-height:15px!important;
+  accent-color:var(--pay-green)
+}
+
+@media(max-width:1250px){
+  .payment-top{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-areas:
+      "vendor type summary"
+      "date method summary"
+      "account ap summary"
+      "currency reference summary"
+      "cheque memo summary";
+  }
+}
+@media(max-width:900px){
+  .payment-top{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:
+      "vendor type"
+      "date method"
+      "account ap"
+      "currency reference"
+      "cheque cheque"
+      "memo memo"
+      "summary summary";
+  }
+  .footer{position:static}
+}
+@media(max-width:620px){
+  .payment-card{border-radius:13px}
+  .payment-header,.payment-body{padding-left:13px;padding-right:13px}
+  .payment-top{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "vendor" "type" "date" "method" "account" "ap" "currency"
+      "reference" "cheque" "memo" "summary";
+  }
+  .tran-type-buttons{grid-template-columns:1fr}
+  .footer{margin-left:-13px;margin-right:-13px;flex-direction:column;align-items:stretch}
+  .footer-left,.footer-right{justify-content:flex-end}
 }
 </style>
-<div class="card accounting-sheet payment-mode-card{% if "cash-expense" in request.path %} cash-mode{% endif %}"><form method="post">{% csrf_token %}
-<div class="payment-mode-head">
-  <div class="payment-mode-title">
-    <div class="payment-mode-icon">{% if "cash-expense" in request.path %}${% else %}✓{% endif %}</div>
+
+<div class="payment-card">
+  <div class="payment-header">
     <div>
-      <h2>{% if "cash-expense" in request.path %}Cash Expense Payment{% else %}Vendor Payment{% endif %}</h2>
-      <p>{% if "cash-expense" in request.path %}Record cash/bank expenses and other charges directly.{% else %}Settle vendor bills and allocate payment to outstanding invoices.{% endif %}</p>
+      <h2>{% if is_edit %}Edit Payment{% else %}Payment{% endif %}</h2>
+      <p>Use one Payment screen for vendor bill payments or immediate cash / bank expenses.</p>
     </div>
+    <a class="btn danger" href="{% url 'vendor_center' %}">× Close</a>
   </div>
-  <span class="payment-mode-badge">{% if "cash-expense" in request.path %}CASH EXPENSE{% else %}VENDOR PAYABLE{% endif %}</span>
+
+  <form method="post" id="paymentForm">
+    {% csrf_token %}
+    <input type="hidden" name="transaction_mode" id="transactionMode" value="{{ transaction_mode|default:'invoice' }}">
+
+    <div class="payment-body">
+      <div class="payment-top">
+        <div class="field vendor">
+          <label>Vendor <span class="req">*</span></label>
+          <div class="vendor-combo" data-select-id="id_vendor" data-create-url="{% url 'vendor_create' %}">
+            <div class="vendor-input-wrap">
+              <span class="vendor-search-icon">⌕</span>
+              <input id="paymentVendorSearch" type="text" autocomplete="off" placeholder="Type vendor name or code...">
+              <button type="button" class="vendor-clear" aria-label="Clear vendor">×</button>
+            </div>
+            <div class="vendor-results" hidden></div>
+          </div>
+          <div class="hidden-select">{{ form.vendor }}</div>
+          {{ form.vendor.errors }}
+          <small>Search and select an existing vendor to avoid duplicate vendor records.</small>
+        </div>
+
+        <div class="field type">
+          <label>Transaction Type <span class="req">*</span></label>
+          <div class="tran-type-buttons">
+            <button type="button" class="tran-type-btn" data-mode="invoice">▣ Apply to Invoices</button>
+            <button type="button" class="tran-type-btn" data-mode="expense">▤ Expenses / Other Charge</button>
+          </div>
+          <small id="modeHelp"></small>
+        </div>
+
+        <div class="field reference">
+          <label>Reference / Number</label>
+          {{ form.number }}
+          <small>Payment number or internal reference.</small>
+        </div>
+
+        <div class="field date">
+          <label>Date <span class="req">*</span></label>
+          {{ form.payment_date }}{{ form.payment_date.errors }}
+        </div>
+
+        <div class="field method">
+          <label>Payment Method</label>
+          {{ form.payment_method }}
+          <datalist id="paymentMethodList">
+            <option value="Cash">
+            <option value="Bank Transfer">
+            <option value="ABA">
+            <option value="Cheque">
+            <option value="Other">
+          </datalist>
+        </div>
+
+        <div class="field account">
+          <label>Payment Account <span class="req">*</span></label>
+          <div class="search-select js-search-select">
+            <input type="text" class="search-select-input" autocomplete="off" placeholder="Type cash / bank account...">
+            <span class="search-select-arrow">⌄</span>
+            <div class="search-select-menu" hidden></div>
+            <div class="hidden-select">{{ form.payment_account }}</div>
+          </div>
+          {{ form.payment_account.errors }}
+          <small>Cash or bank account where the money is paid from.</small>
+        </div>
+
+        <div class="field ap">
+          <label>A/P Account <span class="req">*</span></label>
+          <div class="search-select js-search-select">
+            <input type="text" class="search-select-input" autocomplete="off" placeholder="Type Accounts Payable...">
+            <span class="search-select-arrow">⌄</span>
+            <div class="search-select-menu" hidden></div>
+            <div class="hidden-select">{{ form.accounts_payable_account }}</div>
+          </div>
+          {{ form.accounts_payable_account.errors }}
+          <small>Used when applying payment to vendor invoices.</small>
+        </div>
+
+        <div class="field currency">
+          <label>Currency <span class="req">*</span></label>
+          {{ form.currency }}{{ form.currency.errors }}
+        </div>
+
+        <div class="field cheque">
+          <label>Cheque / Bank Information</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+            {{ form.cheque_to }}
+            {{ form.cheque_no }}
+          </div>
+          <small>Optional. Use for cheque or bank-payment references.</small>
+        </div>
+
+        <div class="field memo">
+          <label>Memo</label>
+          {{ form.memo }}
+          <div style="margin-top:7px">{{ form.reference }}</div>
+        </div>
+
+        <aside class="payment-summary">
+          <div class="payment-summary-title">Payment Summary</div>
+          <div class="summary-row"><span>Invoice / Expense Sub Total</span><strong>$<span id="subTotal">0.00</span></strong></div>
+          <div class="summary-row"><span>Discount</span><strong>-$<span id="discountTotal">0.00</span></strong></div>
+          <div class="summary-row"><span>Other Charge</span><strong>$<span id="chargeTotal">0.00</span></strong></div>
+          <div class="summary-row total"><span>Grand Total Paid</span><strong>$<span id="grandTotal">0.00</span></strong></div>
+          <div class="amount-paid">
+            <label><span>Amount Paid</span><span>USD</span></label>
+            <input id="paymentTotal" value="0.00" readonly>
+          </div>
+        </aside>
+      </div>
+
+      <div class="payment-tabs">
+        <button type="button" class="payment-tab" data-mode="invoice">
+          Apply to Invoices / Payment Detail <span class="count" id="invoiceCount">0</span>
+        </button>
+        <button type="button" class="payment-tab" data-mode="expense">
+          Apply to Expenses / Other Charge <span class="count" id="chargeCount">0</span>
+        </button>
+      </div>
+
+      <section class="panel" id="invoicePanel">
+        {{ allocation_formset.management_form }}
+        {% if allocation_formset.non_form_errors %}<div class="errorlist">{{ allocation_formset.non_form_errors }}</div>{% endif %}
+        <div class="table-wrap">
+          <table class="pay-table">
+            <thead>
+              <tr>
+                <th style="width:42px">Select</th>
+                <th>Tran Type</th>
+                <th>Tran Date</th>
+                <th>Number</th>
+                <th class="num">Invoice Amount ($)</th>
+                <th class="num">Open Balance ($)</th>
+                <th class="num">Payment ($)</th>
+                <th class="num">Discount ($)</th>
+                <th>Memo</th>
+                <th style="width:50px">Action</th>
+              </tr>
+            </thead>
+            <tbody id="allocationRows">
+              {% for f in allocation_formset %}
+              <tr class="allocation-row">
+                {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+                <td style="text-align:center">
+                  <input type="checkbox" class="apply-check" aria-label="Apply payment to this invoice">
+                  <div class="bill-model-select">{{ f.bill }}</div>
+                  {{ f.bill.errors }}
+                </td>
+                <td><span class="read-cell tran-type">Bill</span></td>
+                <td><span class="read-cell tran-date">—</span></td>
+                <td><span class="read-cell tran-number">—</span></td>
+                <td class="num"><span class="read-cell tran-total">0.00</span></td>
+                <td class="num"><span class="read-cell tran-open">0.00</span></td>
+                <td>{{ f.amount }}{{ f.amount.errors }}</td>
+                <td>{{ f.discount }}{{ f.discount.errors }}</td>
+                <td>{{ f.memo }}{{ f.memo.errors }}</td>
+                <td style="text-align:center">
+                  <span class="delete-field">{{ f.DELETE }}</span>
+                  <button type="button" class="trash" title="Remove row">🗑</button>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="10" class="empty-row">Select a vendor to load unpaid / partially paid invoices.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="table-actions">
+          <button type="button" class="btn" id="addInvoiceRow">＋ Add Row</button>
+        </div>
+        <small>Tick the invoice you want to pay, then enter Payment and optional Discount. Use Add Row to add another invoice line.</small>
+      </section>
+
+      <section class="panel" id="expensePanel">
+        {{ charge_formset.management_form }}
+        {% if charge_formset.non_form_errors %}<div class="errorlist">{{ charge_formset.non_form_errors }}</div>{% endif %}
+
+        <div class="section-toolbar">
+          <div>
+            <strong>Expenses / Other Charge</strong>
+            <small>Record immediate cash or bank expenses. Add as many rows as needed.</small>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="pay-table" style="min-width:900px">
+            <thead>
+              <tr>
+                <th style="width:45px">#</th>
+                <th>Description / Memo</th>
+                <th class="num">Amount ($)</th>
+                <th>Expense / Debit Account</th>
+                <th style="width:145px">Tax</th>
+                <th style="width:55px">Action</th>
+              </tr>
+            </thead>
+            <tbody id="chargeRows">
+              {% for f in charge_formset %}
+              <tr class="charge-row">
+                {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+                <td class="charge-index" style="text-align:center"></td>
+                <td>{{ f.memo }}{{ f.memo.errors }}</td>
+                <td>{{ f.amount }}{{ f.amount.errors }}</td>
+                <td class="charge-account">
+                  <div class="search-select js-search-select">
+                    <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account code or name...">
+                    <span class="search-select-arrow">⌄</span>
+                    <div class="search-select-menu" hidden></div>
+                    <div class="hidden-select">{{ f.account }}</div>
+                  </div>
+                  {{ f.account.errors }}
+                </td>
+                <td class="charge-tax">{{ f.tax_code }}{{ f.tax_code.errors }}</td>
+                <td style="text-align:center">
+                  <span class="delete-field">{{ f.DELETE }}</span>
+                  <button type="button" class="trash" title="Delete row">🗑</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="table-actions">
+          <button type="button" class="btn" id="addChargeRow">＋ Add Row</button>
+        </div>
+        <small>Use this for expenses paid immediately from cash or bank. Each row can use a different debit / expense account.</small>
+      </section>
+
+      <div class="footer">
+        <div class="footer-left">
+          {% if is_edit and payment %}
+          <a class="btn" href="{% url 'vendor_payment_create' %}?duplicate={{ payment.id }}">⧉ Duplicate</a>
+          {% endif %}
+          <button type="button" class="btn" id="printPreview">▣ Print Preview</button>
+        </div>
+
+        <div class="footer-right">
+          <label class="print-after">
+            <input type="checkbox" name="print_after_save" value="1">
+            Print After Save
+          </label>
+          <button type="submit" class="btn green" name="save_action" value="save_new">▣ Save & New</button>
+          <button type="submit" class="btn blue" name="save_action" value="save_close">▣ Save & Close</button>
+          <a class="btn danger" href="{% url 'vendor_center' %}">× Close</a>
+        </div>
+      </div>
+    </div>
+  </form>
 </div>
-<div class="mode-guide">
-  {% if "cash-expense" in request.path %}
-    <strong>Use this for:</strong> rent, transport, utilities, service fees, petty cash and other direct expenses.
-  {% else %}
-    <strong>Use this for:</strong> paying purchase bills already recorded for a vendor.
-  {% endif %}
-</div>
-<div class="payment-form-grid">
-  <div class="field"><label>Vendor*</label>{{ form.vendor }}</div>
-  <div class="field"><label>Date*</label>{{ form.payment_date }}</div>
-  <div class="field"><label>Number</label>{{ form.number }}</div>
-  <div class="field"><label>Currency</label>{{ form.currency }}</div>
-  <div class="field"><label>Amount Paid</label><input id="paymentTotal" readonly value="0.00"></div>
-  <div class="field"><label>Payment Method</label>{{ form.payment_method }}</div>
-  <div class="field"><label>{% if "cash-expense" in request.path %}Paid From Account*{% else %}Payment Account*{% endif %}</label>{{ form.payment_account }}</div>
-  <div class="field{% if "cash-expense" in request.path %} cash-ap-field{% endif %}"><label>Accounts Payable*</label>{{ form.accounts_payable_account }}</div>
-  <div class="field span-2"><label>Memo</label>{{ form.memo }}</div>
-</div>
-<div class="sheet-tabs payment-tabs">
-  <button type="button" class="sheet-tab{% if "cash-expense" not in request.path %} active{% endif %}{% if "cash-expense" in request.path %} secondary-choice{% endif %}" data-tab="pay">Vendor Bills</button>
-  <button type="button" class="sheet-tab{% if "cash-expense" in request.path %} active{% endif %}" data-tab="charge">Expense / Other Charge</button>
-</div>
-<div id="pay" class="tab-panel{% if "cash-expense" not in request.path %} active{% endif %}">
-<div class="section-caption"><strong>Vendor bill allocation</strong><span>Select bills and enter how much you are paying.</span></div>{{ allocation_formset.management_form }}<div class="table-wrap"><table><thead><tr><th>Bill</th><th>Discount</th><th>Payment</th><th>Memo</th><th class="action-col">Action</th></tr></thead><tbody id="allocationRows">{% for f in allocation_formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.bill }}</td><td>{{ f.discount }}</td><td class="payment-amount">{{ f.amount }}</td><td>{{ f.memo }}</td><td class="action-col"><span class="delete-box">{{ f.DELETE }}</span><button type="button" class="remove-line">Remove</button></td></tr>{% endfor %}</tbody></table></div><div class="table-actions"><button type="button" class="add-row-btn" data-formset="allocation">+ Add Bill Row</button></div></div>
-<div id="charge" class="tab-panel{% if "cash-expense" in request.path %} active{% endif %}">
-<div class="section-caption"><strong>Expense details</strong><span>Enter each expense and the account to charge.</span></div>{{ charge_formset.management_form }}<div class="table-wrap"><table><thead><tr><th>Description</th><th>Amount($)</th><th>Account</th><th class="action-col">Action</th></tr></thead><tbody id="chargeRows">{% for f in charge_formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.memo }}</td><td class="charge-amount">{{ f.amount }}</td><td>{{ f.account }}</td><td class="action-col"><span class="delete-box">{{ f.DELETE }}</span><button type="button" class="remove-line">Remove</button></td></tr>{% endfor %}</tbody></table></div><div class="table-actions"><button type="button" class="add-row-btn" data-formset="charge">+ Add Expense Row</button></div></div>
-<div class="bottom-actions"><button class="btn" name="save_action" value="save_new">Save & New</button><button class="btn" name="save_action" value="save_close">Save & Close</button><a class="btn btn-light" href="{% url 'vendor_center' %}">Close</a></div></form></div>
+
+<template id="allocationEmptyForm">
+  <tr class="allocation-row manual-invoice-row">
+    {% for h in allocation_formset.empty_form.hidden_fields %}{{ h }}{% endfor %}
+    <td style="text-align:center">
+      <input type="checkbox" class="apply-check" aria-label="Apply payment to this invoice">
+    </td>
+    <td><span class="read-cell tran-type">Bill</span></td>
+    <td><span class="read-cell tran-date">—</span></td>
+    <td>
+      <div class="bill-model-select">{{ allocation_formset.empty_form.bill }}</div>
+      <span class="read-cell tran-number" style="display:none">—</span>
+    </td>
+    <td class="num"><span class="read-cell tran-total">0.00</span></td>
+    <td class="num"><span class="read-cell tran-open">0.00</span></td>
+    <td>{{ allocation_formset.empty_form.amount }}</td>
+    <td>{{ allocation_formset.empty_form.discount }}</td>
+    <td>{{ allocation_formset.empty_form.memo }}</td>
+    <td style="text-align:center">
+      <span class="delete-field">{{ allocation_formset.empty_form.DELETE }}</span>
+      <button type="button" class="trash" title="Delete row">🗑</button>
+    </td>
+  </tr>
+</template>
+
+<template id="chargeEmptyForm">
+  <tr class="charge-row">
+    {% for h in charge_formset.empty_form.hidden_fields %}{{ h }}{% endfor %}
+    <td class="charge-index" style="text-align:center"></td>
+    <td>{{ charge_formset.empty_form.memo }}</td>
+    <td>{{ charge_formset.empty_form.amount }}</td>
+    <td class="charge-account">
+      <div class="search-select js-search-select">
+        <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account code or name...">
+        <span class="search-select-arrow">⌄</span>
+        <div class="search-select-menu" hidden></div>
+        <div class="hidden-select">{{ charge_formset.empty_form.account }}</div>
+      </div>
+    </td>
+    <td class="charge-tax">{{ charge_formset.empty_form.tax_code }}</td>
+    <td style="text-align:center">
+      <span class="delete-field">{{ charge_formset.empty_form.DELETE }}</span>
+      <button type="button" class="trash" title="Delete row">🗑</button>
+    </td>
+  </tr>
+</template>
+
 <script>
-document.querySelectorAll('.sheet-tab').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.sheet-tab,.tab-panel').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-  document.getElementById(b.dataset.tab).classList.add('active');
-});
+(function(){
+  'use strict';
 
-function total(){
-  let x=0;
-  document.querySelectorAll('.payment-amount input,.charge-amount input').forEach(i=>{
-    const row=i.closest('tr');
-    const del=row ? row.querySelector('input[type="checkbox"][name$="-DELETE"]') : null;
-    if(!del || !del.checked) x+=(parseFloat(i.value)||0);
+  const form = document.getElementById('paymentForm');
+  const modeInput = document.getElementById('transactionMode');
+  const invoicePanel = document.getElementById('invoicePanel');
+  const expensePanel = document.getElementById('expensePanel');
+
+  const money = value => {
+    const n = parseFloat(String(value ?? '').replace(/,/g,''));
+    return Number.isFinite(n) ? n : 0;
+  };
+  const fmt = value => money(value).toLocaleString('en-US', {
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
   });
-  document.getElementById('paymentTotal').value=x.toFixed(2);
-}
+  const esc = value => String(value ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-function wireRemoveButtons(scope=document){
-  scope.querySelectorAll('.remove-line').forEach(btn=>{
-    if(btn.dataset.wired) return;
-    btn.dataset.wired='1';
-    btn.addEventListener('click',()=>{
-      const row=btn.closest('tr');
-      const del=row.querySelector('input[type="checkbox"][name$="-DELETE"]');
-      if(del){
-        del.checked=true;
-        row.style.display='none';
-      }else{
-        row.remove();
+  const method = document.getElementById('id_payment_method');
+  if(method) method.setAttribute('list','paymentMethodList');
+
+  function setMode(mode){
+    mode = mode === 'expense' ? 'expense' : 'invoice';
+    modeInput.value = mode;
+
+    document.querySelectorAll('[data-mode]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+
+    invoicePanel.classList.toggle('active', mode === 'invoice');
+    expensePanel.classList.toggle('active', mode === 'expense');
+
+    const help = document.getElementById('modeHelp');
+    if(help){
+      help.textContent = mode === 'invoice'
+        ? 'Pay or settle unpaid vendor invoices.'
+        : 'Record money paid immediately for expenses or bank/cash outflow.';
+    }
+
+    if(mode === 'expense'){
+      const visibleRows = [...document.querySelectorAll('#chargeRows .charge-row')]
+        .filter(row => !rowDeleted(row));
+      if(!visibleRows.length){
+        addChargeRow();
       }
-      total();
+    }
+
+    totals();
+  }
+
+  document.querySelectorAll('.tran-type-btn,.payment-tab').forEach(btn => {
+    btn.addEventListener('click', () => setMode(btn.dataset.mode));
+  });
+
+  function parseBillOption(select){
+    const text = select?.options[select.selectedIndex]?.textContent || '';
+    const parts = text.split('|').map(x => x.trim());
+    return {
+      number: parts[0] || '—',
+      date: parts[1] || '—',
+      total: (parts[2] || '').replace(/^Total\s*\$/i,'').trim() || '0.00',
+      open: (parts[3] || '').replace(/^Open\s*\$/i,'').trim() || '0.00'
+    };
+  }
+
+  function rowDeleted(row){
+    return row.style.display === 'none' ||
+      Boolean(row.querySelector('input[name$="-DELETE"]')?.checked);
+  }
+
+  function syncAllocationRow(row){
+    const select = row.querySelector('select[name$="-bill"]');
+    if(!select) return;
+
+    const info = parseBillOption(select);
+    row.querySelector('.tran-date').textContent = info.date;
+    row.querySelector('.tran-number').textContent = info.number;
+    row.querySelector('.tran-total').textContent = info.total;
+    row.querySelector('.tran-open').textContent = info.open;
+
+    const hasBill = Boolean(select.value);
+    const amount = money(row.querySelector('input[name$="-amount"]')?.value);
+    const discount = money(row.querySelector('input[name$="-discount"]')?.value);
+    const check = row.querySelector('.apply-check');
+
+    if(check && !check.dataset.initialized){
+      check.checked = hasBill && (amount > 0 || discount > 0);
+      check.dataset.initialized = '1';
+    }
+
+    const enabled = hasBill && Boolean(check?.checked);
+    row.classList.toggle('row-disabled', !enabled);
+
+    row.querySelectorAll('input[name$="-amount"],input[name$="-discount"],input[name$="-memo"]').forEach(input => {
+      input.disabled = !enabled;
+    });
+
+    if(!hasBill && !row.classList.contains('manual-invoice-row')){
+      row.style.display = 'none';
+    }else{
+      row.style.display = '';
+    }
+  }
+
+  function updateChargeIndexes(){
+    let n = 0;
+    document.querySelectorAll('#chargeRows .charge-row').forEach(row => {
+      if(rowDeleted(row)) return;
+      n += 1;
+      const cell = row.querySelector('.charge-index');
+      if(cell) cell.textContent = n;
+    });
+    document.getElementById('chargeCount').textContent = n;
+  }
+
+  function totals(){
+    let invoicePayment = 0;
+    let discount = 0;
+    let charges = 0;
+    let invoiceCount = 0;
+
+    document.querySelectorAll('#allocationRows .allocation-row').forEach(row => {
+      if(rowDeleted(row) || !row.querySelector('.apply-check')?.checked) return;
+      invoiceCount += 1;
+      invoicePayment += money(row.querySelector('input[name$="-amount"]')?.value);
+      discount += money(row.querySelector('input[name$="-discount"]')?.value);
+    });
+
+    document.querySelectorAll('#chargeRows .charge-row').forEach(row => {
+      if(rowDeleted(row)) return;
+      charges += money(row.querySelector('input[name$="-amount"]')?.value);
+    });
+
+    const appliedBeforeDiscount = invoicePayment + discount;
+    const sub = modeInput.value === 'invoice' ? appliedBeforeDiscount : charges;
+    const cashPaid = modeInput.value === 'invoice' ? invoicePayment : charges;
+
+    document.getElementById('subTotal').textContent = fmt(sub);
+    document.getElementById('discountTotal').textContent =
+      fmt(modeInput.value === 'invoice' ? discount : 0);
+    document.getElementById('chargeTotal').textContent =
+      fmt(modeInput.value === 'expense' ? charges : 0);
+    document.getElementById('grandTotal').textContent = fmt(cashPaid);
+    document.getElementById('paymentTotal').value = fmt(cashPaid);
+    document.getElementById('invoiceCount').textContent = invoiceCount;
+    updateChargeIndexes();
+  }
+
+  function initAllocationRows(){
+    document.querySelectorAll('#allocationRows .allocation-row').forEach(row => {
+      syncAllocationRow(row);
+
+      const billSelect = row.querySelector('select[name$="-bill"]');
+      if(billSelect && !billSelect.dataset.wired){
+        billSelect.dataset.wired = '1';
+        billSelect.addEventListener('change', () => {
+          const hasBill = Boolean(billSelect.value);
+          const check = row.querySelector('.apply-check');
+          if(check && hasBill) check.checked = true;
+          syncAllocationRow(row);
+          totals();
+        });
+      }
+
+      const check = row.querySelector('.apply-check');
+      if(check && !check.dataset.wired){
+        check.dataset.wired = '1';
+        check.addEventListener('change', () => {
+          syncAllocationRow(row);
+          totals();
+        });
+      }
+
+      row.querySelectorAll('input[name$="-amount"],input[name$="-discount"]').forEach(input => {
+        if(input.dataset.wired) return;
+        input.dataset.wired = '1';
+        input.addEventListener('input', () => {
+          const apply = row.querySelector('.apply-check');
+          if(apply && money(input.value) > 0 && !apply.checked){
+            apply.checked = true;
+            syncAllocationRow(row);
+          }
+          totals();
+        });
+      });
+    });
+  }
+
+  function initTrash(scope=document){
+    scope.querySelectorAll('.trash').forEach(btn => {
+      if(btn.dataset.wired) return;
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', () => {
+        const row = btn.closest('tr');
+        const del = row.querySelector('input[name$="-DELETE"]');
+        if(del){
+          del.checked = true;
+          row.style.display = 'none';
+        }else{
+          row.remove();
+        }
+        totals();
+      });
+    });
+  }
+
+  function initSearchSelect(box){
+    if(!box || box.dataset.ready === '1') return;
+    box.dataset.ready = '1';
+
+    const select = box.querySelector('.hidden-select select');
+    const input = box.querySelector('.search-select-input');
+    const menu = box.querySelector('.search-select-menu');
+    if(!select || !input || !menu) return;
+
+    const options = () => Array.from(select.options).filter(o => o.value);
+
+    function sync(){
+      const chosen = options().find(o => o.value === select.value);
+      input.value = chosen ? chosen.textContent.trim() : '';
+    }
+
+    function render(){
+      const q = input.value.trim().toLowerCase();
+      const matches = options().filter(o =>
+        !q || o.textContent.toLowerCase().includes(q)
+      ).slice(0,100);
+
+      menu.innerHTML = '';
+      if(!matches.length){
+        const empty = document.createElement('div');
+        empty.className = 'search-select-empty';
+        empty.textContent = q ? `No account matches "${input.value.trim()}".` : 'No accounts found.';
+        menu.appendChild(empty);
+      }else{
+        matches.forEach(option => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'search-select-option';
+          btn.textContent = option.textContent.trim();
+          if(option.value === select.value) btn.classList.add('active');
+          btn.addEventListener('click', () => {
+            select.value = option.value;
+            input.value = option.textContent.trim();
+            menu.hidden = true;
+          });
+          menu.appendChild(btn);
+        });
+      }
+      menu.hidden = false;
+    }
+
+    sync();
+    input.addEventListener('focus', render);
+    input.addEventListener('input', () => {
+      select.value = '';
+      render();
+    });
+    input.addEventListener('keydown', e => {
+      if(e.key === 'Enter'){
+        const first = menu.querySelector('.search-select-option');
+        if(first){ e.preventDefault(); first.click(); }
+      }else if(e.key === 'Escape'){
+        menu.hidden = true;
+        sync();
+      }
+    });
+    document.addEventListener('click', e => {
+      if(!box.contains(e.target)) menu.hidden = true;
+    });
+  }
+
+  function initSearchSelects(){
+    document.querySelectorAll('.js-search-select').forEach(initSearchSelect);
+  }
+
+  // Vendor searchable selector. Selecting a vendor reloads the page so every
+  // current unpaid invoice for that vendor is loaded into Payment Detail.
+  const vendorBox = document.querySelector('.vendor-combo');
+  if(vendorBox){
+    const select = document.getElementById(vendorBox.dataset.selectId);
+    const input = document.getElementById('paymentVendorSearch');
+    const results = vendorBox.querySelector('.vendor-results');
+    const clear = vendorBox.querySelector('.vendor-clear');
+
+    if(select && input && results){
+      const options = () => Array.from(select.options).filter(o => o.value);
+
+      function syncVendor(){
+        const chosen = options().find(o => o.value === select.value);
+        input.value = chosen ? chosen.textContent.trim() : '';
+      }
+
+      function drawVendors(){
+        const q = input.value.trim().toLowerCase();
+        const list = options().filter(o =>
+          !q || o.textContent.toLowerCase().includes(q)
+        ).slice(0,60);
+
+        results.innerHTML = '';
+
+        const create = document.createElement('a');
+        create.className = 'vendor-create';
+        create.href = vendorBox.dataset.createUrl;
+        create.target = '_blank';
+        create.rel = 'noopener';
+        create.textContent = '＋ Create New Vendor';
+        results.appendChild(create);
+
+        if(!list.length){
+          const empty = document.createElement('div');
+          empty.className = 'vendor-empty';
+          empty.textContent = q ? `No matching vendor for "${input.value.trim()}".` : 'No vendors found.';
+          results.appendChild(empty);
+        }else{
+          list.forEach(option => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'vendor-option';
+            btn.textContent = option.textContent.trim();
+            btn.addEventListener('click', () => {
+              const mode = encodeURIComponent(modeInput.value);
+              window.location =
+                '{% url "vendor_payment_create" %}?vendor=' +
+                encodeURIComponent(option.value) + '&mode=' + mode;
+            });
+            results.appendChild(btn);
+          });
+        }
+        results.hidden = false;
+      }
+
+      syncVendor();
+      input.addEventListener('focus', drawVendors);
+      input.addEventListener('input', () => {
+        select.value = '';
+        drawVendors();
+      });
+      clear?.addEventListener('click', () => {
+        select.value = '';
+        input.value = '';
+        input.focus();
+        drawVendors();
+      });
+      document.addEventListener('click', e => {
+        if(!vendorBox.contains(e.target)) results.hidden = true;
+      });
+    }
+  }
+
+  function addInvoiceRow(){
+    const total = document.getElementById('id_alloc-TOTAL_FORMS');
+    const template = document.getElementById('allocationEmptyForm');
+    const tbody = document.getElementById('allocationRows');
+    if(!total || !template || !tbody) return;
+
+    const index = parseInt(total.value, 10) || 0;
+    const html = template.innerHTML.replaceAll('__prefix__', index);
+
+    // Remove the empty-state row if present.
+    tbody.querySelector('.empty-row')?.closest('tr')?.remove();
+
+    tbody.insertAdjacentHTML('beforeend', html);
+    total.value = index + 1;
+
+    const newRow = tbody.querySelector('.allocation-row:last-child');
+    if(newRow){
+      const select = newRow.querySelector('select[name$="-bill"]');
+      if(select){
+        // The row is user-added, so keep it visible even before a bill is chosen.
+        newRow.style.display = '';
+        const check = newRow.querySelector('.apply-check');
+        if(check){
+          check.checked = false;
+          check.dataset.initialized = '1';
+        }
+
+      }
+    }
+
+    initAllocationRows();
+    initTrash(tbody);
+    totals();
+  }
+
+  function addChargeRow(){
+    const total = document.getElementById('id_charge-TOTAL_FORMS');
+    const template = document.getElementById('chargeEmptyForm');
+    const tbody = document.getElementById('chargeRows');
+    if(!total || !template || !tbody) return;
+
+    const index = parseInt(total.value,10) || 0;
+    const html = template.innerHTML.replaceAll('__prefix__', index);
+    tbody.insertAdjacentHTML('beforeend', html);
+    total.value = index + 1;
+
+    initSearchSelects();
+    initTrash(tbody);
+    totals();
+  }
+
+  document.getElementById('addInvoiceRow')?.addEventListener('click', addInvoiceRow);
+  document.getElementById('addChargeRow')?.addEventListener('click', addChargeRow);
+
+  document.addEventListener('input', e => {
+    if(e.target.matches('#chargeRows input[name$="-amount"]')) totals();
+  });
+
+  document.querySelectorAll('.money-input').forEach(input => {
+    input.addEventListener('focus', () => {
+      input.value = String(input.value || '').replace(/,/g,'');
+    });
+    input.addEventListener('blur', () => {
+      if(input.value.trim()) input.value = fmt(input.value);
     });
   });
-}
 
-function clearClonedRow(row){
-  row.style.display='';
-  row.querySelectorAll('input,select,textarea').forEach(el=>{
-    if(el.type==='hidden'){
-      if(el.name && el.name.endsWith('-id')) el.value='';
+  // Before POST, only the active transaction type is saved.
+  form.addEventListener('submit', () => {
+    document.querySelectorAll('.money-input').forEach(input => {
+      input.value = String(input.value || '').replace(/,/g,'');
+    });
+
+    if(modeInput.value === 'invoice'){
+      document.querySelectorAll('#chargeRows .charge-row').forEach(row => {
+        const del = row.querySelector('input[name$="-DELETE"]');
+        if(del) del.checked = true;
+      });
+
+      document.querySelectorAll('#allocationRows .allocation-row').forEach(row => {
+        const checked = row.querySelector('.apply-check')?.checked;
+        const amount = money(row.querySelector('input[name$="-amount"]')?.value);
+        const discount = money(row.querySelector('input[name$="-discount"]')?.value);
+        const del = row.querySelector('input[name$="-DELETE"]');
+
+        if(del) del.checked = !(checked && (amount > 0 || discount > 0));
+
+        row.querySelectorAll('input[name$="-amount"],input[name$="-discount"],input[name$="-memo"]').forEach(input => {
+          input.disabled = false;
+        });
+      });
+    }else{
+      document.querySelectorAll('#allocationRows .allocation-row').forEach(row => {
+        const del = row.querySelector('input[name$="-DELETE"]');
+        if(del) del.checked = true;
+        row.querySelectorAll('input[name$="-amount"],input[name$="-discount"],input[name$="-memo"]').forEach(input => {
+          input.disabled = false;
+        });
+      });
+    }
+  });
+
+  function fieldValue(id){
+    const el = document.getElementById(id);
+    if(!el) return '';
+    if(el.tagName === 'SELECT'){
+      return el.options[el.selectedIndex]?.textContent?.trim() || '';
+    }
+    return el.value || '';
+  }
+
+  function currentVendor(){
+    const select = document.getElementById('id_vendor');
+    return select?.options[select.selectedIndex]?.textContent?.trim() ||
+      document.getElementById('paymentVendorSearch')?.value || '';
+  }
+
+  document.getElementById('printPreview')?.addEventListener('click', () => {
+    totals();
+    const mode = modeInput.value;
+    const popup = window.open('', '_blank', 'width=1100,height=800');
+    if(!popup){
+      alert('Please allow pop-ups to open Print Preview.');
       return;
     }
-    if(el.type==='checkbox' || el.type==='radio') el.checked=false;
-    else if(el.tagName==='SELECT') el.selectedIndex=0;
-    else el.value='';
+
+    let details = '';
+    if(mode === 'invoice'){
+      const rows = [];
+      document.querySelectorAll('#allocationRows .allocation-row').forEach(row => {
+        if(!row.querySelector('.apply-check')?.checked || rowDeleted(row)) return;
+        rows.push({
+          date: row.querySelector('.tran-date')?.textContent || '',
+          number: row.querySelector('.tran-number')?.textContent || '',
+          total: row.querySelector('.tran-total')?.textContent || '0.00',
+          open: row.querySelector('.tran-open')?.textContent || '0.00',
+          payment: row.querySelector('input[name$="-amount"]')?.value || '0',
+          discount: row.querySelector('input[name$="-discount"]')?.value || '0',
+          memo: row.querySelector('input[name$="-memo"]')?.value || ''
+        });
+      });
+      details = `
+        <h2>Apply to Invoices / Payment Detail</h2>
+        <table><thead><tr><th>#</th><th>Date</th><th>Number</th><th>Invoice</th><th>Open</th><th>Payment</th><th>Discount</th><th>Memo</th></tr></thead>
+        <tbody>${rows.length ? rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.date)}</td><td>${esc(r.number)}</td><td class="num">${esc(r.total)}</td><td class="num">${esc(r.open)}</td><td class="num">${fmt(r.payment)}</td><td class="num">${fmt(r.discount)}</td><td>${esc(r.memo)}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">No invoices selected.</td></tr>'}</tbody></table>`;
+    }else{
+      const rows = [];
+      document.querySelectorAll('#chargeRows .charge-row').forEach(row => {
+        if(rowDeleted(row)) return;
+        const account = row.querySelector('.hidden-select select');
+        const memo = row.querySelector('input[name$="-memo"]')?.value || '';
+        const amount = row.querySelector('input[name$="-amount"]')?.value || '0';
+        if(!memo && money(amount) === 0) return;
+        const tax = row.querySelector('select[name$="-tax_code"]');
+        rows.push({
+          memo,
+          amount,
+          account: account?.options[account.selectedIndex]?.textContent?.trim() || '',
+          tax: tax?.options[tax.selectedIndex]?.textContent?.trim() || 'NA'
+        });
+      });
+      details = `
+        <h2>Apply to Expenses / Other Charge</h2>
+        <table><thead><tr><th>#</th><th>Description</th><th>Amount</th><th>Account</th><th>Tax</th></tr></thead>
+        <tbody>${rows.length ? rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.memo)}</td><td class="num">${fmt(r.amount)}</td><td>${esc(r.account)}</td><td>${esc(r.tax)}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No expense rows entered.</td></tr>'}</tbody></table>`;
+    }
+
+    popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Payment Print Preview</title>
+<style>
+@page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;color:#243f50;margin:0;font-size:11px}
+.toolbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px}
+button{border:1px solid #cbdde5;background:#fff;padding:8px 12px;border-radius:7px;cursor:pointer}
+.primary{background:#0aa35d;color:#fff;border-color:#0aa35d}h1{font-size:22px;margin:0;color:#123b57}.sub{color:#728793;margin-top:4px}
+.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}.meta div{border:1px solid #dce8ed;border-radius:7px;padding:8px}
+.meta b{display:block;font-size:9px;color:#7a8d98;margin-bottom:4px;text-transform:uppercase}h2{font-size:12px;color:#087646;margin:17px 0 7px}
+table{width:100%;border-collapse:collapse}th{background:#eef6f8;font-size:9px;text-transform:uppercase}th,td{border:1px solid #dde8ed;padding:6px;text-align:left}.num{text-align:right}.empty{text-align:center;color:#8a9ba5;padding:18px}
+.total{width:330px;margin:16px 0 0 auto;border:1px solid #d8e8ee;border-radius:8px;overflow:hidden}.total div{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #e5eef2}.total div:last-child{border:0;background:#e9f8f0;color:#087646;font-weight:bold;font-size:13px}
+@media print{.toolbar{display:none}}
+</style></head><body>
+<div class="toolbar"><button onclick="window.close()">Close</button><button class="primary" onclick="window.print()">Print</button></div>
+<h1>Payment</h1><div class="sub">${esc('{{ company.name|escapejs }}')}</div>
+<div class="meta">
+<div><b>Vendor</b>${esc(currentVendor())}</div>
+<div><b>Transaction Type</b>${mode === 'invoice' ? 'Apply to Invoices' : 'Expenses / Other Charge'}</div>
+<div><b>Date</b>${esc(fieldValue('id_payment_date'))}</div>
+<div><b>Number</b>${esc(fieldValue('id_number'))}</div>
+<div><b>Payment Method</b>${esc(fieldValue('id_payment_method'))}</div>
+<div><b>Payment Account</b>${esc(fieldValue('id_payment_account'))}</div>
+<div><b>Currency</b>${esc(fieldValue('id_currency'))}</div>
+<div><b>Reference</b>${esc(fieldValue('id_reference'))}</div>
+</div>
+${details}
+<div class="total">
+<div><span>Sub Total</span><b>$${esc(document.getElementById('subTotal').textContent)}</b></div>
+<div><span>Discount</span><b>-$${esc(document.getElementById('discountTotal').textContent)}</b></div>
+<div><span>Other Charge</span><b>$${esc(document.getElementById('chargeTotal').textContent)}</b></div>
+<div><span>Grand Total Paid</span><b>$${esc(document.getElementById('grandTotal').textContent)}</b></div>
+</div></body></html>`);
+    popup.document.close();
+    popup.focus();
   });
-}
 
-function addFormsetRow(kind){
-  const tbody = document.getElementById(kind === 'allocation' ? 'allocationRows' : 'chargeRows');
-  const prefix = kind === 'allocation' ? 'alloc' : 'charge';
-  const totalInput = document.querySelector(`input[name="${prefix}-TOTAL_FORMS"]`);
-  if(!tbody || !totalInput) return;
-
-  const rows = tbody.querySelectorAll('tr');
-  if(!rows.length) return;
-
-  const index = parseInt(totalInput.value,10);
-  const source = rows[rows.length-1];
-  const row = source.cloneNode(true);
-
-  row.innerHTML = row.innerHTML
-    .replace(new RegExp(`${prefix}-(\\d+)-`, 'g'), `${prefix}-${index}-`)
-    .replace(new RegExp(`id_${prefix}-(\\d+)-`, 'g'), `id_${prefix}-${index}-`);
-
-  clearClonedRow(row);
-  row.querySelectorAll('.remove-line').forEach(b=>delete b.dataset.wired);
-  tbody.appendChild(row);
-  totalInput.value = index + 1;
-  wireRemoveButtons(row);
-  total();
-}
-
-document.querySelectorAll('.add-row-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>addFormsetRow(btn.dataset.formset));
-});
-
-wireRemoveButtons();
-document.addEventListener('input',total);
-total();
-</script></div>{% endblock %}
+  initAllocationRows();
+  initTrash();
+  initSearchSelects();
+  setMode(modeInput.value);
+  totals();
+})();
+</script>
+{% endblock %}

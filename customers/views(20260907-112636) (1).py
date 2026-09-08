@@ -7,7 +7,7 @@ from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from accounting.models import ChartOfAccount, JournalEntry, JournalEntryLine
+from accounting.models import JournalEntry, JournalEntryLine
 from core.models import Company
 
 from .forms import (
@@ -206,166 +206,6 @@ def customer_center(request):
         "total_payment": total_payment, "ar_balance": total_invoice-total_payment,
     })
 
-
-
-@login_required
-def customer_center_print(request):
-    """
-    Print the currently selected Customer Center transaction list.
-
-    Expected query parameters:
-      customer=<customer id>
-      type=<display transaction type>
-      date_from=YYYY-MM-DD
-      date_to=YYYY-MM-DD
-    """
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    customer_id = (request.GET.get("customer") or "").strip()
-    tran_type = (request.GET.get("type") or "").strip()
-    date_from = (request.GET.get("date_from") or "").strip()
-    date_to = (request.GET.get("date_to") or "").strip()
-
-    # Use the requested customer; if missing, fall back to the first company customer.
-    customer = None
-    if customer_id.isdigit():
-        customer = Customer.objects.filter(
-            company=company,
-            id=int(customer_id),
-        ).first()
-
-    if customer is None:
-        customer = Customer.objects.filter(
-            company=company,
-        ).order_by("name").first()
-
-    if customer is None:
-        messages.warning(request, "No customer is available to print.")
-        return redirect("customer_center")
-
-    rows = []
-    ar_balance = Decimal("0.00")
-
-    # Legacy CustomerTransaction rows.
-    legacy_qs = CustomerTransaction.objects.filter(
-        company=company,
-        customer=customer,
-    ).order_by("-transaction_date", "-id")
-
-    for t in legacy_qs:
-        is_invoice = t.transaction_type == CustomerTransaction.TYPE_INVOICE
-        open_amount = (
-            t.amount
-            if is_invoice and t.status == CustomerTransaction.STATUS_POSTED
-            else Decimal("0.00")
-        )
-
-        rows.append({
-            "type": t.get_transaction_type_display(),
-            "date": t.transaction_date,
-            "number": t.number,
-            "so_number": t.so_number,
-            "currency": t.currency,
-            "amount": t.amount,
-            "open_balance": open_amount,
-            "memo": t.memo,
-        })
-
-        if t.status == CustomerTransaction.STATUS_POSTED:
-            if is_invoice:
-                ar_balance += t.amount
-            elif t.transaction_type == CustomerTransaction.TYPE_RECEIVE_PAYMENT:
-                ar_balance -= t.amount
-
-    # Modern Sale Invoice / Sale Receipt rows.
-    try:
-        invoice_qs = SalesInvoice.objects.filter(
-            company=company,
-            customer=customer,
-        ).order_by("-invoice_date", "-id")
-
-        for inv in invoice_qs:
-            rows.append({
-                "type": inv.get_document_type_display(),
-                "date": inv.invoice_date,
-                "number": inv.number,
-                "so_number": (
-                    getattr(inv, "sale_order_no", "")
-                    or getattr(inv, "po_number", "")
-                    or ""
-                ),
-                "currency": inv.currency,
-                "amount": inv.total_amount,
-                "open_balance": inv.open_balance,
-                "memo": inv.memo,
-            })
-
-            if (
-                inv.status == SalesInvoice.STATUS_POSTED
-                and inv.document_type == SalesInvoice.TYPE_INVOICE
-            ):
-                ar_balance += inv.open_balance
-
-        receipt_qs = CustomerReceipt.objects.filter(
-            company=company,
-            customer=customer,
-        ).order_by("-receipt_date", "-id")
-
-        for rec in receipt_qs:
-            rows.append({
-                "type": "Receipt / Collection",
-                "date": rec.receipt_date,
-                "number": rec.number,
-                "so_number": "",
-                "currency": rec.currency,
-                "amount": rec.total_amount,
-                "open_balance": Decimal("0.00"),
-                "memo": rec.memo,
-            })
-
-    except Exception:
-        # Keep the print page usable even when only legacy models are present.
-        pass
-
-    # Apply the same Customer Center filters.
-    if tran_type:
-        rows = [
-            row for row in rows
-            if str(row.get("type") or "").strip() == tran_type
-        ]
-
-    if date_from:
-        rows = [
-            row for row in rows
-            if row.get("date") and row["date"].isoformat() >= date_from
-        ]
-
-    if date_to:
-        rows = [
-            row for row in rows
-            if row.get("date") and row["date"].isoformat() <= date_to
-        ]
-
-    rows.sort(
-        key=lambda row: row.get("date") or timezone.localdate(),
-        reverse=True,
-    )
-
-    return render(
-        request,
-        "customers/customer_center_print.html",
-        {
-            "company": company,
-            "customer": customer,
-            "transactions": rows,
-            "ar_balance": ar_balance,
-            "date_from": date_from,
-            "date_to": date_to,
-            "tran_type": tran_type,
-        },
-    )
 
 @login_required
 def customer_create(request):
@@ -860,65 +700,6 @@ def customer_export_excel(request):
     resp["Content-Disposition"]='attachment; filename="customer_list.xlsx"';wb.save(resp);return resp
 
 
-
-@login_required
-def customer_import_sample(request):
-    """
-    Download a valid Customer Import Excel sample.
-    This view exists because customers/urls.py already references
-    the URL name 'customer_import_sample'.
-    """
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Customer Import"
-
-    headers = [
-        "Customer ID",
-        "Customer Name",
-        "Local Name",
-        "Phone",
-        "Email",
-        "Telegram",
-        "Address",
-    ]
-    ws.append(headers)
-
-    # Example row is intentionally simple and can be deleted by the user.
-    ws.append([
-        "CUST-0001",
-        "Sample Customer",
-        "",
-        "012345678",
-        "sample@example.com",
-        "",
-        "Phnom Penh",
-    ])
-
-    # Make the sample easier to use.
-    widths = {
-        "A": 18,
-        "B": 28,
-        "C": 24,
-        "D": 18,
-        "E": 28,
-        "F": 22,
-        "G": 38,
-    }
-    for col, width in widths.items():
-        ws.column_dimensions[col].width = width
-
-    response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-    response["Content-Disposition"] = 'attachment; filename="Customer_Import_Sample.xlsx"'
-    wb.save(response)
-    return response
-
-
 @login_required
 def customer_import_excel(request):
     company,response=require_company_access(request)
@@ -963,160 +744,21 @@ def _invoice_formsets(request,company,invoice):
 
 @login_required
 def sales_invoice_create(request, document_type=SalesInvoice.TYPE_INVOICE):
-    company, response = require_company_access(request)
-    if response:
-        return response
-
-    invoice = SalesInvoice(
-        company=company,
-        document_type=document_type,
-        created_by=request.user,
-    )
-
-    # Default main debit account for a normal Sale Invoice.
-    # Prefer code 12000, otherwise any account named Accounts Receivable.
-    initial = {}
-    if request.method != "POST" and document_type == SalesInvoice.TYPE_INVOICE:
-        ar_account = (
-            ChartOfAccount.objects.filter(
-                company=company,
-                code="12000",
-            ).first()
-            or ChartOfAccount.objects.filter(
-                company=company,
-                name__icontains="Accounts Receivable",
-            ).order_by("code").first()
-        )
-        if ar_account:
-            initial["accounts_receivable_account"] = ar_account.pk
-
-        requested_customer = (request.GET.get("customer") or "").strip()
-        if requested_customer.isdigit():
-            customer = Customer.objects.filter(
-                company=company,
-                pk=int(requested_customer),
-                is_active=True,
-            ).first()
-            if customer:
-                initial["customer"] = customer.pk
-
-    form = SalesInvoiceForm(
-        request.POST or None,
-        instance=invoice,
-        company=company,
-        document_type=document_type,
-        initial=initial if request.method != "POST" else None,
-    )
-    lines = _invoice_formsets(request, company, invoice)
-
-    if request.method == "POST" and form.is_valid() and lines.is_valid():
+    company,response=require_company_access(request)
+    if response:return response
+    invoice=SalesInvoice(company=company,document_type=document_type,created_by=request.user)
+    form=SalesInvoiceForm(request.POST or None,instance=invoice,company=company,document_type=document_type)
+    lines=_invoice_formsets(request,company,invoice)
+    if request.method=="POST" and form.is_valid() and lines.is_valid():
         try:
             with transaction.atomic():
-                invoice = form.save(commit=False)
-                invoice.company = company
-                invoice.document_type = document_type
-                invoice.created_by = request.user
-                invoice.status = SalesInvoice.STATUS_POSTED
-                invoice.save()
-
-                lines.instance = invoice
-                lines.save()
-                invoice.recalculate_totals()
-                create_sales_invoice_journal(invoice, request.user)
-
-            messages.success(
-                request,
-                f"{invoice.get_document_type_display()} saved successfully.",
-            )
-
-            if request.POST.get("save_action") == "save_new":
-                return redirect(
-                    "sale_receipt_create"
-                    if document_type == SalesInvoice.TYPE_SALE_RECEIPT
-                    else "customer_invoice_create_v2"
-                )
-
-            # Save & Close returns to the invoice list.
-            return redirect(
-                "sale_receipt_list"
-                if document_type == SalesInvoice.TYPE_SALE_RECEIPT
-                else "customer_invoice_list"
-            )
-
-        except Exception as exc:
-            messages.error(request, f"Could not save: {exc}")
-
-    # Customer defaults used by the searchable Customer picker.
-    customer_defaults = {}
-    try:
-        customer_qs = form.fields["customer"].queryset.select_related(
-            "customer_type", "price_level", "salesperson"
-        )
-        for customer in customer_qs:
-            credit_term = getattr(customer, "credit_term", None)
-            if credit_term in (None, ""):
-                credit_term = getattr(
-                    getattr(customer, "customer_type", None),
-                    "credit_term",
-                    0,
-                ) or 0
-
-            customer_defaults[str(customer.pk)] = {
-                "credit_term": credit_term or 0,
-                "price_level": getattr(customer, "price_level_id", None),
-                "salesperson": getattr(customer, "salesperson_id", None),
-                "address": getattr(customer, "address", "") or "",
-            }
-    except Exception:
-        customer_defaults = {}
-
-    # Item defaults used when an item is selected.
-    item_defaults = {}
-    try:
-        first_line_form = lines.forms[0] if lines.forms else None
-        item_qs = (
-            first_line_form.fields["item"].queryset
-            if first_line_form and "item" in first_line_form.fields
-            else Item.objects.filter(company=company)
-        )
-
-        for item in item_qs:
-            unit_name = ""
-            unit_set = getattr(item, "unit_set", None)
-            if unit_set:
-                unit_name = (
-                    getattr(unit_set, "default_sale", "")
-                    or getattr(unit_set, "base_unit", "")
-                    or ""
-                )
-
-            item_defaults[str(item.pk)] = {
-                "code": getattr(item, "code", "") or "",
-                "description": getattr(item, "description", "") or "",
-                "unit": unit_name,
-                "sale_price": str(getattr(item, "sale_price", 0) or 0),
-                "revenue_account": getattr(item, "revenue_account_id", None),
-            }
-    except Exception:
-        item_defaults = {}
-
-    return render(
-        request,
-        "customers/invoice_form.html",
-        {
-            "company": company,
-            "form": form,
-            "line_formset": lines,
-            "document_type": document_type,
-            "page_title": (
-                "Sale Receipt"
-                if document_type == SalesInvoice.TYPE_SALE_RECEIPT
-                else "Sale Invoice"
-            ),
-            "customer_defaults": customer_defaults,
-            "item_defaults": item_defaults,
-        },
-    )
+                invoice=form.save(commit=False);invoice.company=company;invoice.document_type=document_type;invoice.created_by=request.user;invoice.status=SalesInvoice.STATUS_POSTED;invoice.save()
+                lines.instance=invoice;lines.save();invoice.recalculate_totals();create_sales_invoice_journal(invoice,request.user)
+            messages.success(request,f"{invoice.get_document_type_display()} saved successfully.")
+            if request.POST.get("save_action")=="save_new":return redirect("sale_receipt_create" if document_type==SalesInvoice.TYPE_SALE_RECEIPT else "customer_invoice_create")
+            return redirect("sale_receipt_list" if document_type==SalesInvoice.TYPE_SALE_RECEIPT else "customer_invoice_list")
+        except Exception as exc:messages.error(request,f"Could not save: {exc}")
+    return render(request,"customers/invoice_form.html",{"company":company,"form":form,"line_formset":lines,"document_type":document_type,"page_title":"Sale Receipt" if document_type==SalesInvoice.TYPE_SALE_RECEIPT else "Sale Invoice"})
 
 
 @login_required

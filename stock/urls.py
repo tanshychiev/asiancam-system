@@ -9,6 +9,12 @@ urlpatterns = [
     path("items/", views.item_list, name="stock_item_list"),
     path("items/new/", views.item_create, name="stock_item_create"),
     path("items/<int:item_id>/edit/", views.item_edit, name="stock_item_edit"),
+    path("items/<int:item_id>/delete/", views.item_delete, name="stock_item_delete"),
+    path("items/<int:item_id>/duplicate/", views.item_duplicate, name="stock_item_duplicate"),
+    path("items/<int:item_id>/using-info/", views.item_using_info, name="stock_item_using_info"),
+    path("items/export/", views.item_export_excel, name="stock_item_export_excel"),
+    path("items/import/", views.item_import_excel, name="stock_item_import_excel"),
+    path("items/import/sample/", views.item_import_sample, name="stock_item_import_sample"),
 
     # =========================
     # MASTER DATA

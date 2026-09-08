@@ -1,53 +1,280 @@
 {% extends "base.html" %}
-{% block title %}{{ page_title }}{% endblock %}
+{% block title %}{{ page_title|default:"Create Customer" }}{% endblock %}
 {% block content %}
-<div class="record-page customer-record">
-    <div class="record-banner">
-        <div class="record-banner-main">
-            <div class="record-icon">C</div>
-            <div>
-                <div class="record-eyebrow">Customer account</div>
-                <h1>{{ page_title }}</h1>
-                <p>Customer profile, sales assignment and receivable setup for {{ company.name }}.</p>
-            </div>
-        </div>
-        
+
+<style>
+:root{
+  --ac-bg:#eef8fc;
+  --ac-card:#ffffff;
+  --ac-line:#d7e7ee;
+  --ac-line2:#e8f0f4;
+  --ac-text:#123c57;
+  --ac-muted:#78909c;
+  --ac-blue:#169ee6;
+  --ac-blue-dark:#0877b3;
+  --ac-green:#0aa563;
+  --ac-green-dark:#087746;
+  --ac-red:#d85151;
+}
+*{box-sizing:border-box}
+.ac-page{max-width:1500px;margin:18px auto 32px;padding:0 18px}
+.ac-head{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:18px 20px;background:#fff;border:1px solid var(--ac-line);
+  border-radius:14px 14px 0 0
+}
+.ac-head-left{display:flex;align-items:center;gap:13px}
+.ac-icon{
+  width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  background:#eaf6fd;color:var(--ac-blue);font-size:19px;font-weight:900
+}
+.ac-head small{
+  display:block;margin-bottom:3px;color:#7893a0;font-size:8px;font-weight:900;
+  letter-spacing:.09em;text-transform:uppercase
+}
+.ac-head h1{margin:0;color:#0b3b59;font-size:21px;line-height:1.15}
+.ac-head p{margin:5px 0 0;color:#7d929e;font-size:9px}
+.ac-close{
+  height:34px;padding:0 13px;border:1px solid #efcaca;border-radius:7px;
+  display:inline-flex;align-items:center;color:#c54d4d;background:#fff;font-size:9px;font-weight:850;
+  text-decoration:none
+}
+.ac-form{
+  background:#fff;border:1px solid var(--ac-line);border-top:0;border-radius:0 0 14px 14px;
+  box-shadow:0 8px 24px rgba(35,76,96,.05);overflow:hidden
+}
+.ac-body{padding:14px 16px 12px}
+.ac-section{
+  margin-bottom:12px;border:1px solid var(--ac-line);border-radius:9px;background:#fff;overflow:hidden
+}
+.ac-section-title{
+  padding:9px 12px;background:#f5f9fb;border-bottom:1px solid var(--ac-line);
+  color:#38596b;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.04em
+}
+.ac-section-body{padding:12px}
+.ac-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 14px}
+.ac-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.ac-field{min-width:0}
+.ac-field.full{grid-column:1/-1}
+.ac-field label{
+  display:block;margin-bottom:5px;color:#244b60;font-size:9px;font-weight:850
+}
+.ac-field label .req{color:#e14e4e}
+.ac-field input,.ac-field select,.ac-field textarea{
+  width:100%;min-height:34px;border:1px solid #cfe0e8;border-radius:6px;background:#fff;
+  color:#4f6875;font-size:9.5px;padding:6px 9px;outline:none
+}
+.ac-field textarea{min-height:68px;resize:vertical}
+.ac-field input:focus,.ac-field select:focus,.ac-field textarea:focus{
+  border-color:#59b6dc;box-shadow:0 0 0 3px rgba(22,158,230,.08)
+}
+.ac-error,.errorlist{margin:4px 0 0;padding:0;list-style:none;color:#d85151;font-size:8px}
+.ac-help{display:block;margin-top:4px;color:#91a1a9;font-size:7.5px}
+.ac-status{
+  min-height:46px;padding:8px 10px;border:1px solid #d6e6ec;border-radius:7px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fbfdfe
+}
+.ac-status strong{display:block;color:#34576a;font-size:9px}
+.ac-status small{display:block;color:#8b9da6;font-size:7.5px;margin-top:3px}
+.ac-status-control{display:flex;align-items:center;gap:6px}
+.ac-status-control label{
+  margin:0;padding:6px 11px;border-radius:6px;background:#edf3f6;color:#6d818c;font-size:8px;cursor:pointer
+}
+.ac-status-control input{display:none}
+.ac-status-control label.active{background:#0aa563;color:#fff}
+.ac-status-control label[data-value="0"].active{
+  background:#e55353!important;
+  color:#fff!important;
+  box-shadow:0 2px 7px rgba(229,83,83,.20)!important;
+}
+.ac-status-control label[data-value="1"].active{
+  background:#0aa563!important;
+  color:#fff!important;
+  box-shadow:0 2px 7px rgba(10,165,99,.18)!important;
+}
+.ac-footer{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 16px;border-top:1px solid var(--ac-line);background:#fbfdfe
+}
+.ac-footer-left,.ac-footer-right{display:flex;align-items:center;gap:7px}
+.ac-btn{
+  min-height:34px;padding:0 14px;border-radius:7px;border:1px solid #c8dde7;background:#fff;
+  color:#0b79aa;font-size:9px;font-weight:850;display:inline-flex;align-items:center;justify-content:center;
+  text-decoration:none;cursor:pointer
+}
+.ac-btn.save{background:#0aa563;border-color:#0aa563;color:#fff}
+.ac-btn.save:hover{background:#087746}
+.ac-btn.cancel{color:#c64d4d;border-color:#efcaca}
+.ac-btn.cancel:hover{background:#fff5f5}
+@media(max-width:950px){
+  .ac-grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+  .ac-page{padding:0 8px;margin-top:8px}
+  .ac-grid-3,.ac-grid-2{grid-template-columns:1fr}
+  .ac-footer{flex-direction:column;align-items:stretch}
+  .ac-footer-left,.ac-footer-right{justify-content:flex-end}
+}
+</style>
+
+<div class="ac-page">
+  <div class="ac-head">
+    <div class="ac-head-left">
+      <div class="ac-icon">C</div>
+      <div>
+        <small>Customer Account</small>
+        <h1>{{ page_title|default:"Create Customer" }}</h1>
+        <p>Customer profile, contact information, sales assignment and receivable setup.</p>
+      </div>
     </div>
-    <form method="post" class="card">
-        {% csrf_token %}
-        {% if form.non_field_errors %}<div class="message error">{{ form.non_field_errors }}</div>{% endif %}
+    <a class="ac-close" href="{% url 'customer_center' %}">× Close</a>
+  </div>
 
-        <div class="record-section">
-            <div class="record-section-title">Profile & contact</div>
-            <div class="record-section-body record-compact-grid three">
-                <div class="form-group"><label>{{ form.code.label }}</label>{{ form.code }}{{ form.code.errors }}</div>
-                <div class="form-group"><label>{{ form.name.label }}</label>{{ form.name }}{{ form.name.errors }}</div>
-                <div class="form-group"><label>{{ form.local_name.label }}</label>{{ form.local_name }}{{ form.local_name.errors }}</div>
-                <div class="form-group"><label>{{ form.phone.label }}</label>{{ form.phone }}{{ form.phone.errors }}</div>
-                <div class="form-group"><label>{{ form.email.label }}</label>{{ form.email }}{{ form.email.errors }}</div>
-                <div class="form-group"><label>{{ form.telegram.label }}</label>{{ form.telegram }}{{ form.telegram.errors }}</div>
-                <div class="form-group record-span-2"><label>{{ form.address.label }}</label>{{ form.address }}{{ form.address.errors }}</div>
-            </div>
-        </div>
+  <form method="post" class="ac-form" id="customerMasterForm" novalidate>
+    {% csrf_token %}
+    <div class="ac-body">
+      {% if form.non_field_errors %}<div class="ac-error">{{ form.non_field_errors }}</div>{% endif %}
 
-        <div class="record-section">
-            <div class="record-section-title">Sales & credit setup</div>
-            <div class="record-section-body record-compact-grid">
-                <div class="form-group"><label>{{ form.customer_type.label }}</label>{{ form.customer_type }}{{ form.customer_type.errors }}</div>
-                <div class="form-group"><label>{{ form.salesperson.label }}</label>{{ form.salesperson }}{{ form.salesperson.errors }}</div>
-                <div class="form-group"><label>{{ form.price_level.label }}</label>{{ form.price_level }}{{ form.price_level.errors }}</div>
-                <div class="form-group"><label>{{ form.region.label }}</label>{{ form.region }}{{ form.region.errors }}</div>
-                <div class="form-group"><label>{{ form.opening_balance.label }}</label>{{ form.opening_balance }}{{ form.opening_balance.errors }}</div>
-                <div class="status-field" data-status-toggle>
-                    <div class="status-field-copy"><strong>Customer Status</strong><span>Use Inactive when the customer should remain in history only.</span></div>
-                    <span class="status-native-input">{{ form.is_active }}</span>
-                    <div class="status-toggle" role="group" aria-label="Customer status"><button type="button" class="status-choice" data-value="1">Active</button><button type="button" class="status-choice" data-value="0">Inactive</button></div>
-                    {{ form.is_active.errors }}
-                </div>
-                <div class="form-group record-span-2"><label>{{ form.memo.label }}</label>{{ form.memo }}{{ form.memo.errors }}</div>
-            </div>
+      <section class="ac-section">
+        <div class="ac-section-title">Profile & Contact</div>
+        <div class="ac-section-body ac-grid-3">
+          <div class="ac-field">
+            <label>Customer Code</label>
+            {{ form.code }}{{ form.code.errors }}
+          </div>
+          <div class="ac-field">
+            <label>Customer Name <span class="req">*</span></label>
+            {{ form.name }}{{ form.name.errors }}
+          </div>
+          <div class="ac-field">
+            <label>Local Name</label>
+            {{ form.local_name }}{{ form.local_name.errors }}
+          </div>
+          <div class="ac-field">
+            <label>Phone</label>
+            {{ form.phone }}{{ form.phone.errors }}
+          </div>
+          <div class="ac-field">
+            <label>Email</label>
+            {{ form.email }}{{ form.email.errors }}
+          </div>
+          <div class="ac-field">
+            <label>Telegram</label>
+            {{ form.telegram }}{{ form.telegram.errors }}
+          </div>
+          <div class="ac-field full">
+            <label>Address</label>
+            {{ form.address }}{{ form.address.errors }}
+          </div>
         </div>
-        <div class="form-actions"><button class="btn" type="submit">💾 {{ button_text }}</button><a href="{% url 'customer_center' %}" class="btn btn-light">Cancel</a></div>
-    </form>
+      </section>
+
+      <section class="ac-section">
+        <div class="ac-section-title">Sales & Credit Setup</div>
+        <div class="ac-section-body ac-grid-2">
+          <div class="ac-field">
+            <label>Customer Type</label>
+            {{ form.customer_type }}{{ form.customer_type.errors }}
+          </div>
+          <div class="ac-field">
+            <label>Salesperson</label>
+            {{ form.salesperson }}{{ form.salesperson.errors }}
+          </div>
+          <div class="ac-field">
+            <label>Price Level</label>
+            {{ form.price_level }}{{ form.price_level.errors }}
+          </div>
+          <div class="ac-field">
+            <label>Region</label>
+            {{ form.region }}{{ form.region.errors }}
+          </div>
+          <div class="ac-field">
+            <label>Opening Balance</label>
+            {{ form.opening_balance }}{{ form.opening_balance.errors }}
+          </div>
+          <div class="ac-status">
+            <div>
+              <strong>Customer Status</strong>
+              <small>Inactive keeps the customer in history but prevents new transactions.</small>
+            </div>
+            <div class="ac-status-control" id="customerStatusToggle">
+              {{ form.is_active }}
+              <label data-value="1">Active</label>
+              <label data-value="0">Inactive</label>
+            </div>
+          </div>
+          <div class="ac-field full">
+            <label>Memo</label>
+            {{ form.memo }}{{ form.memo.errors }}
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="ac-footer">
+      <div class="ac-footer-left"></div>
+      <div class="ac-footer-right">
+        <button type="submit" class="ac-btn save" id="customerSaveBtn">▣ {{ button_text|default:"Create Customer" }}</button>
+        <a href="{% url 'customer_center' %}" class="ac-btn cancel" id="customerCloseBottom">× Close</a>
+      </div>
+    </div>
+  </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const form = document.getElementById('customerMasterForm');
+  const box = document.getElementById('customerStatusToggle');
+  const saveBtn = document.getElementById('customerSaveBtn');
+
+  /* Active / Inactive */
+  if (box) {
+    const input = box.querySelector('input[type="checkbox"]');
+    const labels = Array.from(box.querySelectorAll('label[data-value]'));
+
+    function paintStatus(){
+      if (!input) return;
+      labels.forEach(function(label){
+        const shouldBeActive =
+          (label.dataset.value === '1' && input.checked) ||
+          (label.dataset.value === '0' && !input.checked);
+        label.classList.toggle('active', shouldBeActive);
+        label.setAttribute('aria-pressed', shouldBeActive ? 'true' : 'false');
+      });
+    }
+
+    labels.forEach(function(label){
+      label.setAttribute('role','button');
+      label.setAttribute('tabindex','0');
+
+      function choose(){
+        if (!input) return;
+        input.checked = label.dataset.value === '1';
+        input.dispatchEvent(new Event('change', {bubbles:true}));
+        paintStatus();
+      }
+
+      label.addEventListener('click', choose);
+      label.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          choose();
+        }
+      });
+    });
+
+    input?.addEventListener('change', paintStatus);
+    paintStatus();
+  }
+
+  /* Prevent accidental double-submit */
+  if (form && saveBtn) {
+    form.addEventListener('submit', function(){
+      if (saveBtn.disabled) return;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+    });
+  }
+});
+</script>
 {% endblock %}

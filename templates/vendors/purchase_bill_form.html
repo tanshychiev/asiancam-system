@@ -2,118 +2,1479 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
 <style>
-.pb-head-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.pb-tabs{display:flex;gap:8px;margin:18px 0 10px}.pb-tab{border:1px solid #d7dde5;background:#fff;padding:9px 14px;border-radius:8px;cursor:pointer;font-weight:700}.pb-tab.active{background:#153d6f;color:#fff}.pb-panel{display:none}.pb-panel.active{display:block}.pb-line-table input,.pb-line-table select{min-width:105px;width:100%}.pb-line-table .desc{min-width:180px}.pb-line-table .item{min-width:210px}.pb-summary{display:flex;justify-content:flex-end;margin-top:15px}.pb-summary-box{min-width:320px}.pb-summary-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e8edf3}.pb-summary-row.total{font-size:18px;font-weight:800}.vendor-search{margin-bottom:6px}.delete-cell{text-align:center}.delete-cell input{width:auto;min-width:auto}@media(max-width:900px){.pb-head-grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.pb-head-grid{grid-template-columns:1fr}}
+:root{
+  --pb-green:#0b9a5a;
+  --pb-green-dark:#087646;
+  --pb-green-soft:#edf9f3;
+  --pb-blue:#169ee6;
+  --pb-blue-dark:#0877b3;
+  --pb-navy:#103b5a;
+  --pb-text:#2d4859;
+  --pb-muted:#7b8f9b;
+  --pb-line:#dbe8ee;
+  --pb-soft:#f7fbfd;
+  --pb-danger:#dc5454;
+}
+.pb-card{
+  max-width:1500px;
+  margin:0 auto;
+  background:#fff;
+  border:1px solid #d8e8ef;
+  border-radius:18px;
+  box-shadow:0 10px 30px rgba(24,66,88,.07);
+  overflow:hidden;
+}
+.pb-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:18px;
+  padding:20px 22px 16px;
+  border-bottom:1px solid var(--pb-line);
+}
+.pb-header h2{
+  margin:0;
+  color:var(--pb-navy);
+  font-size:24px;
+  font-weight:900;
+  letter-spacing:-.4px;
+}
+.pb-header p{
+  margin:5px 0 0;
+  color:var(--pb-muted);
+  font-size:11px;
+}
+.pb-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pb-body{padding:18px 20px 16px}
+
+.pb-top-grid{
+  display:grid;
+  grid-template-columns:1.2fr 1fr 1fr 1fr 310px;
+  grid-template-areas:
+    "vendor date bill currency summary"
+    "due po ap vat summary"
+    "memo memo memo memo summary";
+  gap:14px 16px;
+  align-items:start;
+}
+.pb-field{min-width:0}
+.pb-field.vendor-field{grid-area:vendor}
+.pb-field.date-field{grid-area:date}
+.pb-field.billno-field{grid-area:bill}
+.pb-field.currency-field{grid-area:currency}
+.pb-field.due-field{grid-area:due}
+.pb-field.po-field{grid-area:po}
+.pb-field.ap-field{grid-area:ap}
+.pb-field.vat-field{grid-area:vat}
+.pb-field.memo-field{grid-area:memo}
+.pb-field.memo-field textarea{
+  min-height:64px;
+  max-height:90px;
+}
+.pb-top-summary{
+  grid-area:summary;
+  border:1px solid #d7e8ee;
+  border-radius:12px;
+  background:linear-gradient(180deg,#fbfeff,#f4f9fb);
+  padding:12px 13px;
+  align-self:stretch;
+  min-height:100%;
+}
+.pb-top-summary-title{
+  font-size:10px;
+  font-weight:900;
+  color:#496273;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  margin-bottom:7px;
+}
+.pb-top-summary .pb-summary-row{min-height:34px}
+.pb-top-summary .pb-summary-row.total{margin-top:5px}
+
+.pb-summary-discount{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:6px 10px;
+  align-items:center;
+  padding:8px 0;
+  border-bottom:1px solid #e6eff3;
+}
+.pb-summary-discount-label{
+  color:#6f818b;
+  font-size:10px;
+  font-weight:750;
+}
+.pb-summary-discount-controls{
+  display:flex;
+  gap:5px;
+  align-items:center;
+}
+.pb-summary-discount-controls input{
+  width:88px!important;
+  min-height:30px!important;
+  height:30px!important;
+  padding:4px 7px!important;
+  text-align:right;
+  border-radius:7px!important;
+  font-size:10px!important;
+}
+.pb-summary-discount-controls select{
+  width:55px!important;
+  min-height:30px!important;
+  height:30px!important;
+  padding:4px 6px!important;
+  border-radius:7px!important;
+  font-size:10px!important;
+}
+.pb-summary-discount-result{
+  grid-column:1 / -1;
+  justify-self:end;
+  color:#cf5151;
+  font-size:10px;
+}
+.pb-field label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  color:#315066;
+  font-size:10.5px;
+  font-weight:900;
+  margin-bottom:6px;
+}
+.pb-field label span.req{color:#e65454}
+.pb-create-vendor{
+  font-size:10px;
+  color:var(--pb-blue-dark);
+  text-decoration:none;
+  font-weight:850;
+}
+.pb-create-vendor:hover{text-decoration:underline}
+.pb-card input,
+.pb-card select,
+.pb-card textarea{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid #d5e4eb;
+  border-radius:9px;
+  background:#fff;
+  min-height:38px;
+  padding:8px 10px;
+  color:#29495b;
+  font-size:11px;
+  outline:none;
+}
+.pb-card textarea{min-height:84px;resize:vertical}
+.pb-card input:focus,
+.pb-card select:focus,
+.pb-card textarea:focus{
+  border-color:#56b7df;
+  box-shadow:0 0 0 3px rgba(22,158,230,.08);
+}
+.pb-card small{
+  display:block;
+  color:#889aa4;
+  font-size:9px;
+  margin-top:5px;
+}
+.pb-readonly{
+  min-height:38px;
+  border:1px solid #d5e4eb;
+  border-radius:9px;
+  background:#f8fbfc;
+  display:flex;
+  align-items:center;
+  padding:0 11px;
+  color:#496271;
+  font-size:11px;
+}
+.pb-errors,.errorlist{
+  color:#c84444;
+  font-size:9px;
+  margin:5px 0 0;
+  padding-left:16px;
+}
+
+.vendor-combo{position:relative}
+.vendor-input-wrap{position:relative}
+.vendor-input-wrap input{padding-left:34px;padding-right:34px}
+.vendor-search-icon{
+  position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  color:#7d929e;font-size:14px;pointer-events:none
+}
+.vendor-clear{
+  position:absolute;right:7px;top:50%;transform:translateY(-50%);
+  width:25px;height:25px;border:0;border-radius:7px;background:#edf3f6;
+  color:#81939d;cursor:pointer;font-size:14px
+}
+.vendor-clear:hover{background:#feecec;color:#d25151}
+.vendor-results{
+  position:absolute;z-index:9999;left:0;right:0;top:calc(100% + 5px);
+  max-height:290px;overflow:auto;background:#fff;border:1px solid #cfe1ea;
+  border-radius:11px;box-shadow:0 14px 35px rgba(26,63,83,.17);padding:6px
+}
+.vendor-option,.vendor-create-option{
+  display:block;width:100%;box-sizing:border-box;border:0;background:#fff;
+  padding:9px 10px;border-radius:8px;text-align:left;color:#38586a;
+  font-size:11px;cursor:pointer;text-decoration:none
+}
+.vendor-option:hover,.vendor-create-option:hover{background:#eef9f4;color:var(--pb-green-dark)}
+.vendor-create-option{
+  color:var(--pb-blue-dark);font-weight:850;border-bottom:1px solid #edf2f4;
+  border-radius:7px 7px 0 0;margin-bottom:5px
+}
+.vendor-empty{padding:10px;color:#8a9aa3;font-size:10px}
+.hidden-vendor-select{display:none!important}
+
+.hidden-item-select{display:none!important}
+
+.search-select{position:relative}
+.search-select-display{position:relative}
+.search-select-input{
+  width:100%!important;
+  min-height:38px!important;
+  padding:8px 34px 8px 10px!important;
+  border:1px solid #d5e4eb!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#29495b!important;
+  font-size:11px!important;
+  outline:none!important;
+}
+.search-select-input:focus{
+  border-color:#56b7df!important;
+  box-shadow:0 0 0 3px rgba(22,158,230,.08)!important;
+}
+.search-select-arrow{
+  position:absolute;right:11px;top:50%;transform:translateY(-50%);
+  color:#7a8e99;font-size:11px;pointer-events:none
+}
+.search-select-menu{
+  position:absolute;z-index:10020;left:0;right:0;top:calc(100% + 5px);
+  max-height:300px;overflow:auto;background:#fff;border:1px solid #cfe1ea;
+  border-radius:10px;box-shadow:0 14px 36px rgba(24,62,82,.18);padding:5px
+}
+.search-select-option{
+  display:block;width:100%;border:0;background:#fff;text-align:left;
+  padding:8px 9px;border-radius:7px;color:#355668;font-size:10px;cursor:pointer
+}
+.search-select-option:hover,.search-select-option.active{
+  background:#eaf6ff;color:#0b74b5
+}
+.search-select-empty{padding:9px;color:#8799a3;font-size:9px}
+.search-select-original{display:none!important}
+.pb-table .search-select-input{
+  min-height:31px!important;height:31px!important;padding:4px 28px 4px 7px!important;
+  border-radius:6px!important;font-size:10px!important
+}
+.pb-table .search-select-arrow{right:8px}
+.pb-table .search-select-menu{min-width:230px;max-height:240px}
+.item-combo{position:relative;min-width:0}
+.item-input-wrap{position:relative}
+.item-input-wrap input{padding-left:27px!important;padding-right:29px!important}
+.item-search-icon{
+  position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  color:#7f949f;font-size:12px;pointer-events:none;z-index:2
+}
+.item-clear{
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;border:0;border-radius:6px;background:#eef3f6;
+  color:#8799a3;cursor:pointer;font-size:12px;z-index:3
+}
+.item-clear:hover{background:#feecec;color:#d24e4e}
+.item-results{
+  position:absolute;z-index:9998;left:0;right:0;top:calc(100% + 4px);
+  max-height:240px;overflow:auto;background:#fff;border:1px solid #cfe1ea;
+  border-radius:9px;box-shadow:0 12px 30px rgba(28,64,83,.16);padding:5px
+}
+.item-option{
+  display:block;width:100%;border:0;background:#fff;padding:8px 9px;
+  border-radius:7px;text-align:left;color:#39596a;font-size:10px;cursor:pointer
+}
+.item-option:hover,.item-option.active{background:#eef8ff;color:#0b76b7}
+.item-option small{display:block;margin-top:2px;color:#8ba0aa;font-size:8px}
+.item-empty{padding:9px;color:#8a9ba5;font-size:9px}
+
+.pb-tabs{
+  display:flex;
+  align-items:flex-end;
+  gap:5px;
+  margin-top:14px;
+  border-bottom:1px solid var(--pb-line);
+}
+.pb-tab{
+  border:1px solid transparent;
+  border-bottom:0;
+  background:transparent;
+  color:#5f7684;
+  padding:10px 15px;
+  border-radius:9px 9px 0 0;
+  font-size:11px;
+  font-weight:900;
+  cursor:pointer;
+}
+.pb-tab.active{
+  color:var(--pb-green-dark);
+  background:#fff;
+  border-color:#d7e7de;
+  box-shadow:inset 0 -2px 0 var(--pb-green);
+}
+.pb-tab .tab-count{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:17px;height:17px;border-radius:9px;margin-left:5px;
+  background:#edf3f6;color:#71838d;font-size:9px
+}
+.pb-tab.active .tab-count{background:#dff4e9;color:var(--pb-green-dark)}
+.pb-panel{display:none}
+.pb-panel.active{display:block}
+
+.pb-table-wrap{
+  width:100%;
+  overflow:auto;
+  border:1px solid var(--pb-line);
+  border-top:0;
+  border-radius:0 0 11px 11px;
+  background:#fff;
+}
+.pb-table{
+  width:100%;
+  min-width:1320px;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:auto;
+}
+.pb-table th{
+  background:#f1f7fa;
+  color:#4b6575;
+  border-bottom:1px solid #d7e6ed;
+  padding:8px 7px;
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  white-space:nowrap;
+  text-align:left;
+}
+.pb-table td{
+  border-bottom:1px solid #edf2f5;
+  padding:5px;
+  vertical-align:middle;
+  background:#fff;
+}
+.pb-table tbody tr:nth-child(even) td{background:#fcfefe}
+.pb-table tbody tr:hover td{background:#f7fbfd}
+.pb-table input,.pb-table select{
+  min-height:31px;height:31px;padding:4px 7px;border-radius:6px;font-size:10px
+}
+.pb-item-col{min-width:190px}
+.pb-code-col{min-width:110px}
+.pb-desc-col{min-width:180px}
+.pb-account-col{min-width:190px}
+.pb-unit-col{min-width:90px}
+.pb-code-display{
+  min-height:31px;
+  border:1px solid #e0eaee;
+  border-radius:6px;
+  background:#f7fafb;
+  display:flex;
+  align-items:center;
+  padding:0 8px;
+  color:#5d7480;
+  font-size:10px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.pb-amount-display{
+  min-height:31px;
+  display:flex;align-items:center;justify-content:flex-end;
+  padding:0 7px;color:#117cae;font-size:10px;font-weight:850
+}
+.pb-money{text-align:right;font-variant-numeric:tabular-nums}
+.pb-row-index{
+  width:22px;text-align:center;color:#82939d;font-size:10px;font-weight:800
+}
+.pb-delete{
+  width:30px;height:30px;border:1px solid #f3caca;background:#fff7f7;
+  border-radius:8px;color:var(--pb-danger);cursor:pointer;font-size:13px;
+  display:inline-grid;place-items:center;line-height:1
+}
+.pb-delete:hover{background:#feeaea;border-color:#efaaaa;transform:translateY(-1px)}
+.pb-row-actions{display:flex;justify-content:flex-end;padding:9px 0 0}
+
+.pb-summary-area{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:14px;
+}
+.pb-summary{
+  width:370px;
+  border:1px solid #d7e8ee;
+  border-radius:12px;
+  background:linear-gradient(180deg,#fbfeff,#f4f9fb);
+  padding:7px 12px;
+}
+.pb-summary-row{
+  min-height:31px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid #e6eff3;
+  color:#6f818b;
+  font-size:10px;
+  font-weight:750;
+}
+.pb-summary-row:last-child{border-bottom:0}
+.pb-summary-row strong{color:#2b4a5b}
+.pb-summary-row.total{
+  margin-top:3px;
+  padding:0 8px;
+  background:#e9f8f0;
+  border-radius:8px;
+}
+.pb-summary-row.total span,.pb-summary-row.total strong{
+  color:var(--pb-green-dark);
+  font-size:13px;
+  font-weight:900;
+}
+
+.pb-footer{
+  position:sticky;
+  bottom:0;
+  z-index:15;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:18px -20px -16px;
+  padding:12px 20px;
+  border-top:1px solid var(--pb-line);
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(8px);
+}
+.pb-footer-left,.pb-footer-right{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.pb-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-height:36px;
+  padding:0 13px;
+  border-radius:9px;
+  border:1px solid #c8dce6;
+  background:#fff;
+  color:#1c6e99;
+  text-decoration:none;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+.pb-btn:hover{background:#f1f8fb}
+.pb-btn.green{background:var(--pb-green);border-color:var(--pb-green);color:#fff}
+.pb-btn.green:hover{background:var(--pb-green-dark)}
+.pb-btn.blue{background:var(--pb-blue);border-color:var(--pb-blue);color:#fff}
+.pb-btn.blue:hover{background:var(--pb-blue-dark)}
+.pb-btn.danger{color:#d54c4c;border-color:#f0c9c9}
+.pb-btn.danger:hover{background:#fff1f1}
+.pb-print-after{
+  display:inline-flex;align-items:center;gap:7px;
+  color:#657b88;font-size:10px;font-weight:700;margin-right:4px
+}
+.pb-print-after input{width:15px;height:15px;min-height:auto;accent-color:var(--pb-green)}
+.pb-section-note{
+  font-size:9px;color:#889aa3;margin:7px 0 0
+}
+
+@media(max-width:1280px){
+  .pb-top-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-template-areas:
+      "vendor date bill currency"
+      "due po ap vat"
+      "memo memo memo memo"
+      "summary summary summary summary";
+  }
+  .pb-top-summary{min-height:auto}
+}
+@media(max-width:900px){
+  .pb-top-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:
+      "vendor date"
+      "bill currency"
+      "due po"
+      "ap vat"
+      "memo memo"
+      "summary summary";
+  }
+  .pb-footer{position:static}
+}
+  .pb-top-summary{grid-column:span 2}
+}
+
+@media(max-width:620px){
+  .pb-card{border-radius:13px}
+  .pb-header,.pb-body{padding-left:13px;padding-right:13px}
+  .pb-top-grid{
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "vendor"
+      "date"
+      "bill"
+      "currency"
+      "due"
+      "po"
+      "ap"
+      "vat"
+      "memo"
+      "summary";
+  }
+  .pb-summary{width:100%}
+  .pb-footer{margin-left:-13px;margin-right:-13px;flex-direction:column;align-items:stretch}
+  .pb-footer-left,.pb-footer-right{justify-content:flex-end}
+}
+@media print{
+  .pb-header-actions,.pb-tabs,.pb-row-actions,.pb-footer,.pb-delete{display:none!important}
+  .pb-card{border:0;box-shadow:none}
+}
 </style>
-<div class="card">
-  <div class="card-head">
-    <div><h2>{{ page_title }}</h2><p>Item / Inventory and Expense lines in one Purchase Bill for {{ company.name }}.</p></div>
+
+<div class="pb-card">
+  <div class="pb-header">
+    <div>
+      <h2>{{ page_title }}</h2>
+      <p>Record inventory purchases or expense/service purchases in one vendor bill. Credit posts to Accounts Payable.</p>
+    </div>
+    <div class="pb-header-actions">
+      {% if is_edit and bill %}
+      <a class="pb-btn" href="{% url 'purchase_bill_create' %}?duplicate={{ bill.id }}">⧉ Duplicate</a>
+      <a class="pb-btn" href="{% url 'purchase_bill_print' bill.id %}" target="_blank">▣ Print Saved Bill</a>
+      {% endif %}
+      <a class="pb-btn danger" href="{% url 'purchase_bill_list' %}">× Close</a>
+    </div>
   </div>
 
   <form method="post" id="purchaseBillForm">
     {% csrf_token %}
-    {% if form.non_field_errors %}<div class="message error">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="pb-body">
+      {% if form.non_field_errors %}
+      <div class="pb-errors">{{ form.non_field_errors }}</div>
+      {% endif %}
 
-    <div class="pb-head-grid">
-      <div class="form-group">
-        <label>Vendor *</label>
-        <input type="text" id="vendorSearch" class="form-control vendor-search" placeholder="Type Vendor name or code to search...">
-        {{ form.vendor }}{{ form.vendor.errors }}
+      <div class="pb-top-grid">
+        <div class="pb-field vendor-field">
+          <label><span>Vendor <span class="req">*</span></span></label>
+
+          <div class="vendor-combo" data-select-id="id_vendor" data-create-url="{% url 'vendor_create' %}">
+            <div class="vendor-input-wrap">
+              <span class="vendor-search-icon">⌕</span>
+              <input id="vendorSearch" type="text" autocomplete="off" placeholder="Type vendor name or code...">
+              <button type="button" class="vendor-clear" aria-label="Clear vendor">×</button>
+            </div>
+            <div class="vendor-results" hidden></div>
+          </div>
+          <div class="hidden-vendor-select">{{ form.vendor }}</div>
+          {{ form.vendor.errors }}
+          <small>Search and select an existing vendor to avoid duplicates.</small>
+        </div>
+
+        <div class="pb-field date-field">
+          <label>Date <span class="req">*</span></label>
+          {{ form.bill_date }}{{ form.bill_date.errors }}
+        </div>
+
+        <div class="pb-field billno-field">
+          <label>Bill No.</label>
+          {{ form.number }}{{ form.number.errors }}
+          <small>Leave blank if no supplier bill number.</small>
+        </div>
+
+        <div class="pb-field currency-field">
+          <label>Currency</label>
+          <div class="pb-readonly">Dollar USD ($)</div>
+        </div>
+
+        <div class="pb-field due-field">
+          <label>Due Date</label>
+          {{ form.due_date }}{{ form.due_date.errors }}
+        </div>
+
+        <div class="pb-field po-field">
+          <label>Purchase Order No.</label>
+          {{ form.po_number }}{{ form.po_number.errors }}
+        </div>
+
+        <div class="pb-field ap-field">
+          <label>A/P Account <span class="req">*</span></label>
+          <div class="search-select js-search-select">
+            <div class="search-select-display">
+              <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account code or name...">
+              <span class="search-select-arrow">⌄</span>
+            </div>
+            <div class="search-select-menu" hidden></div>
+            <div class="search-select-original">{{ form.accounts_payable_account }}</div>
+          </div>{{ form.accounts_payable_account.errors }}
+          <small>Credit account. Normally Accounts Payable.</small>
+        </div>
+
+        <div class="pb-field vat-field">
+          <label>VAT Input Tax Account</label>
+          <div class="search-select js-search-select">
+            <div class="search-select-display">
+              <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account code or name...">
+              <span class="search-select-arrow">⌄</span>
+            </div>
+            <div class="search-select-menu" hidden></div>
+            <div class="search-select-original">{{ form.input_vat_account }}</div>
+          </div>{{ form.input_vat_account.errors }}
+        </div>
+
+        <div class="pb-field memo-field">
+          <label>Memo</label>
+          {{ form.memo }}{{ form.memo.errors }}
+        </div>
+
+        <aside class="pb-top-summary">
+          <div class="pb-top-summary-title">Bill Summary</div>
+          <div class="pb-summary-row"><span>Sub Total</span><strong>$<span id="subTotal">0.00</span></strong></div>
+
+          <div class="pb-summary-discount">
+            <div class="pb-summary-discount-label">Discount</div>
+            <div class="pb-summary-discount-controls">
+              <input type="number" id="discountValue" name="discount_value" min="0" step="0.01" value="0">
+              <select id="discountType" name="discount_type">
+                <option value="amount">$</option>
+                <option value="percent">%</option>
+              </select>
+            </div>
+            <strong class="pb-summary-discount-result">-$<span id="discountAmount">0.00</span></strong>
+          </div>
+
+          <div class="pb-summary-row"><span>VAT Input Tax</span><strong>$<span id="vatTotal">0.00</span></strong></div>
+          <div class="pb-summary-row total"><span>Grand Total</span><strong>$<span id="grandTotal">0.00</span></strong></div>
+        </aside>
       </div>
-      <div class="form-group"><label>Date *</label>{{ form.bill_date }}{{ form.bill_date.errors }}</div>
-      <div class="form-group"><label>Due Date</label>{{ form.due_date }}{{ form.due_date.errors }}</div>
-      <div class="form-group"><label>Bill No.</label>{{ form.number }}{{ form.number.errors }}</div>
-      <div class="form-group"><label>PO Number</label>{{ form.po_number }}{{ form.po_number.errors }}</div>
-      <div class="form-group"><label>A/P Account *</label>{{ form.accounts_payable_account }}{{ form.accounts_payable_account.errors }}<small>Normally Accounts Payable.</small></div>
-      <div class="form-group"><label>VAT Input Tax Account</label>{{ form.input_vat_account }}{{ form.input_vat_account.errors }}<small>Only needed when a VAT amount is entered.</small></div>
-      <div class="form-group"><label>Memo</label>{{ form.memo }}{{ form.memo.errors }}</div>
-    </div>
 
-    <div class="pb-tabs">
-      <button type="button" class="pb-tab active" data-tab="itemsPanel">Item / Inventory</button>
-      <button type="button" class="pb-tab" data-tab="expensesPanel">Expense</button>
-    </div>
+      <div class="pb-tabs">
+        <button type="button" class="pb-tab active" data-panel="itemsPanel">
+          ▦ Item / Inventory <span class="tab-count" id="itemCount">0</span>
+        </button>
+        <button type="button" class="pb-tab" data-panel="expensesPanel">
+          ▤ Expense <span class="tab-count" id="expenseCount">0</span>
+        </button>
+      </div>
 
-    <div id="itemsPanel" class="pb-panel active">
-      {{ item_formset.management_form }}
-      {% if item_formset.non_form_errors %}<div class="message error">{{ item_formset.non_form_errors }}</div>{% endif %}
-      <div class="table-wrap"><table class="pb-line-table">
-        <thead><tr><th>Item</th><th>Item Code / Description</th><th>Qty</th><th>Unit</th><th>Cost</th><th>Amount</th><th>Account</th><th>VAT Input</th><th>Delete</th></tr></thead>
-        <tbody id="itemRows">
-        {% for line in item_formset %}
-          <tr class="item-row">
-            <td class="item">{{ line.id }}{{ line.item }}{{ line.item.errors }}</td>
-            <td class="desc">{{ line.description }}{{ line.description.errors }}</td>
-            <td>{{ line.qty }}{{ line.qty.errors }}</td>
-            <td>{{ line.unit_name }}{{ line.unit_name.errors }}</td>
-            <td>{{ line.unit_cost }}{{ line.unit_cost.errors }}</td>
-            <td><strong class="js-line-amount">0.00</strong></td>
-            <td>{{ line.account }}{{ line.account.errors }}</td>
-            <td>{{ line.vat_amount }}{{ line.vat_amount.errors }}</td>
-            <td class="delete-cell">{{ line.DELETE }}</td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table></div>
-      <div class="table-actions" style="margin-top:10px;"><button type="button" class="btn btn-light" id="addItemRow">＋ Add Item Row</button></div>
-    </div>
+      <section class="pb-panel active" id="itemsPanel">
+        {{ item_formset.management_form }}
+        {% if item_formset.non_form_errors %}<div class="pb-errors">{{ item_formset.non_form_errors }}</div>{% endif %}
 
-    <div id="expensesPanel" class="pb-panel">
-      {{ expense_formset.management_form }}
-      {% if expense_formset.non_form_errors %}<div class="message error">{{ expense_formset.non_form_errors }}</div>{% endif %}
-      <div class="table-wrap"><table class="pb-line-table">
-        <thead><tr><th>Description</th><th>Amount ($)</th><th>Account</th><th>VAT Input</th><th>Delete</th></tr></thead>
-        <tbody id="expenseRows">
-        {% for line in expense_formset %}
-          <tr class="expense-row">
-            <td class="desc">{{ line.id }}{{ line.description }}{{ line.description.errors }}</td>
-            <td>{{ line.amount }}{{ line.amount.errors }}</td>
-            <td>{{ line.account }}{{ line.account.errors }}</td>
-            <td>{{ line.vat_amount }}{{ line.vat_amount.errors }}</td>
-            <td class="delete-cell">{{ line.DELETE }}</td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table></div>
-      <div class="table-actions" style="margin-top:10px;"><button type="button" class="btn btn-light" id="addExpenseRow">＋ Add Expense Row</button></div>
-    </div>
+        <div class="pb-table-wrap">
+          <table class="pb-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item Name</th>
+                <th>Item Code</th>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Unit Name</th>
+                <th>Cost ($)</th>
+                <th>Amount ($)</th>
+                <th>Account / Debit Account</th>
+                <th>VAT Input Tax</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="itemRows">
+              {% for line in item_formset %}
+              <tr class="item-row">
+                <td class="pb-row-index"></td>
+                <td class="pb-item-col">
+                  {{ line.id }}
+                  <div class="item-combo">
+                    <div class="item-input-wrap">
+                      <span class="item-search-icon">⌕</span>
+                      <input type="text" class="item-search-input" autocomplete="off" placeholder="Search item...">
+                      <button type="button" class="item-clear" aria-label="Clear item">×</button>
+                    </div>
+                    <div class="item-results" hidden></div>
+                    <div class="hidden-item-select">{{ line.item }}</div>
+                  </div>
+                  {{ line.item.errors }}
+                </td>
+                <td class="pb-code-col"><div class="pb-code-display js-item-code">—</div></td>
+                <td class="pb-desc-col">{{ line.description }}{{ line.description.errors }}</td>
+                <td>{{ line.qty }}{{ line.qty.errors }}</td>
+                <td class="pb-unit-col">{{ line.unit_name }}{{ line.unit_name.errors }}</td>
+                <td>{{ line.unit_cost }}{{ line.unit_cost.errors }}</td>
+                <td><div class="pb-amount-display js-line-amount">0.00</div></td>
+                <td class="pb-account-col">
+                  <div class="search-select js-search-select">
+                    <div class="search-select-display">
+                      <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account...">
+                      <span class="search-select-arrow">⌄</span>
+                    </div>
+                    <div class="search-select-menu" hidden></div>
+                    <div class="search-select-original">{{ line.account }}</div>
+                  </div>
+                  {{ line.account.errors }}
+                </td>
+                <td>{{ line.vat_amount }}{{ line.vat_amount.errors }}</td>
+                <td style="text-align:center">
+                  <span style="display:none">{{ line.DELETE }}</span>
+                  <button type="button" class="pb-delete js-delete-row" title="Delete row">🗑</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="pb-row-actions">
+          <button type="button" class="pb-btn" id="addItemRow">＋ Add Item Row</button>
+        </div>
+        <div class="pb-section-note">Each item row is a separate debit line. The account can be different for each row.</div>
+      </section>
 
-    <div class="pb-summary"><div class="pb-summary-box">
-      <div class="pb-summary-row"><span>Sub Total</span><strong>$<span id="subTotal">0.00</span></strong></div>
-      <div class="pb-summary-row"><span>VAT Input Tax</span><strong>$<span id="vatTotal">0.00</span></strong></div>
-      <div class="pb-summary-row total"><span>Grand Total</span><strong>$<span id="grandTotal">0.00</span></strong></div>
-    </div></div>
+      <section class="pb-panel" id="expensesPanel">
+        {{ expense_formset.management_form }}
+        {% if expense_formset.non_form_errors %}<div class="pb-errors">{{ expense_formset.non_form_errors }}</div>{% endif %}
 
-    <div class="form-actions" style="margin-top:18px;justify-content:flex-end;">
-      <button type="submit" name="save_action" value="save_new" class="btn btn-light">💾 Save & New</button>
-      <button type="submit" name="save_action" value="save_close" class="btn">💾 Save & Close</button>
-      <a href="{% url 'purchase_bill_list' %}" class="btn btn-light">✕ Close</a>
+        <div class="pb-table-wrap">
+          <table class="pb-table" style="min-width:950px">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th>Amount ($)</th>
+                <th>Account / Debit Account</th>
+                <th>VAT Input Tax</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="expenseRows">
+              {% for line in expense_formset %}
+              <tr class="expense-row">
+                <td class="pb-row-index"></td>
+                <td class="pb-desc-col">{{ line.id }}{{ line.description }}{{ line.description.errors }}</td>
+                <td>{{ line.amount }}{{ line.amount.errors }}</td>
+                <td class="pb-account-col">
+                  <div class="search-select js-search-select">
+                    <div class="search-select-display">
+                      <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account...">
+                      <span class="search-select-arrow">⌄</span>
+                    </div>
+                    <div class="search-select-menu" hidden></div>
+                    <div class="search-select-original">{{ line.account }}</div>
+                  </div>
+                  {{ line.account.errors }}
+                </td>
+                <td>{{ line.vat_amount }}{{ line.vat_amount.errors }}</td>
+                <td style="text-align:center">
+                  <span style="display:none">{{ line.DELETE }}</span>
+                  <button type="button" class="pb-delete js-delete-row" title="Delete row">🗑</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="pb-row-actions">
+          <button type="button" class="pb-btn" id="addExpenseRow">＋ Add Expense Row</button>
+        </div>
+        <div class="pb-section-note">Use Expense for services and other non-inventory purchases. Add as many debit-account rows as needed.</div>
+      </section>
+
+
+      <div class="pb-footer">
+        <div class="pb-footer-left">
+          {% if is_edit and bill %}
+          <a class="pb-btn" href="{% url 'purchase_bill_create' %}?duplicate={{ bill.id }}">⧉ Duplicate</a>
+          {% endif %}
+          <button type="button" class="pb-btn" id="printPreviewBtn">▣ Print Preview</button>
+        </div>
+
+        <div class="pb-footer-right">
+          <label class="pb-print-after">
+            <input type="checkbox" name="print_after_save" value="1">
+            Print after save
+          </label>
+          <button type="submit" name="save_action" value="save_new" class="pb-btn green">▣ Save & New</button>
+          <button type="submit" name="save_action" value="save_close" class="pb-btn blue">▣ Save & Close</button>
+          <a class="pb-btn danger" href="{% url 'purchase_bill_list' %}">× Close</a>
+        </div>
+      </div>
     </div>
   </form>
 </div>
 
-<template id="itemEmptyForm"><tr class="item-row">
-  <td class="item">{{ item_formset.empty_form.id }}{{ item_formset.empty_form.item }}</td>
-  <td class="desc">{{ item_formset.empty_form.description }}</td>
-  <td>{{ item_formset.empty_form.qty }}</td><td>{{ item_formset.empty_form.unit_name }}</td><td>{{ item_formset.empty_form.unit_cost }}</td>
-  <td><strong class="js-line-amount">0.00</strong></td><td>{{ item_formset.empty_form.account }}</td><td>{{ item_formset.empty_form.vat_amount }}</td><td class="delete-cell">{{ item_formset.empty_form.DELETE }}</td>
-</tr></template>
-<template id="expenseEmptyForm"><tr class="expense-row">
-  <td class="desc">{{ expense_formset.empty_form.id }}{{ expense_formset.empty_form.description }}</td><td>{{ expense_formset.empty_form.amount }}</td><td>{{ expense_formset.empty_form.account }}</td><td>{{ expense_formset.empty_form.vat_amount }}</td><td class="delete-cell">{{ expense_formset.empty_form.DELETE }}</td>
-</tr></template>
+<template id="itemEmptyForm">
+  <tr class="item-row">
+    <td class="pb-row-index"></td>
+    <td class="pb-item-col">
+      {{ item_formset.empty_form.id }}
+      <div class="item-combo">
+        <div class="item-input-wrap">
+          <span class="item-search-icon">⌕</span>
+          <input type="text" class="item-search-input" autocomplete="off" placeholder="Search item...">
+          <button type="button" class="item-clear" aria-label="Clear item">×</button>
+        </div>
+        <div class="item-results" hidden></div>
+        <div class="hidden-item-select">{{ item_formset.empty_form.item }}</div>
+      </div>
+    </td>
+    <td class="pb-code-col"><div class="pb-code-display js-item-code">—</div></td>
+    <td class="pb-desc-col">{{ item_formset.empty_form.description }}</td>
+    <td>{{ item_formset.empty_form.qty }}</td>
+    <td class="pb-unit-col">{{ item_formset.empty_form.unit_name }}</td>
+    <td>{{ item_formset.empty_form.unit_cost }}</td>
+    <td><div class="pb-amount-display js-line-amount">0.00</div></td>
+    <td class="pb-account-col">
+      <div class="search-select js-search-select">
+        <div class="search-select-display">
+          <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account...">
+          <span class="search-select-arrow">⌄</span>
+        </div>
+        <div class="search-select-menu" hidden></div>
+        <div class="search-select-original">{{ item_formset.empty_form.account }}</div>
+      </div>
+    </td>
+    <td>{{ item_formset.empty_form.vat_amount }}</td>
+    <td style="text-align:center">
+      <span style="display:none">{{ item_formset.empty_form.DELETE }}</span>
+      <button type="button" class="pb-delete js-delete-row" title="Delete row">🗑</button>
+    </td>
+  </tr>
+</template>
+
+<template id="expenseEmptyForm">
+  <tr class="expense-row">
+    <td class="pb-row-index"></td>
+    <td class="pb-desc-col">{{ expense_formset.empty_form.id }}{{ expense_formset.empty_form.description }}</td>
+    <td>{{ expense_formset.empty_form.amount }}</td>
+    <td class="pb-account-col">
+      <div class="search-select js-search-select">
+        <div class="search-select-display">
+          <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account...">
+          <span class="search-select-arrow">⌄</span>
+        </div>
+        <div class="search-select-menu" hidden></div>
+        <div class="search-select-original">{{ expense_formset.empty_form.account }}</div>
+      </div>
+    </td>
+    <td>{{ expense_formset.empty_form.vat_amount }}</td>
+    <td style="text-align:center">
+      <span style="display:none">{{ expense_formset.empty_form.DELETE }}</span>
+      <button type="button" class="pb-delete js-delete-row" title="Delete row">🗑</button>
+    </td>
+  </tr>
+</template>
 
 <script>
 (function(){
-  const money=v=>{const n=parseFloat(v||0);return Number.isFinite(n)?n:0};
-  function recalc(){let sub=0,vat=0;
-    document.querySelectorAll('#itemRows .item-row').forEach(r=>{if(r.querySelector('input[type=checkbox][name$="-DELETE"]')?.checked)return;const q=money(r.querySelector('.js-qty')?.value),c=money(r.querySelector('.js-unit-cost')?.value),a=q*c;sub+=a;vat+=money(r.querySelector('.js-vat')?.value);const out=r.querySelector('.js-line-amount');if(out)out.textContent=a.toFixed(2)});
-    document.querySelectorAll('#expenseRows .expense-row').forEach(r=>{if(r.querySelector('input[type=checkbox][name$="-DELETE"]')?.checked)return;sub+=money(r.querySelector('.js-expense-amount')?.value);vat+=money(r.querySelector('.js-vat')?.value)});
-    document.getElementById('subTotal').textContent=sub.toFixed(2);document.getElementById('vatTotal').textContent=vat.toFixed(2);document.getElementById('grandTotal').textContent=(sub+vat).toFixed(2)
+  'use strict';
+
+  const form = document.getElementById('purchaseBillForm');
+  const itemRows = document.getElementById('itemRows');
+  const expenseRows = document.getElementById('expenseRows');
+
+  const money = value => {
+    const n = parseFloat(String(value ?? '').replace(/,/g, ''));
+    return Number.isFinite(n) ? n : 0;
+  };
+  const fmt = value => money(value).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  function isDeleted(row){
+    return row.style.display === 'none' ||
+      Boolean(row.querySelector('input[name$="-DELETE"]')?.checked);
   }
-  document.addEventListener('input',e=>{if(e.target.matches('.js-qty,.js-unit-cost,.js-expense-amount,.js-vat'))recalc()});document.addEventListener('change',e=>{if(e.target.name?.endsWith('-DELETE'))recalc()});
-  document.querySelectorAll('.pb-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.pb-tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.pb-panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.tab).classList.add('active')}));
-  function addRow(prefix,tbodyId,tplId){const total=document.getElementById(`id_${prefix}-TOTAL_FORMS`);const idx=parseInt(total.value,10);let html=document.getElementById(tplId).innerHTML.replaceAll('__prefix__',idx);document.getElementById(tbodyId).insertAdjacentHTML('beforeend',html);total.value=idx+1;recalc()}
-  document.getElementById('addItemRow').addEventListener('click',()=>addRow('items','itemRows','itemEmptyForm'));document.getElementById('addExpenseRow').addEventListener('click',()=>addRow('expenses','expenseRows','expenseEmptyForm'));
-  const vendorSearch=document.getElementById('vendorSearch'),vendorSelect=document.getElementById('id_vendor');if(vendorSearch&&vendorSelect){vendorSearch.addEventListener('input',()=>{const q=vendorSearch.value.toLowerCase().trim();Array.from(vendorSelect.options).forEach((o,i)=>{if(i===0)return;o.hidden=!!q&&!o.text.toLowerCase().includes(q)})})}
+
+  function extractItemCode(select){
+    if(!select) return '—';
+    const option = select.options[select.selectedIndex];
+    if(!option || !option.value) return '—';
+    const text = (option.textContent || '').trim();
+    if(!text) return '—';
+
+    const dashParts = text.split(/\s+-\s+|\s+\|\s+/);
+    if(dashParts.length > 1 && dashParts[0].length <= 40){
+      return dashParts[0].trim();
+    }
+    const first = text.split(/\s+/)[0];
+    return first || '—';
+  }
+
+  function updateItemCode(row){
+    const select = row.querySelector('.hidden-item-select select, select[name$="-item"]');
+    const code = row.querySelector('.js-item-code');
+    if(code) code.textContent = extractItemCode(select);
+  }
+
+  function updateIndexes(){
+    let itemIndex = 0;
+    document.querySelectorAll('#itemRows .item-row').forEach(row => {
+      if(!isDeleted(row)){
+        itemIndex += 1;
+        const cell = row.querySelector('.pb-row-index');
+        if(cell) cell.textContent = itemIndex;
+      }
+      updateItemCode(row);
+    });
+
+    let expenseIndex = 0;
+    document.querySelectorAll('#expenseRows .expense-row').forEach(row => {
+      if(!isDeleted(row)){
+        expenseIndex += 1;
+        const cell = row.querySelector('.pb-row-index');
+        if(cell) cell.textContent = expenseIndex;
+      }
+    });
+
+    document.getElementById('itemCount').textContent = itemIndex;
+    document.getElementById('expenseCount').textContent = expenseIndex;
+  }
+
+  function recalc(){
+    let subtotal = 0;
+    let vat = 0;
+
+    document.querySelectorAll('#itemRows .item-row').forEach(row => {
+      if(isDeleted(row)) return;
+
+      const qty = money(row.querySelector('.js-qty')?.value);
+      const cost = money(row.querySelector('.js-unit-cost')?.value);
+      const amount = qty * cost;
+
+      subtotal += amount;
+      vat += money(row.querySelector('.js-vat')?.value);
+
+      const output = row.querySelector('.js-line-amount');
+      if(output) output.textContent = fmt(amount);
+    });
+
+    document.querySelectorAll('#expenseRows .expense-row').forEach(row => {
+      if(isDeleted(row)) return;
+      subtotal += money(row.querySelector('.js-expense-amount')?.value);
+      vat += money(row.querySelector('.js-vat')?.value);
+    });
+
+    const discountInput = document.getElementById('discountValue');
+    const discountType = document.getElementById('discountType');
+    let discount = money(discountInput?.value);
+
+    if(discountType?.value === 'percent'){
+      if(discount > 100) discount = 100;
+      discount = subtotal * discount / 100;
+    }
+
+    if(discount > subtotal) discount = subtotal;
+
+    const grand = Math.max(0, subtotal - discount + vat);
+
+    document.getElementById('subTotal').textContent = fmt(subtotal);
+    document.getElementById('discountAmount').textContent = fmt(discount);
+    document.getElementById('vatTotal').textContent = fmt(vat);
+    document.getElementById('grandTotal').textContent = fmt(grand);
+    updateIndexes();
+  }
+
+  // Tabs
+  document.querySelectorAll('.pb-tab').forEach(button => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.pb-tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.pb-panel').forEach(x => x.classList.remove('active'));
+      button.classList.add('active');
+      document.getElementById(button.dataset.panel)?.classList.add('active');
+    });
+  });
+
+  function addFormRow(prefix, tbodyId, templateId){
+    const totalInput = document.getElementById(`id_${prefix}-TOTAL_FORMS`);
+    if(!totalInput) return;
+
+    const index = parseInt(totalInput.value, 10) || 0;
+    const html = document.getElementById(templateId).innerHTML.replaceAll('__prefix__', index);
+
+    document.getElementById(tbodyId).insertAdjacentHTML('beforeend', html);
+    totalInput.value = index + 1;
+    initAllItemCombos();
+    initAllSearchSelects();
+    recalc();
+  }
+
+  document.getElementById('addItemRow')?.addEventListener('click', () => {
+    addFormRow('items', 'itemRows', 'itemEmptyForm');
+  });
+  document.getElementById('addExpenseRow')?.addEventListener('click', () => {
+    addFormRow('expenses', 'expenseRows', 'expenseEmptyForm');
+  });
+
+  // Row delete
+  document.addEventListener('click', event => {
+    const button = event.target.closest('.js-delete-row');
+    if(!button) return;
+
+    const row = button.closest('tr');
+    const deleteInput = row.querySelector('input[name$="-DELETE"]');
+
+    if(deleteInput){
+      deleteInput.checked = true;
+      row.style.display = 'none';
+    }else{
+      row.remove();
+    }
+    recalc();
+  });
+
+  // Live totals and item code.
+  document.addEventListener('input', event => {
+    if(event.target.matches('.js-qty,.js-unit-cost,.js-expense-amount,.js-vat,#discountValue')){
+      recalc();
+    }
+  });
+  document.addEventListener('change', event => {
+    if(event.target.matches('.hidden-item-select select, select[name$="-item"]')){
+      updateItemCode(event.target.closest('.item-row'));
+    }
+    if(event.target.matches('.js-qty,.js-unit-cost,.js-expense-amount,.js-vat,#discountType,#discountValue')){
+      recalc();
+    }
+  });
+
+  // Vendor searchable selector.
+  document.querySelectorAll('.vendor-combo').forEach(box => {
+    const select = document.getElementById(box.dataset.selectId);
+    const input = box.querySelector('#vendorSearch');
+    const results = box.querySelector('.vendor-results');
+    const clear = box.querySelector('.vendor-clear');
+
+    if(!select || !input || !results) return;
+
+    const options = () => Array.from(select.options).filter(o => o.value);
+
+    function syncSelected(){
+      const selected = options().find(o => o.value === select.value);
+      input.value = selected ? selected.textContent.trim() : '';
+    }
+
+    function renderResults(){
+      const query = input.value.trim().toLowerCase();
+      const matches = options().filter(option =>
+        !query || option.textContent.toLowerCase().includes(query)
+      ).slice(0, 60);
+
+      results.innerHTML = '';
+
+      const create = document.createElement('a');
+      create.className = 'vendor-create-option';
+      create.href = box.dataset.createUrl;
+      create.target = '_blank';
+      create.rel = 'noopener';
+      create.textContent = '＋ Create New Vendor';
+      results.appendChild(create);
+
+      if(!matches.length){
+        const empty = document.createElement('div');
+        empty.className = 'vendor-empty';
+        empty.textContent = query
+          ? `No matching vendor for "${input.value.trim()}".`
+          : 'No existing vendor found.';
+        results.appendChild(empty);
+      }else{
+        matches.forEach(option => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'vendor-option';
+          button.textContent = option.textContent.trim();
+          button.addEventListener('click', () => {
+            select.value = option.value;
+            input.value = option.textContent.trim();
+            results.hidden = true;
+          });
+          results.appendChild(button);
+        });
+      }
+      results.hidden = false;
+    }
+
+    syncSelected();
+    input.addEventListener('focus', renderResults);
+    input.addEventListener('input', () => {
+      select.value = '';
+      renderResults();
+    });
+    clear?.addEventListener('click', () => {
+      select.value = '';
+      input.value = '';
+      input.focus();
+      renderResults();
+    });
+    document.addEventListener('click', event => {
+      if(!box.contains(event.target)) results.hidden = true;
+    });
+  });
+
+
+  function initItemCombo(box){
+    if(!box || box.dataset.ready === '1') return;
+    box.dataset.ready = '1';
+
+    const select = box.querySelector('.hidden-item-select select');
+    const input = box.querySelector('.item-search-input');
+    const results = box.querySelector('.item-results');
+    const clear = box.querySelector('.item-clear');
+
+    if(!select || !input || !results) return;
+
+    const getOptions = () => Array.from(select.options).filter(o => o.value);
+
+    function syncSelected(){
+      const selected = getOptions().find(o => o.value === select.value);
+      input.value = selected ? selected.textContent.trim() : '';
+      updateItemCode(box.closest('.item-row'));
+    }
+
+    function renderResults(){
+      const query = input.value.trim().toLowerCase();
+      const matches = getOptions().filter(option => {
+        const label = option.textContent.toLowerCase();
+        return !query || label.includes(query);
+      }).slice(0, 80);
+
+      results.innerHTML = '';
+
+      if(!matches.length){
+        const empty = document.createElement('div');
+        empty.className = 'item-empty';
+        empty.textContent = query ? `No item matches "${input.value.trim()}".` : 'No items found.';
+        results.appendChild(empty);
+      }else{
+        matches.forEach(option => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'item-option';
+          button.innerHTML = `<strong>${esc(option.textContent.trim())}</strong>`;
+          button.addEventListener('click', () => {
+            select.value = option.value;
+            input.value = option.textContent.trim();
+            results.hidden = true;
+            select.dispatchEvent(new Event('change', {bubbles:true}));
+          });
+          results.appendChild(button);
+        });
+      }
+
+      results.hidden = false;
+    }
+
+    syncSelected();
+
+    input.addEventListener('focus', renderResults);
+    input.addEventListener('input', () => {
+      select.value = '';
+      updateItemCode(box.closest('.item-row'));
+      renderResults();
+    });
+
+    input.addEventListener('keydown', event => {
+      const buttons = Array.from(results.querySelectorAll('.item-option'));
+      if(event.key === 'Enter' && buttons.length){
+        event.preventDefault();
+        buttons[0].click();
+      }
+    });
+
+    clear?.addEventListener('click', () => {
+      select.value = '';
+      input.value = '';
+      updateItemCode(box.closest('.item-row'));
+      input.focus();
+      renderResults();
+    });
+
+    document.addEventListener('click', event => {
+      if(!box.contains(event.target)) results.hidden = true;
+    });
+  }
+
+  function initAllItemCombos(){
+    document.querySelectorAll('.item-combo').forEach(initItemCombo);
+  }
+
+  initAllItemCombos();
+
+
+  function initSearchSelect(box){
+    if(!box || box.dataset.searchReady === '1') return;
+    box.dataset.searchReady = '1';
+
+    const select = box.querySelector('.search-select-original select');
+    const input = box.querySelector('.search-select-input');
+    const menu = box.querySelector('.search-select-menu');
+    if(!select || !input || !menu) return;
+
+    const options = () => Array.from(select.options).filter(o => o.value);
+
+    function sync(){
+      const selected = options().find(o => o.value === select.value);
+      input.value = selected ? selected.textContent.trim() : '';
+    }
+
+    function render(){
+      const q = input.value.trim().toLowerCase();
+      const matches = options().filter(o =>
+        !q || o.textContent.toLowerCase().includes(q)
+      ).slice(0, 100);
+
+      menu.innerHTML = '';
+
+      if(!matches.length){
+        const empty = document.createElement('div');
+        empty.className = 'search-select-empty';
+        empty.textContent = q ? `No account matches "${input.value.trim()}".` : 'No accounts found.';
+        menu.appendChild(empty);
+      } else {
+        matches.forEach(option => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'search-select-option';
+          btn.textContent = option.textContent.trim();
+          if(option.value === select.value) btn.classList.add('active');
+          btn.addEventListener('click', () => {
+            select.value = option.value;
+            input.value = option.textContent.trim();
+            menu.hidden = true;
+            select.dispatchEvent(new Event('change', {bubbles:true}));
+          });
+          menu.appendChild(btn);
+        });
+      }
+      menu.hidden = false;
+    }
+
+    sync();
+
+    input.addEventListener('focus', render);
+    input.addEventListener('click', render);
+    input.addEventListener('input', () => {
+      select.value = '';
+      render();
+    });
+
+    input.addEventListener('keydown', event => {
+      if(event.key === 'Enter'){
+        const first = menu.querySelector('.search-select-option');
+        if(first){
+          event.preventDefault();
+          first.click();
+        }
+      } else if(event.key === 'Escape'){
+        menu.hidden = true;
+        sync();
+      }
+    });
+
+    document.addEventListener('click', event => {
+      if(!box.contains(event.target)) menu.hidden = true;
+    });
+  }
+
+  function initAllSearchSelects(){
+    document.querySelectorAll('.js-search-select').forEach(initSearchSelect);
+  }
+
+  initAllSearchSelects();
+
+  // Number formatting without changing submitted values.
+  document.addEventListener('focusin', event => {
+    if(event.target.matches('.pb-money,.money-input,.js-unit-cost,.js-expense-amount,.js-vat')){
+      event.target.value = String(event.target.value || '').replace(/,/g, '');
+    }
+  });
+  document.addEventListener('focusout', event => {
+    if(event.target.matches('.pb-money,.money-input,.js-unit-cost,.js-expense-amount,.js-vat')){
+      if(event.target.value.trim() !== '') event.target.value = fmt(event.target.value);
+    }
+  });
+
+  form.addEventListener('submit', () => {
+    document.querySelectorAll('.js-unit-cost,.js-expense-amount,.js-vat,.money-input').forEach(input => {
+      input.value = String(input.value || '').replace(/,/g, '');
+    });
+  });
+
+  // Print Preview prints the CURRENT form data, even before the bill is saved.
+  function textValue(selector){
+    const el = document.querySelector(selector);
+    if(!el) return '';
+    if(el.tagName === 'SELECT'){
+      return el.options[el.selectedIndex]?.textContent?.trim() || '';
+    }
+    return el.value || '';
+  }
+
+  function esc(value){
+    return String(value ?? '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  function currentVendorName(){
+    const select = document.getElementById('id_vendor');
+    return select?.options[select.selectedIndex]?.textContent?.trim() ||
+           document.getElementById('vendorSearch')?.value ||
+           '';
+  }
+
+  function itemPrintRows(){
+    const rows = [];
+    document.querySelectorAll('#itemRows .item-row').forEach(row => {
+      if(isDeleted(row)) return;
+      const itemSelect = row.querySelector('.hidden-item-select select, select[name$="-item"]');
+      const itemName = itemSelect?.options[itemSelect.selectedIndex]?.textContent?.trim() || '';
+      const qty = money(row.querySelector('.js-qty')?.value);
+      const cost = money(row.querySelector('.js-unit-cost')?.value);
+      const desc = row.querySelector('input[name$="-description"]')?.value || '';
+      if(!itemName && !desc && qty === 0 && cost === 0) return;
+
+      const account = row.querySelector('select[name$="-account"]');
+      rows.push({
+        item: itemName,
+        code: extractItemCode(itemSelect),
+        description: desc,
+        qty: qty,
+        unit: row.querySelector('input[name$="-unit_name"]')?.value || '',
+        cost: cost,
+        amount: qty * cost,
+        account: account?.options[account.selectedIndex]?.textContent?.trim() || '',
+        vat: money(row.querySelector('.js-vat')?.value)
+      });
+    });
+    return rows;
+  }
+
+  function expensePrintRows(){
+    const rows = [];
+    document.querySelectorAll('#expenseRows .expense-row').forEach(row => {
+      if(isDeleted(row)) return;
+      const description = row.querySelector('input[name$="-description"]')?.value || '';
+      const amount = money(row.querySelector('.js-expense-amount')?.value);
+      if(!description && amount === 0) return;
+
+      const account = row.querySelector('select[name$="-account"]');
+      rows.push({
+        description,
+        amount,
+        account: account?.options[account.selectedIndex]?.textContent?.trim() || '',
+        vat: money(row.querySelector('.js-vat')?.value)
+      });
+    });
+    return rows;
+  }
+
+  document.getElementById('printPreviewBtn')?.addEventListener('click', () => {
+    recalc();
+
+    const items = itemPrintRows();
+    const expenses = expensePrintRows();
+    const popup = window.open('', '_blank', 'width=1100,height=800');
+    if(!popup){
+      alert('Please allow pop-ups to open Print Preview.');
+      return;
+    }
+
+    const itemHtml = items.length ? items.map((row, i) => `
+      <tr>
+        <td>${i+1}</td><td>${esc(row.item)}</td><td>${esc(row.code)}</td>
+        <td>${esc(row.description)}</td><td class="num">${fmt(row.qty)}</td>
+        <td>${esc(row.unit)}</td><td class="num">${fmt(row.cost)}</td>
+        <td class="num">${fmt(row.amount)}</td><td>${esc(row.account)}</td>
+        <td class="num">${fmt(row.vat)}</td>
+      </tr>`).join('') : '<tr><td colspan="10" class="empty">No item/inventory lines.</td></tr>';
+
+    const expenseHtml = expenses.length ? expenses.map((row, i) => `
+      <tr>
+        <td>${i+1}</td><td>${esc(row.description)}</td>
+        <td class="num">${fmt(row.amount)}</td><td>${esc(row.account)}</td>
+        <td class="num">${fmt(row.vat)}</td>
+      </tr>`).join('') : '<tr><td colspan="5" class="empty">No expense lines.</td></tr>';
+
+    popup.document.write(`
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Purchase Bill Print Preview</title>
+<style>
+@page{size:A4 landscape;margin:12mm}
+body{font-family:Arial,sans-serif;color:#243f50;margin:0;font-size:11px}
+.toolbar{display:flex;justify-content:flex-end;gap:8px;margin:0 0 14px}
+button{border:1px solid #cbdde5;background:#fff;padding:8px 12px;border-radius:7px;cursor:pointer}
+button.primary{background:#0b9a5a;color:#fff;border-color:#0b9a5a}
+h1{font-size:22px;margin:0;color:#123b57}
+.sub{color:#728793;margin-top:4px}
+.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
+.meta div{border:1px solid #dce8ed;border-radius:7px;padding:8px}
+.meta b{display:block;font-size:9px;color:#7a8d98;margin-bottom:4px;text-transform:uppercase}
+h2{font-size:12px;color:#087646;margin:17px 0 7px}
+table{width:100%;border-collapse:collapse}
+th{background:#eef6f8;font-size:9px;text-transform:uppercase}
+th,td{border:1px solid #dde8ed;padding:6px;text-align:left}
+.num{text-align:right}
+.empty{text-align:center;color:#8a9ba5;padding:18px}
+.totalbox{width:330px;margin:16px 0 0 auto;border:1px solid #d8e8ee;border-radius:8px;overflow:hidden}
+.totalbox div{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #e5eef2}
+.totalbox div:last-child{border:0;background:#e9f8f0;color:#087646;font-weight:bold;font-size:13px}
+@media print{.toolbar{display:none}}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button onclick="window.close()">Close</button>
+  <button class="primary" onclick="window.print()">Print</button>
+</div>
+<h1>Purchase Order / Bill</h1>
+<div class="sub">${esc('{{ company.name|escapejs }}')}</div>
+
+<div class="meta">
+  <div><b>Vendor</b>${esc(currentVendorName())}</div>
+  <div><b>Date</b>${esc(textValue('#id_bill_date'))}</div>
+  <div><b>Due Date</b>${esc(textValue('#id_due_date'))}</div>
+  <div><b>Bill No.</b>${esc(textValue('#id_number'))}</div>
+  <div><b>PO Number</b>${esc(textValue('#id_po_number'))}</div>
+  <div><b>A/P Account</b>${esc(textValue('#id_accounts_payable_account'))}</div>
+  <div><b>Currency</b>Dollar USD ($)</div>
+  <div><b>Memo</b>${esc(textValue('#id_memo'))}</div>
+</div>
+
+<h2>Item / Inventory</h2>
+<table>
+<thead><tr><th>#</th><th>Item</th><th>Code</th><th>Description</th><th>Qty</th><th>Unit</th><th>Cost</th><th>Amount</th><th>Account</th><th>VAT</th></tr></thead>
+<tbody>${itemHtml}</tbody>
+</table>
+
+<h2>Expense</h2>
+<table>
+<thead><tr><th>#</th><th>Description</th><th>Amount</th><th>Account</th><th>VAT</th></tr></thead>
+<tbody>${expenseHtml}</tbody>
+</table>
+
+<div class="totalbox">
+  <div><span>Sub Total</span><b>$${esc(document.getElementById('subTotal').textContent)}</b></div>
+  <div><span>Discount</span><b>-$${esc(document.getElementById('discountAmount').textContent)}</b></div>
+  <div><span>VAT Input Tax</span><b>$${esc(document.getElementById('vatTotal').textContent)}</b></div>
+  <div><span>Grand Total</span><b>$${esc(document.getElementById('grandTotal').textContent)}</b></div>
+</div>
+</body>
+</html>`);
+    popup.document.close();
+    popup.focus();
+  });
+
   recalc();
 })();
 </script>

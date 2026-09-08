@@ -1,0 +1,2500 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<style>
+:root{
+  --ac-blue:#20a8e0;
+  --ac-blue-dark:#0b76b5;
+  --ac-navy:#073763;
+  --ac-line:#d7e9f3;
+  --ac-soft:#f5fbff;
+  --ac-muted:#708394;
+  --ac-green:#13a467;
+  --ac-danger:#d94d4d;
+}
+
+/* Page title first, compact document box below */
+.invoice-sample{
+  max-width:1500px;
+  margin:0 auto;
+  color:#17374f;
+  background:transparent;
+}
+
+.invoice-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 8px;
+  padding:0 2px;
+}
+.invoice-title h2{
+  margin:0;
+  font-size:19px;
+  line-height:1.2;
+  font-weight:850;
+  color:var(--ac-navy);
+}
+.invoice-title p{
+  margin:2px 0 0;
+  font-size:10px;
+  color:var(--ac-muted);
+}
+.invoice-title .btn{min-height:30px;padding:0 10px}
+
+/* Main form box — matches client's compact sample but keeps AsianCam modern */
+#invoiceForm{
+  background:#fff;
+  border:1px solid var(--ac-line);
+  border-radius:12px;
+  box-shadow:0 6px 20px rgba(7,55,99,.055);
+  padding:12px 14px 10px;
+}
+
+.invoice-top{
+  display:grid;
+  grid-template-columns:1.05fr 1.05fr 1.05fr 1.15fr;
+  gap:8px 12px;
+  align-items:start;
+}
+.invoice-col{
+  display:grid;
+  gap:5px;
+  min-width:0;
+}
+.field{min-width:0}
+.field label{
+  display:block;
+  margin:0 0 2px;
+  color:#405f72;
+  font-size:9px;
+  line-height:1.15;
+  font-weight:800;
+}
+.required{color:#e14a4a}
+
+.invoice-sample input,
+.invoice-sample select,
+.invoice-sample textarea{
+  width:100%;
+  box-sizing:border-box;
+  min-height:29px;
+  height:29px;
+  padding:4px 7px;
+  border:1px solid #d6e6ef;
+  border-radius:6px;
+  background:#fbfdff;
+  color:#17374f;
+  font-size:10px;
+  outline:none;
+  box-shadow:none;
+}
+.invoice-sample textarea{
+  height:57px;
+  min-height:57px;
+  resize:vertical;
+}
+.invoice-sample input:focus,
+.invoice-sample select:focus,
+.invoice-sample textarea:focus{
+  border-color:var(--ac-blue);
+  background:#fff;
+  box-shadow:0 0 0 2px rgba(32,168,224,.09);
+}
+
+.hidden-model-select{display:none}
+.entity-combobox{position:relative}
+.entity-results{
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(100% + 3px);
+  z-index:10050;
+  max-height:235px;
+  overflow:auto;
+  padding:4px;
+  background:#fff;
+  border:1px solid #cfe4ef;
+  border-radius:8px;
+  box-shadow:0 12px 26px rgba(7,55,99,.14);
+}
+.entity-option{
+  display:block;
+  width:100%;
+  border:0;
+  background:#fff;
+  text-align:left;
+  padding:7px 8px;
+  border-radius:6px;
+  font-size:10px;
+  color:#27495f;
+  cursor:pointer;
+}
+.entity-option:hover{background:#eef8fd;color:#087bb9}
+.entity-empty{padding:7px 8px;color:#7a8d9b;font-size:10px}
+
+/* Right totals area in same top row, like sample */
+.summary-panel{
+  margin-top:0;
+  background:#f8fcf4;
+  border:1px solid #dce8d8;
+  border-radius:7px;
+  padding:4px 6px;
+}
+.summary-row{
+  display:grid;
+  grid-template-columns:1fr 86px 22px;
+  align-items:center;
+  min-height:25px;
+  border-bottom:1px solid #e8eee4;
+  font-size:9px;
+}
+.summary-row:last-child{border-bottom:0}
+.summary-row span:first-child{
+  color:#607269;
+  font-weight:700;
+}
+.summary-row strong{
+  text-align:right;
+  font-size:10px;
+  color:#2d483b;
+  font-variant-numeric:tabular-nums;
+}
+.summary-row .currency-cell{
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:4px;
+  border-left:1px solid #e0e8dd;
+  color:#5d7065;
+  background:#fff;
+}
+.summary-row.grand{
+  background:#eef9ef;
+}
+.summary-row.grand strong{
+  color:#07904e;
+  font-size:11px;
+}
+
+/* Tabs + detail table */
+.sheet-tabs{
+  display:flex;
+  gap:2px;
+  margin-top:10px;
+  border-bottom:1px solid #d7e8f1;
+}
+.sheet-tab{
+  padding:6px 10px 5px;
+  font-size:9px;
+  font-weight:800;
+  color:#657b89;
+  border-bottom:2px solid transparent;
+}
+.sheet-tab.active{
+  color:var(--ac-blue-dark);
+  border-bottom-color:var(--ac-blue);
+  background:#f4fbff;
+  border-radius:5px 5px 0 0;
+}
+
+.table-wrap{
+  width:100%;
+  overflow:auto;
+  border:1px solid #dceaf2;
+  border-top:0;
+  border-radius:0 0 8px 8px;
+  background:#fff;
+}
+.invoice-table{
+  width:100%;
+  min-width:1180px;
+  border-collapse:collapse;
+}
+.invoice-table th{
+  padding:6px 5px;
+  background:#eef7fb;
+  border-bottom:1px solid #d5e7ef;
+  color:#49687a;
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+  line-height:1.1;
+  white-space:nowrap;
+  text-align:left;
+}
+.invoice-table td{
+  padding:3px;
+  border-bottom:1px solid #edf3f6;
+  vertical-align:middle;
+}
+.invoice-table input,
+.invoice-table select{
+  height:25px;
+  min-height:25px;
+  padding:2px 5px;
+  border-radius:4px;
+  font-size:9px;
+}
+.invoice-table .num{
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.line-amount,.line-grand,.standard-price{
+  display:block;
+  text-align:right;
+  white-space:nowrap;
+  font-size:9px;
+  font-weight:750;
+  color:#36576b;
+}
+.line-grand{color:#087fae}
+.trash-row{
+  width:24px;
+  height:24px;
+  padding:0;
+  border:1px solid #f0c8c8;
+  border-radius:5px;
+  background:#fff7f7;
+  color:var(--ac-danger);
+  cursor:pointer;
+}
+.trash-row:hover{background:#ffecec}
+
+.table-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:5px;
+}
+
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:31px;
+  padding:0 11px;
+  border:1px solid var(--ac-blue);
+  border-radius:7px;
+  background:var(--ac-blue);
+  color:#fff;
+  font-size:9px;
+  font-weight:850;
+  text-decoration:none;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.btn:hover{background:#1597cf;border-color:#1597cf}
+.btn-light{
+  background:#fff;
+  color:#176d9e;
+  border-color:#cce3ee;
+}
+.btn-light:hover{background:#f1f9fd}
+
+.bottom-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid #e4eef3;
+}
+.left-actions,.right-actions{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  flex-wrap:wrap;
+}
+.print-after{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  margin-right:3px;
+  color:#697d89;
+  font-size:9px;
+}
+.print-after input{
+  width:auto;
+  height:auto;
+  min-height:auto;
+}
+.errors,.errorlist{
+  color:#c73d3d;
+  font-size:9px;
+  margin:2px 0 0;
+  padding-left:12px;
+}
+
+/* Keep compact on 15-inch displays */
+@media(max-width:1280px){
+  .invoice-top{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px 9px}
+  #invoiceForm{padding:10px}
+  .invoice-sample input,.invoice-sample select{font-size:9.5px}
+}
+@media(max-width:1050px){
+  .invoice-top{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+  .invoice-top{grid-template-columns:1fr}
+  .bottom-actions{align-items:flex-end;flex-direction:column}
+  .left-actions,.right-actions{justify-content:flex-end;width:100%}
+}
+@media print{
+  .main-navbar,.workspace-strip,.invoice-title .btn,.bottom-actions,.table-actions{display:none!important}
+  #invoiceForm{border:0;box-shadow:none;padding:0}
+  .page-content{padding:0!important}
+}
+
+
+
+
+
+/* =========================================================
+   CLIENT SAMPLE DETAIL GRID — clean fit
+   Revenue/Credit account is automatic from Item.
+   Visible final entry column follows client sample: Memo.
+   ========================================================= */
+.table-wrap{
+  width:100% !important;
+  overflow-x:hidden !important;
+}
+.invoice-table{
+  width:100% !important;
+  min-width:0 !important;
+  table-layout:fixed !important;
+  border-collapse:collapse !important;
+}
+
+/* exact 100% */
+.invoice-table th:nth-child(1), .invoice-table td:nth-child(1){width:10% !important;}
+.invoice-table th:nth-child(2), .invoice-table td:nth-child(2){width:8% !important;}
+.invoice-table th:nth-child(3), .invoice-table td:nth-child(3){width:14% !important;}
+.invoice-table th:nth-child(4), .invoice-table td:nth-child(4){width:5% !important;}
+.invoice-table th:nth-child(5), .invoice-table td:nth-child(5){width:7% !important;}
+.invoice-table th:nth-child(6), .invoice-table td:nth-child(6){width:7% !important;}
+.invoice-table th:nth-child(7), .invoice-table td:nth-child(7){width:7% !important;}
+.invoice-table th:nth-child(8), .invoice-table td:nth-child(8){width:7% !important;}
+.invoice-table th:nth-child(9), .invoice-table td:nth-child(9){width:7% !important;}
+.invoice-table th:nth-child(10), .invoice-table td:nth-child(10){width:8% !important;}
+.invoice-table th:nth-child(11), .invoice-table td:nth-child(11){width:6% !important;}
+.invoice-table th:nth-child(12), .invoice-table td:nth-child(12){width:11% !important;}
+.invoice-table th:nth-child(13), .invoice-table td:nth-child(13){width:3% !important;}
+
+.invoice-table th,
+.invoice-table td{
+  box-sizing:border-box !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  vertical-align:middle !important;
+}
+.invoice-table th{
+  padding:5px 4px !important;
+  background:#eef7fb !important;
+  border:1px solid #dbe8ee !important;
+  color:#496675 !important;
+  font-size:7.6px !important;
+  line-height:1.08 !important;
+  white-space:normal !important;
+  text-align:left !important;
+}
+.invoice-table td{
+  padding:3px !important;
+  border:1px solid #e8eff3 !important;
+  height:31px !important;
+  background:#fff !important;
+}
+.invoice-table td input,
+.invoice-table td select{
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:25px !important;
+  min-height:25px !important;
+  margin:0 !important;
+  padding:2px 4px !important;
+  box-sizing:border-box !important;
+  border-radius:4px !important;
+  font-size:8.5px !important;
+}
+.invoice-table .standard-price,
+.invoice-table .line-amount,
+.invoice-table .line-grand{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  width:100% !important;
+  height:25px !important;
+  padding:0 3px !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+  white-space:nowrap !important;
+  font-size:8.5px !important;
+}
+.invoice-table th:nth-child(4),
+.invoice-table th:nth-child(6),
+.invoice-table th:nth-child(7),
+.invoice-table th:nth-child(8),
+.invoice-table th:nth-child(9),
+.invoice-table th:nth-child(10),
+.invoice-table th:nth-child(11){
+  text-align:right !important;
+}
+.invoice-table td:nth-child(4) input,
+.invoice-table td:nth-child(6) input,
+.invoice-table td:nth-child(9) input,
+.invoice-table td:nth-child(11) input{
+  text-align:right !important;
+}
+.invoice-table th:nth-child(13),
+.invoice-table td:nth-child(13){
+  text-align:center !important;
+}
+.invoice-table .trash-row{
+  width:23px !important;
+  min-width:23px !important;
+  height:23px !important;
+  margin:0 auto !important;
+  padding:0 !important;
+}
+
+
+/* FINAL invoice detail alignment + working Set Credit */
+.invoice-panel{display:none}.invoice-panel.active{display:block}
+.sheet-tabs .sheet-tab{border:0;background:transparent;cursor:pointer}
+.credit-help{padding:8px 10px;margin:0 0 6px;background:#f4fbff;border:1px solid #d8ebf5;border-radius:6px;color:#5d7483;font-size:9px}
+.table-wrap{width:100%!important;overflow-x:hidden!important}
+.invoice-table,.credit-table{width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:collapse!important}
+.invoice-table th,.credit-table th{box-sizing:border-box!important;padding:5px 4px!important;background:#eef7fb!important;border:1px solid #d8e6ed!important;color:#496675!important;font-size:7.6px!important;line-height:1.1!important;white-space:normal!important;vertical-align:middle!important;text-align:left!important}
+.invoice-table td,.credit-table td{box-sizing:border-box!important;padding:3px!important;border:1px solid #e7eef2!important;background:#fff!important;vertical-align:middle!important;height:32px!important;overflow:hidden!important}
+.invoice-table td input,.invoice-table td select,.credit-table td select{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;height:25px!important;min-height:25px!important;padding:2px 4px!important;margin:0!important;box-sizing:border-box!important;border:1px solid #d5e2e9!important;border-radius:4px!important;font-size:8.5px!important;background:#fff!important}
+.value-cell{display:flex!important;align-items:center!important;justify-content:flex-end!important;width:100%!important;height:25px!important;padding:0 4px!important;box-sizing:border-box!important;overflow:hidden!important;white-space:nowrap!important;font-size:8.5px!important;font-weight:800!important;font-variant-numeric:tabular-nums!important;color:#294d61!important}
+.num-head{text-align:right!important}.delete-cell{text-align:center!important}.trash-row{width:23px!important;height:23px!important;min-width:23px!important;margin:0 auto!important;padding:0!important}
+.credit-item-label,.credit-memo-label{font-size:8.8px!important;color:#38576a!important;white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important}.credit-amount{color:#087fae!important}
+@media(max-width:1100px){.table-wrap{overflow-x:auto!important}.invoice-table{min-width:1050px!important}.credit-table{min-width:720px!important}}
+
+
+.credit-table input,
+.credit-table select{
+  width:100% !important;
+  box-sizing:border-box !important;
+  min-height:30px !important;
+  height:30px !important;
+  border:1px solid #d5e6ef !important;
+  border-radius:6px !important;
+  background:#fff !important;
+  padding:4px 7px !important;
+  font-size:10px !important;
+  color:#17374f !important;
+}
+.credit-table input:focus,
+.credit-table select:focus{
+  border-color:#20a8e0 !important;
+  box-shadow:0 0 0 2px rgba(32,168,224,.08) !important;
+  outline:none !important;
+}
+.credit-table .js-credit-amount{
+  text-align:right !important;
+  font-variant-numeric:tabular-nums !important;
+}
+
+
+.credit-actions{
+  display:flex !important;
+  justify-content:flex-end !important;
+  margin-top:6px !important;
+}
+
+
+.invoice-title{
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:space-between !important;
+}
+.invoice-top-close{
+  margin-left:auto !important;
+  flex:0 0 auto !important;
+}
+
+
+/* ===== Sale Invoice modern alignment ===== */
+.invoice-sample{max-width:1580px}
+#invoiceForm{border-radius:14px!important;padding:15px 16px 12px!important}
+.invoice-title{margin-bottom:11px!important}
+.invoice-title h2{font-size:21px!important}
+.invoice-title p{font-size:9.5px!important}
+.invoice-top{
+  grid-template-columns:1.12fr 1fr 1fr 1.05fr!important;
+  gap:10px 14px!important;
+}
+.field{position:relative}
+.field label{font-size:9px!important;margin-bottom:4px!important}
+.field-help{
+  margin-top:3px;
+  color:#8799a5;
+  font-size:7.7px;
+  line-height:1.35;
+}
+.combo-input-wrap{position:relative}
+.combo-search-icon{
+  position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  z-index:2;color:#7393a4;font-size:13px;pointer-events:none
+}
+#customerSearch{padding-left:29px!important;padding-right:30px!important;background:#fff!important}
+.combo-clear{
+  position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;border:0;border-radius:6px;background:#eef5f8;
+  color:#6c8390;font-size:14px;line-height:22px;cursor:pointer
+}
+.combo-clear:hover{background:#e3eef3}
+.entity-results{padding:0!important;overflow:hidden!important;max-height:300px!important}
+.entity-options-scroll{max-height:238px;overflow:auto;padding:5px}
+.entity-add-customer{
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  width:100%;height:34px;border:0;border-top:1px solid #dce9ef;
+  background:#0aa563;color:#fff;font-size:9px;font-weight:850;cursor:pointer
+}
+.entity-add-customer:hover{background:#078e55}
+.sheet-tabs{margin-top:14px!important}
+.sheet-tab{padding:8px 13px 7px!important;font-size:9px!important}
+.credit-help{margin-top:6px!important}
+.credit-table th{font-size:8px!important}
+.credit-table td{height:36px!important}
+.credit-actions{margin-top:8px!important}
+.btn-green{background:#0aa563!important;border-color:#0aa563!important}
+.btn-green:hover{background:#078e55!important;border-color:#078e55!important}
+.btn-close-bottom{color:#a13d3d!important;border-color:#efcece!important}
+.btn-close-bottom:hover{background:#fff4f4!important}
+.bottom-actions{margin-top:12px!important;padding-top:10px!important}
+.summary-panel{border-radius:8px!important}
+.summary-row{min-height:28px!important}
+.invoice-top-close{color:#b04141!important;border-color:#f0cccc!important}
+.invoice-top-close:hover{background:#fff5f5!important}
+@media(max-width:1200px){
+  .invoice-top{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+</style>
+
+
+<style>
+/* ==========================================================
+   SALE INVOICE — compact AsianCam invoice style
+   Visual-only override. Existing JS/form functions stay intact.
+   ========================================================== */
+
+.invoice-sample{
+  max-width:none !important;
+  width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  color:#4d5962 !important;
+  font-family:Arial,Helvetica,sans-serif !important;
+}
+
+/* The sample starts directly with the document fields. */
+.invoice-title{
+  display:none !important;
+}
+
+#invoiceForm{
+  position:relative !important;
+  background:#fff !important;
+  border:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  padding:10px 10px 4px !important;
+  min-height:calc(100vh - 120px) !important;
+}
+
+/* 4 compact vertical groups like the supplied invoice screen */
+.invoice-top{
+  display:grid !important;
+  grid-template-columns:1fr 1fr 1fr 1.08fr !important;
+  gap:0 18px !important;
+  align-items:start !important;
+  padding:0 2px 8px !important;
+}
+
+.invoice-col{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:0 !important;
+}
+
+/* Label on left, control on right */
+.invoice-col .field{
+  display:grid !important;
+  grid-template-columns:108px minmax(0,1fr) !important;
+  align-items:center !important;
+  min-height:34px !important;
+  margin:0 !important;
+  gap:7px !important;
+}
+
+.invoice-col .field > label{
+  margin:0 !important;
+  padding:0 !important;
+  color:#59656c !important;
+  font-size:10px !important;
+  font-weight:500 !important;
+  line-height:1.15 !important;
+  white-space:normal !important;
+}
+
+.invoice-col .field > label .required,
+.invoice-col .required{
+  color:#e51f36 !important;
+}
+
+.invoice-col input,
+.invoice-col select,
+.invoice-col textarea,
+#customerSearch{
+  height:29px !important;
+  min-height:29px !important;
+  border:1px solid #cfd9df !important;
+  border-radius:2px !important;
+  background:#fff !important;
+  color:#56636b !important;
+  font-size:10px !important;
+  padding:4px 7px !important;
+  box-shadow:none !important;
+}
+
+.invoice-col textarea{
+  height:58px !important;
+  min-height:58px !important;
+  resize:none !important;
+}
+
+.invoice-col input:focus,
+.invoice-col select:focus,
+.invoice-col textarea:focus,
+#customerSearch:focus{
+  border-color:#0ca05f !important;
+  outline:0 !important;
+  box-shadow:0 0 0 1px rgba(12,160,95,.10) !important;
+}
+
+/* Helper lines should not disturb the compact alignment */
+.field-help{
+  grid-column:2 !important;
+  margin:-2px 0 3px !important;
+  font-size:7px !important;
+  color:#9aa7ad !important;
+  line-height:1.2 !important;
+}
+
+/* Customer searchable control */
+.customer-field{
+  position:relative !important;
+  z-index:30 !important;
+}
+.entity-combobox{
+  width:100% !important;
+  position:relative !important;
+}
+.combo-input-wrap{
+  position:relative !important;
+}
+.combo-search-icon{
+  display:none !important;
+}
+#customerSearch{
+  width:100% !important;
+  padding-left:7px !important;
+  padding-right:28px !important;
+}
+.combo-clear{
+  width:20px !important;
+  height:20px !important;
+  right:4px !important;
+  border-radius:2px !important;
+  font-size:12px !important;
+  background:#f2f5f6 !important;
+}
+.entity-results{
+  top:31px !important;
+  border:1px solid #ccd9df !important;
+  border-radius:2px !important;
+  box-shadow:0 5px 14px rgba(0,0,0,.14) !important;
+  background:#fff !important;
+}
+.entity-option{
+  min-height:30px !important;
+  border-radius:0 !important;
+  font-size:10px !important;
+  padding:0 9px !important;
+}
+.entity-add-customer{
+  height:32px !important;
+  border-radius:0 !important;
+  background:#0b9957 !important;
+  font-size:10px !important;
+}
+
+/* Summary on top-right in old invoice style */
+.summary-panel{
+  margin-top:1px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  overflow:visible !important;
+}
+.summary-row{
+  display:grid !important;
+  grid-template-columns:112px minmax(0,1fr) 32px !important;
+  align-items:center !important;
+  min-height:34px !important;
+  border:0 !important;
+  background:transparent !important;
+  padding:0 !important;
+  gap:0 !important;
+}
+.summary-row > span:first-child{
+  font-size:10px !important;
+  color:#59656c !important;
+}
+.summary-row strong{
+  height:28px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  padding:0 7px !important;
+  border:1px solid #d9ddc9 !important;
+  background:#faf9e9 !important;
+  font-size:10px !important;
+  color:#4f5b61 !important;
+  font-weight:600 !important;
+}
+.summary-row:last-child strong{
+  color:#079b50 !important;
+  background:#f1f8e9 !important;
+  font-weight:800 !important;
+}
+.currency-cell{
+  height:28px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  border:1px solid #d9ddc9 !important;
+  border-left:0 !important;
+  background:#fff !important;
+  font-size:10px !important;
+  color:#466579 !important;
+}
+
+/* Tabs */
+.sheet-tabs{
+  display:flex !important;
+  align-items:flex-end !important;
+  gap:4px !important;
+  height:37px !important;
+  margin:6px 0 0 !important;
+  padding:0 4px !important;
+  border-bottom:1px solid #cbd8de !important;
+}
+.sheet-tab{
+  height:36px !important;
+  padding:0 11px !important;
+  border:0 !important;
+  border-bottom:2px solid transparent !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  color:#4c5961 !important;
+  font-size:10px !important;
+  font-weight:700 !important;
+}
+.sheet-tab.active{
+  color:#129751 !important;
+  border-bottom-color:#27b45f !important;
+  background:transparent !important;
+}
+
+/* Detail and Credit tables */
+.invoice-panel{
+  padding:0 !important;
+}
+.table-wrap{
+  overflow:auto !important;
+  border:0 !important;
+  border-radius:0 !important;
+}
+.invoice-table,
+.credit-table{
+  width:100% !important;
+  border-collapse:collapse !important;
+  table-layout:fixed !important;
+}
+.invoice-table th,
+.credit-table th{
+  height:28px !important;
+  padding:0 5px !important;
+  border:1px solid #dae4e8 !important;
+  background:#eef4f6 !important;
+  color:#52606a !important;
+  font-size:8px !important;
+  font-weight:700 !important;
+  text-align:center !important;
+  white-space:nowrap !important;
+}
+.invoice-table td,
+.credit-table td{
+  height:36px !important;
+  padding:3px 4px !important;
+  border:1px solid #e0e7ea !important;
+  background:#fff !important;
+}
+.invoice-table input,
+.invoice-table select,
+.credit-table input,
+.credit-table select{
+  width:100% !important;
+  height:27px !important;
+  min-height:27px !important;
+  padding:3px 5px !important;
+  border:1px solid #cdd9df !important;
+  border-radius:1px !important;
+  background:#fff !important;
+  color:#59666d !important;
+  font-size:9px !important;
+}
+.invoice-table .value-cell{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  height:27px !important;
+  padding:0 5px !important;
+  background:#faf9e9 !important;
+  border:1px solid #e1dfc8 !important;
+  font-size:9px !important;
+}
+.trash-row{
+  width:26px !important;
+  height:26px !important;
+  border:1px solid #f0c8c8 !important;
+  border-radius:2px !important;
+  background:#fff5f5 !important;
+  color:#df4848 !important;
+  font-size:13px !important;
+}
+
+/* Credit tab should feel like a horizontal accounting row */
+.credit-help{
+  margin:7px 4px 5px !important;
+  font-size:8px !important;
+  color:#8a979d !important;
+}
+.credit-actions,
+.table-actions{
+  display:flex !important;
+  justify-content:flex-end !important;
+  margin:7px 0 !important;
+}
+
+/* Old green-button footer */
+.bottom-actions{
+  position:sticky !important;
+  bottom:0 !important;
+  z-index:20 !important;
+  min-height:48px !important;
+  margin-top:22px !important;
+  padding:7px 0 3px !important;
+  border-top:1px solid #edf0f2 !important;
+  background:#fff !important;
+  display:flex !important;
+  justify-content:space-between !important;
+  align-items:center !important;
+}
+.left-actions,
+.right-actions{
+  display:flex !important;
+  align-items:center !important;
+  gap:5px !important;
+}
+.btn{
+  min-height:32px !important;
+  height:32px !important;
+  border-radius:2px !important;
+  padding:0 12px !important;
+  font-size:9px !important;
+  font-weight:700 !important;
+  box-shadow:none !important;
+}
+.bottom-actions .btn:not(.btn-light),
+.btn-green{
+  background:#078e4d !important;
+  border-color:#078e4d !important;
+  color:#fff !important;
+}
+.bottom-actions .btn:not(.btn-light):hover,
+.btn-green:hover{
+  background:#067a42 !important;
+  border-color:#067a42 !important;
+}
+.bottom-actions .btn-light{
+  border-color:#078e4d !important;
+  background:#078e4d !important;
+  color:#fff !important;
+}
+.print-after{
+  font-size:9px !important;
+  color:#68767d !important;
+}
+
+/* Hide the floating top Close; sample uses the bottom Close action */
+.invoice-top-close{
+  display:none !important;
+}
+
+@media(max-width:1250px){
+  .invoice-top{
+    grid-template-columns:1fr 1fr !important;
+  }
+}
+@media(max-width:760px){
+  .invoice-top{
+    grid-template-columns:1fr !important;
+  }
+  .invoice-col .field{
+    grid-template-columns:100px minmax(0,1fr) !important;
+  }
+}
+</style>
+
+
+<style>
+/* ===== Sale Invoice modern compact refresh ===== */
+.invoice-page-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:24px!important;
+  padding:16px 18px!important;
+  margin:0 0 10px!important;
+  border:1px solid #dce8ee!important;
+  border-left:4px solid #11a66a!important;
+  border-radius:9px!important;
+  background:linear-gradient(180deg,#ffffff 0%,#fbfdfe 100%)!important;
+}
+.invoice-page-eyebrow{
+  margin-bottom:4px!important;
+  color:#10a164!important;
+  font-size:8px!important;
+  font-weight:900!important;
+  letter-spacing:.12em!important;
+}
+.invoice-page-head h1{
+  margin:0!important;
+  color:#14384a!important;
+  font-size:20px!important;
+  line-height:1.15!important;
+  font-weight:900!important;
+}
+.invoice-page-head p{
+  margin:5px 0 0!important;
+  color:#768b96!important;
+  font-size:9px!important;
+  line-height:1.4!important;
+}
+.invoice-page-badge{
+  min-width:145px!important;
+  padding:9px 12px!important;
+  border:1px solid #d8e6ec!important;
+  border-radius:8px!important;
+  background:#f8fcfe!important;
+}
+.invoice-page-badge span{
+  display:block!important;
+  color:#8ca0aa!important;
+  font-size:7.5px!important;
+  text-transform:uppercase!important;
+  letter-spacing:.08em!important;
+}
+.invoice-page-badge strong{
+  display:block!important;
+  margin-top:3px!important;
+  color:#0d7fb8!important;
+  font-size:11px!important;
+}
+
+/* Main form card */
+#invoiceForm{
+  border:1px solid #dce7ec!important;
+  border-radius:10px!important;
+  box-shadow:0 7px 22px rgba(40,73,89,.05)!important;
+  padding:14px 14px 10px!important;
+}
+
+/* Improve field grouping */
+.invoice-top{
+  gap:4px 18px!important;
+}
+.invoice-col{
+  padding:2px 0!important;
+}
+.invoice-col .field{
+  min-height:36px!important;
+}
+.invoice-col .field > label{
+  color:#4d626d!important;
+  font-weight:700!important;
+}
+.invoice-col input,
+.invoice-col select,
+.invoice-col textarea,
+#customerSearch{
+  border-color:#cbdbe3!important;
+  background:#fff!important;
+}
+.invoice-col input:hover,
+.invoice-col select:hover,
+.invoice-col textarea:hover,
+#customerSearch:hover{
+  border-color:#9fc7d9!important;
+}
+
+/* Searchable customer field */
+.customer-field{
+  z-index:40!important;
+}
+.entity-results{
+  border-radius:6px!important;
+}
+.entity-option:hover{
+  background:#eef8fc!important;
+}
+.entity-add-customer{
+  background:#0aa563!important;
+}
+
+/* Summary panel */
+.summary-panel{
+  padding:0!important;
+}
+.summary-row{
+  margin-bottom:3px!important;
+}
+.summary-row > span:first-child{
+  font-weight:700!important;
+}
+.summary-row strong{
+  border-radius:3px 0 0 3px!important;
+}
+.currency-cell{
+  border-radius:0 3px 3px 0!important;
+}
+
+/* Tabs */
+.sheet-tabs{
+  margin-top:12px!important;
+}
+.sheet-tab{
+  font-weight:800!important;
+  color:#617680!important;
+}
+.sheet-tab.active{
+  color:#0b9b5c!important;
+}
+
+/* Tables */
+.invoice-table th,
+.credit-table th{
+  background:#edf5f8!important;
+  color:#49606c!important;
+  letter-spacing:.02em!important;
+}
+.invoice-table tbody tr:hover td,
+.credit-table tbody tr:hover td{
+  background:#fbfdfe!important;
+}
+.invoice-table input,
+.invoice-table select,
+.credit-table input,
+.credit-table select{
+  border-radius:3px!important;
+}
+.table-actions .btn,
+.credit-actions .btn{
+  border-radius:5px!important;
+  background:#fff!important;
+  color:#0a78aa!important;
+  border-color:#bdd8e4!important;
+}
+
+/* Bottom actions */
+.bottom-actions{
+  padding-top:10px!important;
+}
+.bottom-actions .btn{
+  border-radius:5px!important;
+  min-width:86px!important;
+}
+.bottom-actions .btn-green{
+  background:#0aa563!important;
+  border-color:#0aa563!important;
+}
+.bottom-actions .btn[name="save_action"][value="save_close"]{
+  background:#149ed7!important;
+  border-color:#149ed7!important;
+}
+.bottom-actions .btn-close-bottom{
+  background:#fff!important;
+  color:#c84a4a!important;
+  border-color:#efcaca!important;
+}
+.bottom-actions .btn-close-bottom:hover{
+  background:#fff5f5!important;
+}
+.left-actions .btn{
+  min-width:92px!important;
+}
+
+/* Compact responsive */
+@media(max-width:1100px){
+  .invoice-page-head{align-items:flex-start!important}
+  .invoice-page-badge{display:none!important}
+}
+</style>
+
+
+<style>
+/* ==========================================================
+   SALE INVOICE — modern card style matching Purchase Bill
+   ========================================================== */
+body{
+  background:#eef8fc !important;
+}
+
+.invoice-sample{
+  max-width:1350px !important;
+  width:calc(100% - 40px) !important;
+  margin:20px auto 30px !important;
+}
+
+.invoice-page-head{
+  padding:18px 20px !important;
+  margin:0 !important;
+  border:1px solid #d8e8ef !important;
+  border-bottom:0 !important;
+  border-left:0 !important;
+  border-radius:14px 14px 0 0 !important;
+  background:#fff !important;
+  box-shadow:none !important;
+}
+
+.invoice-page-eyebrow{
+  display:none !important;
+}
+
+.invoice-page-head h1{
+  font-size:22px !important;
+  color:#073a5a !important;
+  font-weight:900 !important;
+}
+
+.invoice-page-head p{
+  font-size:9px !important;
+  color:#7e94a0 !important;
+  margin-top:5px !important;
+}
+
+.invoice-page-badge{
+  display:none !important;
+}
+
+#invoiceForm{
+  border:1px solid #d8e8ef !important;
+  border-radius:0 0 14px 14px !important;
+  box-shadow:0 8px 24px rgba(48,94,116,.06) !important;
+  padding:16px 18px 10px !important;
+  background:#fff !important;
+}
+
+/* Top grid like Purchase Bill */
+.invoice-top{
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:10px 14px !important;
+  align-items:start !important;
+}
+
+.invoice-col{
+  gap:8px !important;
+}
+
+.invoice-col .field{
+  display:block !important;
+  min-height:auto !important;
+  margin:0 0 9px !important;
+}
+
+.invoice-col .field > label{
+  display:block !important;
+  margin:0 0 5px !important;
+  color:#0c3c58 !important;
+  font-size:9px !important;
+  font-weight:800 !important;
+  line-height:1.2 !important;
+}
+
+.invoice-col input,
+.invoice-col select,
+.invoice-col textarea,
+#customerSearch{
+  width:100% !important;
+  height:34px !important;
+  min-height:34px !important;
+  border:1px solid #cfe0e8 !important;
+  border-radius:6px !important;
+  background:#fff !important;
+  color:#536d79 !important;
+  font-size:9px !important;
+  padding:6px 9px !important;
+}
+
+.invoice-col textarea{
+  height:56px !important;
+  min-height:56px !important;
+}
+
+.field-help{
+  display:block !important;
+  margin:4px 0 0 !important;
+  color:#8da0aa !important;
+  font-size:7px !important;
+  line-height:1.3 !important;
+}
+
+.combo-input-wrap{
+  position:relative !important;
+}
+.combo-search-icon{
+  display:block !important;
+  left:9px !important;
+  color:#6e92a5 !important;
+}
+#customerSearch{
+  padding-left:28px !important;
+  padding-right:30px !important;
+}
+.combo-clear{
+  right:6px !important;
+  width:22px !important;
+  height:22px !important;
+  border-radius:6px !important;
+  background:#eef5f8 !important;
+}
+
+.entity-results{
+  border-radius:7px !important;
+  border:1px solid #cfe0e8 !important;
+  box-shadow:0 8px 22px rgba(29,72,92,.14) !important;
+}
+.entity-option{
+  min-height:32px !important;
+  font-size:9px !important;
+}
+.entity-add-customer{
+  height:34px !important;
+  font-size:9px !important;
+}
+
+/* Summary card */
+.summary-panel{
+  border:1px solid #d9e7ed !important;
+  border-radius:8px !important;
+  background:#f9fcfd !important;
+  padding:10px 12px !important;
+}
+.summary-panel::before{
+  content:"INVOICE SUMMARY";
+  display:block;
+  margin-bottom:8px;
+  color:#2d586c;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+.summary-row{
+  grid-template-columns:1fr 105px 30px !important;
+  min-height:34px !important;
+  border-bottom:1px solid #e4edf1 !important;
+  margin:0 !important;
+}
+.summary-row:last-child{
+  border-bottom:0 !important;
+}
+.summary-row > span:first-child{
+  color:#56717d !important;
+  font-size:8.5px !important;
+}
+.summary-row strong{
+  border:0 !important;
+  background:transparent !important;
+  font-size:9px !important;
+  color:#123d54 !important;
+}
+.summary-row:last-child{
+  margin-top:5px !important;
+  background:#e8f8ee !important;
+  border-radius:5px !important;
+}
+.summary-row:last-child strong{
+  color:#008c49 !important;
+  font-size:12px !important;
+}
+.currency-cell{
+  border:0 !important;
+  background:transparent !important;
+}
+
+/* Tabs like purchase bill */
+.sheet-tabs{
+  height:40px !important;
+  margin-top:14px !important;
+  padding:0 !important;
+  gap:8px !important;
+  border-bottom:1px solid #d6e4ea !important;
+}
+.sheet-tab{
+  height:40px !important;
+  padding:0 14px !important;
+  border:1px solid transparent !important;
+  border-bottom:0 !important;
+  border-radius:7px 7px 0 0 !important;
+  color:#516975 !important;
+  font-size:9px !important;
+  font-weight:800 !important;
+}
+.sheet-tab.active{
+  color:#008f4f !important;
+  background:#fff !important;
+  border-color:#cfe0e7 !important;
+  box-shadow:inset 0 -2px 0 #00a85a !important;
+}
+
+/* Table modern card */
+.table-wrap{
+  border:1px solid #d7e5eb !important;
+  border-top:0 !important;
+  border-radius:0 0 8px 8px !important;
+  overflow:auto !important;
+}
+.invoice-table th,
+.credit-table th{
+  height:30px !important;
+  border:0 !important;
+  border-bottom:1px solid #d7e5eb !important;
+  background:#edf6fa !important;
+  color:#496776 !important;
+  font-size:8px !important;
+  font-weight:900 !important;
+}
+.invoice-table td,
+.credit-table td{
+  height:39px !important;
+  border:0 !important;
+  border-bottom:1px solid #e6eef2 !important;
+  background:#fff !important;
+}
+.invoice-table input,
+.invoice-table select,
+.credit-table input,
+.credit-table select{
+  height:29px !important;
+  border:1px solid #cfe0e8 !important;
+  border-radius:5px !important;
+  font-size:8.5px !important;
+}
+.invoice-table .value-cell{
+  height:29px !important;
+  border:0 !important;
+  background:transparent !important;
+  font-weight:800 !important;
+  color:#007cb7 !important;
+}
+.trash-row{
+  border-radius:6px !important;
+  border-color:#f2cccc !important;
+  background:#fff5f5 !important;
+}
+
+.table-actions,
+.credit-actions{
+  margin-top:8px !important;
+}
+.table-actions .btn,
+.credit-actions .btn{
+  height:32px !important;
+  border-radius:7px !important;
+  background:#fff !important;
+  border-color:#bdd8e4 !important;
+  color:#0a78aa !important;
+}
+
+/* Footer like purchase bill */
+.bottom-actions{
+  position:static !important;
+  margin-top:14px !important;
+  padding:10px 0 0 !important;
+  border-top:1px solid #dde9ee !important;
+}
+.btn{
+  height:33px !important;
+  min-height:33px !important;
+  border-radius:7px !important;
+  font-size:9px !important;
+}
+.left-actions .btn{
+  background:#fff !important;
+  color:#0d77a8 !important;
+  border-color:#c4dce7 !important;
+}
+.bottom-actions .btn-green{
+  background:#0aa563 !important;
+  border-color:#0aa563 !important;
+  color:#fff !important;
+}
+.bottom-actions .btn[name="save_action"][value="save_close"]{
+  background:#1ea4db !important;
+  border-color:#1ea4db !important;
+  color:#fff !important;
+}
+.bottom-actions .btn-close-bottom{
+  background:#fff !important;
+  color:#c34d4d !important;
+  border-color:#efcaca !important;
+}
+.print-after{
+  font-size:8px !important;
+}
+
+/* Top close like Purchase Bill */
+.invoice-page-head{
+  position:relative !important;
+}
+.invoice-page-head::after{
+  content:"× Close";
+  position:absolute;
+  right:20px;
+  top:18px;
+  height:32px;
+  padding:0 12px;
+  display:flex;
+  align-items:center;
+  border:1px solid #efcaca;
+  border-radius:7px;
+  color:#c14f4f;
+  background:#fff;
+  font-size:8.5px;
+  font-weight:800;
+  pointer-events:none;
+}
+
+@media(max-width:1150px){
+  .invoice-top{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+}
+@media(max-width:700px){
+  .invoice-sample{width:calc(100% - 16px) !important}
+  .invoice-top{grid-template-columns:1fr !important}
+  .invoice-page-head::after{display:none}
+}
+</style>
+
+
+<style>
+/* ==========================================================
+   SALE INVOICE — compact horizontal-column layout
+   Same sample structure, modernized, minimal wasted space
+   ========================================================== */
+
+/* Main card spacing */
+.invoice-sample{
+  max-width:1380px !important;
+  width:calc(100% - 34px) !important;
+  margin:16px auto 24px !important;
+}
+.invoice-page-head{
+  padding:15px 18px !important;
+}
+.invoice-page-head h1{
+  font-size:21px !important;
+}
+#invoiceForm{
+  padding:12px 14px 10px !important;
+}
+
+/* 4 main columns, compact like sample */
+.invoice-top{
+  display:grid !important;
+  grid-template-columns:1fr 1fr 1fr 1.02fr !important;
+  gap:0 18px !important;
+  align-items:start !important;
+}
+
+/* Each field is one horizontal row:
+   label on left, input on right */
+.invoice-col .field{
+  display:grid !important;
+  grid-template-columns:112px minmax(0,1fr) !important;
+  align-items:center !important;
+  gap:7px !important;
+  min-height:33px !important;
+  margin:0 !important;
+}
+
+.invoice-col .field > label{
+  margin:0 !important;
+  color:#53656f !important;
+  font-size:9px !important;
+  font-weight:700 !important;
+  line-height:1.15 !important;
+  white-space:normal !important;
+}
+
+.invoice-col input,
+.invoice-col select,
+.invoice-col textarea,
+#customerSearch{
+  width:100% !important;
+  height:29px !important;
+  min-height:29px !important;
+  padding:4px 7px !important;
+  border:1px solid #cddbe2 !important;
+  border-radius:4px !important;
+  background:#fff !important;
+  color:#52636d !important;
+  font-size:9px !important;
+}
+
+.invoice-col textarea{
+  height:55px !important;
+  min-height:55px !important;
+}
+
+/* Helper text should not consume vertical space */
+.field-help{
+  grid-column:2 !important;
+  margin:-2px 0 2px !important;
+  color:#94a4ac !important;
+  font-size:6.8px !important;
+  line-height:1.15 !important;
+}
+
+/* Customer picker fits inside horizontal row */
+.customer-field{
+  z-index:40 !important;
+}
+.entity-combobox{
+  width:100% !important;
+}
+.combo-input-wrap{
+  width:100% !important;
+}
+#customerSearch{
+  padding-left:27px !important;
+  padding-right:28px !important;
+}
+.combo-search-icon{
+  left:8px !important;
+}
+.combo-clear{
+  right:4px !important;
+  width:20px !important;
+  height:20px !important;
+  border-radius:5px !important;
+}
+
+/* Summary should line up with right-side fields, not become tall */
+.summary-panel{
+  padding:7px 9px !important;
+  border-radius:6px !important;
+}
+.summary-panel::before{
+  margin-bottom:3px !important;
+  font-size:8px !important;
+}
+.summary-row{
+  grid-template-columns:96px minmax(0,1fr) 26px !important;
+  min-height:31px !important;
+  border-bottom:0 !important;
+}
+.summary-row > span:first-child{
+  font-size:8.5px !important;
+}
+.summary-row strong{
+  height:27px !important;
+  padding:0 6px !important;
+  border:1px solid #dedfcf !important;
+  background:#faf9e9 !important;
+  border-radius:3px 0 0 3px !important;
+}
+.currency-cell{
+  height:27px !important;
+  border:1px solid #dedfcf !important;
+  border-left:0 !important;
+  border-radius:0 3px 3px 0 !important;
+  background:#fff !important;
+}
+.summary-row:last-child{
+  margin-top:2px !important;
+  background:transparent !important;
+}
+.summary-row:last-child strong{
+  background:#eef8e8 !important;
+}
+
+/* Make tabs/table start immediately after fields */
+.sheet-tabs{
+  margin-top:10px !important;
+  height:35px !important;
+}
+.sheet-tab{
+  height:35px !important;
+  padding:0 12px !important;
+  font-size:8.5px !important;
+}
+
+/* Table compact like sample */
+.invoice-table th,
+.credit-table th{
+  height:27px !important;
+  font-size:7.8px !important;
+}
+.invoice-table td,
+.credit-table td{
+  height:35px !important;
+  padding:3px !important;
+}
+.invoice-table input,
+.invoice-table select,
+.credit-table input,
+.credit-table select{
+  height:27px !important;
+  min-height:27px !important;
+  font-size:8.5px !important;
+  border-radius:3px !important;
+}
+.invoice-table .value-cell{
+  height:27px !important;
+  font-size:8.5px !important;
+}
+
+/* Actions closer to table */
+.table-actions,
+.credit-actions{
+  margin:6px 0 0 !important;
+}
+.bottom-actions{
+  margin-top:10px !important;
+  padding-top:8px !important;
+}
+.btn{
+  height:31px !important;
+  min-height:31px !important;
+  padding:0 11px !important;
+  font-size:8.5px !important;
+}
+
+/* Prevent extra blank height */
+.invoice-col{
+  min-width:0 !important;
+}
+.invoice-panel{
+  margin:0 !important;
+  padding:0 !important;
+}
+
+/* Responsive */
+@media(max-width:1180px){
+  .invoice-top{
+    grid-template-columns:1fr 1fr !important;
+    gap:4px 16px !important;
+  }
+}
+@media(max-width:720px){
+  .invoice-top{
+    grid-template-columns:1fr !important;
+  }
+  .invoice-col .field{
+    grid-template-columns:100px minmax(0,1fr) !important;
+  }
+}
+</style>
+
+
+<style>
+/* Searchable Debit / A/R Account */
+.ar-account-field{position:relative;z-index:35!important}
+.account-combobox{position:relative;width:100%}
+.account-results{
+  position:absolute;
+  left:0;right:0;top:31px;
+  z-index:9999;
+  max-height:280px;
+  overflow:auto;
+  background:#fff;
+  border:1px solid #cbdbe3;
+  border-radius:5px;
+  box-shadow:0 7px 18px rgba(22,60,79,.16);
+}
+.account-option{
+  width:100%;
+  min-height:31px;
+  display:flex;
+  align-items:center;
+  padding:5px 9px;
+  border:0;
+  border-bottom:1px solid #edf2f4;
+  background:#fff;
+  color:#425966;
+  text-align:left;
+  font-size:9px;
+  cursor:pointer;
+}
+.account-option:last-child{border-bottom:0}
+.account-option:hover,
+.account-option.active{
+  background:#eaf5ff;
+  color:#0b6fa4;
+}
+.account-empty{
+  padding:12px 10px;
+  color:#8b9aa3;
+  font-size:9px;
+  text-align:center;
+}
+#arAccountSearch{
+  width:100%!important;
+  padding-left:27px!important;
+  padding-right:28px!important;
+}
+</style>
+
+<div class="invoice-sample">
+
+<div class="invoice-page-head">
+  <div>
+    <div class="invoice-page-eyebrow">CUSTOMER SALES</div>
+    <h1>Sale Invoice / Invoice</h1>
+    <p>Create customer invoices, manage A/R, item sales, tax, discount and credit accounts.</p>
+  </div>
+  <div class="invoice-page-badge">
+    <span>Document</span>
+    <strong>Sales Invoice</strong>
+  </div>
+</div>
+
+<form method="post" id="invoiceForm">
+{% csrf_token %}
+<div class="invoice-title">
+  <div><h2>{% if document_type == 'sale_receipt' %}Sale Receipt{% else %}Sale Invoice / Invoice{% endif %}</h2><p>{% if document_type == 'sale_receipt' %}Immediate customer sale{% else %}Create a customer invoice with one A/R debit account and multiple credit lines.{% endif %}</p></div>
+  <a class="btn btn-light invoice-top-close" href="{% if document_type == 'sale_receipt' %}{% url 'sale_receipt_list' %}{% else %}{% url 'customer_invoice_list' %}{% endif %}">✕ Close</a>
+</div>
+{% if form.non_field_errors %}<div class="errors">{{ form.non_field_errors }}</div>{% endif %}
+
+<div class="invoice-top">
+  <div class="invoice-col">
+    <div class="field customer-field">
+      <label>Customer<span class="required">*</span></label>
+      <div class="entity-combobox" data-select-id="id_customer" data-add-url="{% url 'customer_create' %}">
+        <div class="combo-input-wrap">
+          <span class="combo-search-icon">⌕</span>
+          <input type="text" id="customerSearch" autocomplete="off" placeholder="Type customer name, code or phone...">
+          <button type="button" class="combo-clear" id="clearCustomer" title="Clear">×</button>
+        </div>
+        <div class="entity-results" hidden></div>
+      </div>
+      <div class="hidden-model-select">{{ form.customer }}</div>
+      {{ form.customer.errors }}
+      <div class="field-help">Search existing customers first to avoid duplicate records.</div>
+    </div>
+    <div class="field ar-account-field">
+      <label>Debit Account / A/R Account<span class="required">*</span></label>
+      <div class="account-combobox" id="arAccountBox">
+        <div class="combo-input-wrap">
+          <span class="combo-search-icon">⌕</span>
+          <input type="text" id="arAccountSearch" autocomplete="off"
+                 placeholder="Type account code or name...">
+          <button type="button" class="combo-clear" id="clearArAccount" title="Clear">×</button>
+        </div>
+        <div class="account-results" id="arAccountResults" hidden></div>
+      </div>
+      <div class="hidden-model-select">{{ form.accounts_receivable_account }}</div>
+      {{ form.accounts_receivable_account.errors }}
+      <div class="field-help">Type account code or account name to search. Normally Accounts Receivable (12000).</div>
+    </div>
+    <div class="field"><label>Currency<span class="required">*</span></label>{{ form.currency }}</div>
+    <div class="field"><label>Credit Term</label>{{ form.credit_term }}</div>
+    <div class="field"><label>Price Level</label>{{ form.price_level }}</div>
+    <div class="field"><label>Salesperson</label>{{ form.salesperson }}</div>
+    {% if document_type == 'sale_receipt' %}<div class="field"><label>Deposit To<span class="required">*</span></label>{{ form.deposit_account }}{{ form.deposit_account.errors }}</div>{% endif %}
+  </div>
+
+  <div class="invoice-col">
+    <div class="field"><label>Date<span class="required">*</span></label>{{ form.invoice_date }}{{ form.invoice_date.errors }}</div>
+    <div class="field"><label>Due Date</label>{{ form.due_date }}</div>
+    <div class="field"><label>Quotation</label>{{ form.quotation_no }}</div>
+    <div class="field"><label>Sale Order</label>{{ form.sale_order_no }}</div>
+    <div class="field"><label>Memo</label>{{ form.memo }}</div>
+  </div>
+
+  <div class="invoice-col">
+    <div class="field"><label>Number</label>{{ form.number }}</div>
+    <div class="field"><label>Warehouse</label>{{ form.warehouse }}</div>
+    <div class="field"><label>Address Name</label>{{ form.address_name }}</div>
+    <div class="field"><label>Truck No</label>{{ form.truck_no }}</div>
+    <div class="field"><label>PO Number</label>{{ form.po_number }}</div>
+  </div>
+
+  <div class="invoice-col">
+    <div class="field"><label>Discount and Tax Mode</label>{{ form.discount_tax_mode }}</div>
+    <div class="field"><label>Display Tax Exchange Rate</label>{{ form.exchange_rate }}</div>
+    <div class="summary-panel">
+      <div class="summary-row"><span>Sub Total</span><strong id="subtotal">0.00</strong><span class="currency-cell">$</span></div>
+      <div class="summary-row"><span>Discount</span><strong id="discount">0.00</strong><span class="currency-cell">$</span></div>
+      <div class="summary-row"><span>Tax</span><strong id="tax">0.00</strong><span class="currency-cell">$</span></div>
+      <div class="summary-row grand"><span>Grand Total</span><strong id="grand">0.00</strong><span class="currency-cell">$</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet-tabs" role="tablist">
+  <button type="button" class="sheet-tab active" data-tab="detailPanel">Invoice Detail</button>
+  <button type="button" class="sheet-tab" data-tab="creditPanel">Credit Accounts</button>
+</div>
+{{ line_formset.management_form }}
+
+<div id="detailPanel" class="invoice-panel active">
+  <div class="table-wrap">
+    <table class="invoice-table">
+      <colgroup>
+        <col style="width:11%"><col style="width:8%"><col style="width:15%"><col style="width:5%">
+        <col style="width:7%"><col style="width:7%"><col style="width:7%"><col style="width:7%">
+        <col style="width:7%"><col style="width:8%"><col style="width:6%"><col style="width:9%"><col style="width:3%">
+      </colgroup>
+      <thead><tr><th>Item Name</th><th>Item Code</th><th>Description</th><th class="num-head">Qty</th><th>Unit Name</th><th class="num-head">Price ($)</th><th class="num-head">Standard Price</th><th class="num-head">Amount ($)</th><th class="num-head">Discount ($)</th><th class="num-head">Grand Total</th><th class="num-head">Tax ($)</th><th>Memo</th><th>Delete</th></tr></thead>
+      <tbody id="lineBody">
+      {% for f in line_formset %}
+        <tr class="line-row" data-form-index="{{ forloop.counter0 }}">
+          {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>{{ f.item }}{{ f.item.errors }}</td>
+          <td><input type="text" class="item-code-display" value="" readonly tabindex="-1"></td>
+          <td>{{ f.description }}</td>
+          <td>{{ f.qty }}</td>
+          <td>{{ f.unit_name }}</td>
+          <td>{{ f.unit_price }}</td>
+          <td><span class="standard-price value-cell">0.00</span></td>
+          <td><span class="line-amount value-cell">0.00</span></td>
+          <td>{{ f.discount_amount }}</td>
+          <td><span class="line-grand value-cell">0.00</span></td>
+          <td>{{ f.tax_amount }}</td>
+          <td>{{ f.memo }}</td>
+          <td class="delete-cell"><span style="display:none">{{ f.DELETE }}</span><button type="button" class="trash-row" title="Delete row">🗑</button></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="table-actions"><button type="button" class="btn btn-light" id="addInvoiceRow">＋ Add Invoice Row</button></div>
+</div>
+
+<div id="creditPanel" class="invoice-panel">
+  <div class="credit-help">Add one or more horizontal credit lines. Each line can use a different revenue / credit account.</div>
+  <div class="table-wrap">
+    <table class="credit-table">
+      <colgroup><col style="width:26%"><col style="width:24%"><col style="width:18%"><col style="width:32%"></colgroup>
+      <thead><tr><th>Item / Description</th><th>Memo</th><th class="num-head">Credit Amount ($)</th><th>Credit Account</th></tr></thead>
+      <tbody id="creditBody">
+      {% for f in line_formset %}
+        <tr class="credit-row" data-form-index="{{ forloop.counter0 }}">
+          <td><input type="text" class="credit-item-input" placeholder="Item / Description"></td>
+          <td><input type="text" class="credit-memo-input" placeholder="Memo"></td>
+          <td>{{ f.credit_amount }}{{ f.credit_amount.errors }}</td>
+          <td>{{ f.revenue_account }}{{ f.revenue_account.errors }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="table-actions credit-actions">
+    <button type="button" class="btn btn-light" id="addCreditRow">＋ Add Credit Row</button>
+  </div>
+</div>
+
+<div class="bottom-actions">
+  <div class="left-actions"><button type="button" class="btn btn-light" id="printPreview">🖨 Print Preview</button></div>
+  <div class="right-actions">
+    <label class="print-after"><input type="checkbox" id="printAfterSave" name="print_after_save" value="1"> Print After Save</label>
+    <button class="btn btn-green" name="save_action" value="save_new">▣ Save & New</button>
+    <button class="btn" name="save_action" value="save_close">▣ Save & Close</button>
+    <a class="btn btn-light btn-close-bottom" href="{% if document_type == 'sale_receipt' %}{% url 'sale_receipt_list' %}{% else %}{% url 'customer_invoice_list' %}{% endif %}">× Close</a>
+  </div>
+</div>
+</form>
+</div>
+
+{{ customer_defaults|json_script:"customer-defaults" }}
+{{ item_defaults|json_script:"item-defaults" }}
+<script>
+(function(){
+ const customerDefaults=JSON.parse(document.getElementById('customer-defaults')?.textContent||'{}')||{};
+ const itemDefaults=JSON.parse(document.getElementById('item-defaults')?.textContent||'{}')||{};
+ const money=v=>{const n=parseFloat(String(v||0).replace(/,/g,''));return Number.isFinite(n)?n:0};
+ const fmt=v=>money(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const subtotalEl=document.getElementById('subtotal'),discountEl=document.getElementById('discount'),taxEl=document.getElementById('tax'),grandEl=document.getElementById('grand');
+ const body=document.getElementById('lineBody'),creditBody=document.getElementById('creditBody'),total=document.getElementById('id_lines-TOTAL_FORMS');
+
+ function rowIndex(row){return row?.dataset.formIndex ?? ''}
+ function creditRowFor(row){return creditBody.querySelector(`.credit-row[data-form-index="${rowIndex(row)}"]`)}
+ function syncCreditRow(row){
+   const cr=creditRowFor(row);if(!cr)return;
+   const itemSel=row.querySelector('.js-sale-item');
+   const descInput=row.querySelector('input[name$="-description"]');
+   const memoInput=row.querySelector('input[name$="-memo"]');
+   const itemMirror=cr.querySelector('.credit-item-input');
+   const memoMirror=cr.querySelector('.credit-memo-input');
+   const amountInput=cr.querySelector('.js-credit-amount');
+
+   const itemText=itemSel?.options[itemSel.selectedIndex]?.text||'';
+   const desc=descInput?.value||'';
+   const memo=memoInput?.value||'';
+
+   if(itemMirror && document.activeElement!==itemMirror){
+     itemMirror.value=(itemText&&itemSel?.value?itemText:'')+(desc?`${itemText&&itemSel?.value?' · ':''}${desc}`:'');
+   }
+   if(memoMirror && document.activeElement!==memoMirror){
+     memoMirror.value=memo;
+   }
+
+   const q=money(row.querySelector('.js-qty')?.value),
+         p=money(row.querySelector('.js-price')?.value),
+         d=money(row.querySelector('.js-discount')?.value),
+         t=money(row.querySelector('.js-tax')?.value);
+   const calculated=q*p-d+t;
+
+   if(amountInput && (!amountInput.value || amountInput.dataset.auto==='1')){
+     amountInput.value=fmt(calculated);
+     amountInput.dataset.auto='1';
+   }
+
+   cr.style.display=row.style.display==='none'?'none':'';
+ }
+ function calc(){
+   let sub=0,dis=0,tax=0;
+   document.querySelectorAll('.line-row').forEach(r=>{
+     if(r.style.display==='none'||r.querySelector('input[name$="-DELETE"]')?.checked){syncCreditRow(r);return}
+     const q=money(r.querySelector('.js-qty')?.value),p=money(r.querySelector('.js-price')?.value),d=money(r.querySelector('.js-discount')?.value),t=money(r.querySelector('.js-tax')?.value),amount=q*p,gt=amount-d+t;
+     r.querySelector('.line-amount').textContent=fmt(amount);r.querySelector('.line-grand').textContent=fmt(gt);
+     sub+=amount;dis+=d;tax+=t;syncCreditRow(r)
+   });
+   subtotalEl.textContent=fmt(sub);discountEl.textContent=fmt(dis);taxEl.textContent=fmt(tax);grandEl.textContent=fmt(sub-dis+tax)
+ }
+ function applyItem(row){
+   const sel=row.querySelector('.js-sale-item');if(!sel)return;const d=itemDefaults[String(sel.value)]||{};
+   const code=row.querySelector('.item-code-display'),desc=row.querySelector('input[name$="-description"]'),unit=row.querySelector('input[name$="-unit_name"]'),price=row.querySelector('.js-price');
+   if(code)code.value=d.code||'';if(desc&&!desc.value)desc.value=d.description||'';if(unit&&!unit.value)unit.value=d.unit||'';if(price&&(!price.value||money(price.value)===0))price.value=d.sale_price||'0';
+   row.querySelector('.standard-price').textContent=fmt(d.sale_price||0);
+   const cr=creditRowFor(row),acct=cr?.querySelector('.js-credit-account');if(acct&&d.revenue_account&&!acct.value)acct.value=String(d.revenue_account);
+   calc()
+ }
+
+ function wireCreditRows(scope=document){
+   scope.querySelectorAll('.credit-row').forEach(cr=>{
+     const idx=cr.dataset.formIndex;
+     const row=body.querySelector(`.line-row[data-form-index="${idx}"]`);
+     if(!row)return;
+
+     const itemMirror=cr.querySelector('.credit-item-input');
+     const memoMirror=cr.querySelector('.credit-memo-input');
+     const amountInput=cr.querySelector('.js-credit-amount');
+
+     if(itemMirror && !itemMirror.dataset.wired){
+       itemMirror.dataset.wired='1';
+       itemMirror.addEventListener('input',()=>{
+         const desc=row.querySelector('input[name$="-description"]');
+         if(desc)desc.value=itemMirror.value;
+       });
+     }
+     if(memoMirror && !memoMirror.dataset.wired){
+       memoMirror.dataset.wired='1';
+       memoMirror.addEventListener('input',()=>{
+         const memo=row.querySelector('input[name$="-memo"]');
+         if(memo)memo.value=memoMirror.value;
+       });
+     }
+     if(amountInput && !amountInput.dataset.wired){
+       amountInput.dataset.wired='1';
+       if(!amountInput.value)amountInput.dataset.auto='1';
+       amountInput.addEventListener('input',()=>{amountInput.dataset.auto='0';});
+       amountInput.addEventListener('blur',()=>{if(amountInput.value.trim())amountInput.value=fmt(amountInput.value);});
+     }
+   });
+ }
+
+ function wireRows(scope=document){
+   scope.querySelectorAll('.line-row').forEach(r=>{
+     const item=r.querySelector('.js-sale-item');if(item&&!item.dataset.wired){item.dataset.wired=1;item.addEventListener('change',()=>applyItem(r));applyItem(r)}
+     const del=r.querySelector('.trash-row');if(del&&!del.dataset.wired){del.dataset.wired=1;del.addEventListener('click',()=>{const d=r.querySelector('input[name$="-DELETE"]');if(d){d.checked=true;r.style.display='none'}else r.remove();const cr=creditRowFor(r);if(cr)cr.style.display='none';calc()})}
+   })
+ }
+ document.getElementById('addInvoiceRow').addEventListener('click',()=>{
+   const rows=[...body.querySelectorAll('.line-row')],credits=[...creditBody.querySelectorAll('.credit-row')];if(!rows.length||!credits.length)return;
+   const idx=parseInt(total.value||0,10),r=rows[rows.length-1].cloneNode(true),cr=credits[credits.length-1].cloneNode(true);
+   [r,cr].forEach(el=>{el.innerHTML=el.innerHTML.replace(/lines-(\d+)-/g,'lines-'+idx+'-').replace(/id_lines-(\d+)-/g,'id_lines-'+idx+'-');el.dataset.formIndex=String(idx);el.style.display='';el.querySelectorAll('input,select,textarea').forEach(e=>{if(e.type==='hidden'){if(e.name?.endsWith('-id'))e.value=''}else if(e.type==='checkbox')e.checked=false;else if(e.tagName==='SELECT')e.selectedIndex=0;else e.value=''});el.querySelectorAll('[data-wired]').forEach(e=>delete e.dataset.wired)});
+   const code=r.querySelector('.item-code-display');if(code)code.value='';r.querySelector('.standard-price').textContent='0.00';r.querySelector('.line-amount').textContent='0.00';r.querySelector('.line-grand').textContent='0.00';const ci=cr.querySelector('.credit-item-input');if(ci)ci.value='';const cm=cr.querySelector('.credit-memo-input');if(cm)cm.value='';const ca=cr.querySelector('.js-credit-amount');if(ca){ca.value='0.00';ca.dataset.auto='1';}
+   body.appendChild(r);creditBody.appendChild(cr);total.value=idx+1;wireRows(r);wireCreditRows(cr);calc()
+ });
+ const addCreditRow=document.getElementById('addCreditRow');
+ if(addCreditRow){
+   addCreditRow.addEventListener('click',()=>{
+     document.getElementById('addInvoiceRow').click();
+     const lastCredit=creditBody.querySelector('.credit-row:last-child');
+     if(lastCredit){
+       lastCredit.style.display='';
+       const firstField=lastCredit.querySelector('input,select');
+       if(firstField)firstField.focus();
+     }
+     calc();
+   });
+ }
+
+ document.addEventListener('input',e=>{if(e.target.matches('.js-qty,.js-price,.js-discount,.js-tax,input[name$="-description"],input[name$="-memo"]'))calc()});
+ wireRows();wireCreditRows();
+
+ // Working tabs
+ document.querySelectorAll('.sheet-tab[data-tab]').forEach(tab=>tab.addEventListener('click',()=>{
+   document.querySelectorAll('.sheet-tab[data-tab]').forEach(t=>t.classList.remove('active'));
+   document.querySelectorAll('.invoice-panel').forEach(p=>p.classList.remove('active'));
+   tab.classList.add('active');document.getElementById(tab.dataset.tab)?.classList.add('active');calc();
+ }));
+
+ // Customer search/defaults
+ const box=document.querySelector('.entity-combobox'),
+       sel=document.getElementById('id_customer'),
+       inp=document.getElementById('customerSearch'),
+       res=box.querySelector('.entity-results'),
+       clearCustomer=document.getElementById('clearCustomer'),
+       opts=[...sel.options].filter(o=>o.value);
+
+ const chosen=opts.find(o=>o.value===sel.value);
+ if(chosen)inp.value=chosen.text;
+
+ function applyCustomer(){
+   const d=customerDefaults[String(sel.value)]||{};
+   const ct=document.getElementById('id_credit_term'),
+         pl=document.getElementById('id_price_level'),
+         sp=document.getElementById('id_salesperson'),
+         addr=document.getElementById('id_address_name');
+
+   if(ct && (!ct.value || ct.value==='0'))ct.value=d.credit_term||0;
+   if(pl && d.price_level)pl.value=String(d.price_level);
+   if(sp && d.salesperson)sp.value=String(d.salesperson);
+   if(addr && !addr.value)addr.value=d.address||'';
+ }
+
+ function draw(){
+   const q=inp.value.trim().toLowerCase();
+   const list=opts.filter(o=>!q||o.text.toLowerCase().includes(q)).slice(0,60);
+   res.innerHTML='';
+
+   const scroll=document.createElement('div');
+   scroll.className='entity-options-scroll';
+
+   if(!list.length){
+     const empty=document.createElement('div');
+     empty.className='entity-empty';
+     empty.textContent='No existing customer found';
+     scroll.appendChild(empty);
+   }else{
+     list.forEach(o=>{
+       const b=document.createElement('button');
+       b.type='button';
+       b.className='entity-option';
+       b.textContent=o.text;
+       b.addEventListener('click',()=>{
+         sel.value=o.value;
+         inp.value=o.text;
+         res.hidden=true;
+         applyCustomer();
+       });
+       scroll.appendChild(b);
+     });
+   }
+
+   res.appendChild(scroll);
+
+   const add=document.createElement('button');
+   add.type='button';
+   add.className='entity-add-customer';
+   add.innerHTML='＋ Add Customer';
+   add.addEventListener('click',()=>{
+     const url=box.dataset.addUrl;
+     if(url)window.open(url,'_blank');
+   });
+   res.appendChild(add);
+   res.hidden=false;
+ }
+
+ inp.addEventListener('focus',draw);
+ inp.addEventListener('input',()=>{sel.value='';draw()});
+ clearCustomer?.addEventListener('click',()=>{
+   sel.value='';
+   inp.value='';
+   inp.focus();
+   draw();
+ });
+ document.addEventListener('click',e=>{
+   if(!box.contains(e.target))res.hidden=true;
+ });
+ if(sel.value)applyCustomer();
+
+ // Make A/R account default to Accounts Receivable if the backend did not set it.
+ const ar=document.getElementById('id_accounts_receivable_account');
+ if(ar && !ar.value){
+   const arOption=[...ar.options].find(o=>{
+     const t=(o.text||'').toLowerCase();
+     return t.includes('12000') || t.includes('accounts receivable');
+   });
+   if(arOption)ar.value=arOption.value;
+ }
+
+ // Searchable Debit / A/R Account picker
+ const arBox=document.getElementById('arAccountBox');
+ const arSearch=document.getElementById('arAccountSearch');
+ const arResults=document.getElementById('arAccountResults');
+ const clearAr=document.getElementById('clearArAccount');
+
+ if(ar && arBox && arSearch && arResults){
+   const arOptions=[...ar.options].filter(o=>o.value);
+
+   function syncArSearch(){
+     const selected=arOptions.find(o=>o.value===ar.value);
+     arSearch.value=selected ? selected.text.trim() : '';
+   }
+
+   function drawArResults(){
+     const q=arSearch.value.trim().toLowerCase();
+     const matches=arOptions.filter(o=>{
+       const text=(o.text||'').toLowerCase();
+       return !q || text.includes(q);
+     }).slice(0,80);
+
+     arResults.innerHTML='';
+
+     if(!matches.length){
+       const empty=document.createElement('div');
+       empty.className='account-empty';
+       empty.textContent='No account found';
+       arResults.appendChild(empty);
+     }else{
+       matches.forEach(o=>{
+         const b=document.createElement('button');
+         b.type='button';
+         b.className='account-option'+(o.value===ar.value?' active':'');
+         b.textContent=o.text;
+         b.addEventListener('click',()=>{
+           ar.value=o.value;
+           arSearch.value=o.text.trim();
+           arResults.hidden=true;
+           ar.dispatchEvent(new Event('change',{bubbles:true}));
+         });
+         arResults.appendChild(b);
+       });
+     }
+     arResults.hidden=false;
+   }
+
+   arSearch.addEventListener('focus',drawArResults);
+   arSearch.addEventListener('click',drawArResults);
+   arSearch.addEventListener('input',()=>{
+     ar.value='';
+     drawArResults();
+   });
+
+   clearAr?.addEventListener('click',()=>{
+     ar.value='';
+     arSearch.value='';
+     arSearch.focus();
+     drawArResults();
+   });
+
+   arSearch.addEventListener('keydown',e=>{
+     if(e.key==='Escape'){
+       arResults.hidden=true;
+       return;
+     }
+     if(e.key==='Enter'){
+       e.preventDefault();
+       const first=arResults.querySelector('.account-option');
+       if(first) first.click();
+     }
+   });
+
+   document.addEventListener('click',e=>{
+     if(!arBox.contains(e.target)) arResults.hidden=true;
+   });
+
+   ar.addEventListener('change',syncArSearch);
+   syncArSearch();
+ }
+ document.querySelectorAll('.money-input').forEach(i=>{i.addEventListener('focus',()=>i.value=String(i.value||'').replace(/,/g,''));i.addEventListener('blur',()=>{if(i.value.trim())i.value=fmt(i.value)})});
+
+ // Existing print preview behavior kept
+ document.getElementById('printPreview').addEventListener('click',()=>{
+   calc();
+
+   const escPrint=v=>String(v??'')
+     .replaceAll('&','&amp;')
+     .replaceAll('<','&lt;')
+     .replaceAll('>','&gt;')
+     .replaceAll('"','&quot;');
+
+   const fieldValue=id=>{
+     const el=document.getElementById(id);
+     if(!el)return '';
+     if(el.tagName==='SELECT'){
+       const opt=el.options[el.selectedIndex];
+       return opt && el.value ? opt.text.trim() : '';
+     }
+     return (el.value||'').trim();
+   };
+
+   const customerName=(document.getElementById('customerSearch')?.value||'').trim();
+   const arName=(document.getElementById('arAccountSearch')?.value||'').trim();
+
+   const detailRows=[];
+   document.querySelectorAll('#lineBody .line-row').forEach((r,i)=>{
+     if(r.style.display==='none' || r.querySelector('input[name$="-DELETE"]')?.checked)return;
+
+     const itemSel=r.querySelector('.js-sale-item');
+     const itemName=itemSel && itemSel.value
+       ? (itemSel.options[itemSel.selectedIndex]?.text||'').trim()
+       : '';
+     const code=(r.querySelector('.item-code-display')?.value||'').trim();
+     const description=(r.querySelector('input[name$="-description"]')?.value||'').trim();
+     const qty=money(r.querySelector('.js-qty')?.value);
+     const unit=(r.querySelector('input[name$="-unit_name"]')?.value||'').trim();
+     const price=money(r.querySelector('.js-price')?.value);
+     const amount=money(r.querySelector('.line-amount')?.textContent);
+     const discount=money(r.querySelector('.js-discount')?.value);
+     const tax=money(r.querySelector('.js-tax')?.value);
+     const grand=money(r.querySelector('.line-grand')?.textContent);
+     const memo=(r.querySelector('input[name$="-memo"]')?.value||'').trim();
+
+     const hasData=itemName||code||description||qty||price||amount||discount||tax||memo;
+     if(!hasData)return;
+
+     detailRows.push(`
+       <tr>
+         <td>${detailRows.length+1}</td>
+         <td>${escPrint(itemName||'—')}</td>
+         <td>${escPrint(code||'—')}</td>
+         <td>${escPrint(description)}</td>
+         <td class="num">${fmt(qty)}</td>
+         <td>${escPrint(unit)}</td>
+         <td class="num">${fmt(price)}</td>
+         <td class="num">${fmt(amount)}</td>
+         <td class="num">${fmt(discount)}</td>
+         <td class="num">${fmt(tax)}</td>
+         <td class="num strong">${fmt(grand)}</td>
+         <td>${escPrint(memo)}</td>
+       </tr>`);
+   });
+
+   const creditRows=[];
+   document.querySelectorAll('#creditBody .credit-row').forEach(r=>{
+     if(r.style.display==='none')return;
+     const item=(r.querySelector('.credit-item-input')?.value||'').trim();
+     const memo=(r.querySelector('.credit-memo-input')?.value||'').trim();
+     const amount=money(r.querySelector('.js-credit-amount')?.value);
+     const acct=r.querySelector('.js-credit-account');
+     const account=acct && acct.value
+       ? (acct.options[acct.selectedIndex]?.text||'').trim()
+       : '';
+     if(!item && !memo && !amount && !account)return;
+     creditRows.push(`
+       <tr>
+         <td>${creditRows.length+1}</td>
+         <td>${escPrint(item||'—')}</td>
+         <td>${escPrint(memo)}</td>
+         <td class="num">${fmt(amount)}</td>
+         <td>${escPrint(account||'—')}</td>
+       </tr>`);
+   });
+
+   const w=window.open('','_blank','width=1180,height=820,scrollbars=yes,resizable=yes');
+   if(!w){
+     alert('Please allow pop-ups to open Print Preview.');
+     return;
+   }
+
+   const customer=escPrint(customerName||'—');
+   const invoiceDate=escPrint(fieldValue('id_invoice_date')||'—');
+   const dueDate=escPrint(fieldValue('id_due_date')||'—');
+   const number=escPrint(fieldValue('id_number')||'—');
+   const currency=escPrint(fieldValue('id_currency')||'USD');
+   const poNumber=escPrint(fieldValue('id_po_number')||'—');
+   const warehouse=escPrint(fieldValue('id_warehouse')||'—');
+   const saleOrder=escPrint(fieldValue('id_sale_order_no')||'—');
+   const memo=escPrint(fieldValue('id_memo')||'—');
+   const ar=escPrint(arName||fieldValue('id_accounts_receivable_account')||'—');
+   const subtotal=escPrint(subtotalEl.textContent||'0.00');
+   const discount=escPrint(discountEl.textContent||'0.00');
+   const tax=escPrint(taxEl.textContent||'0.00');
+   const grand=escPrint(grandEl.textContent||'0.00');
+
+   w.document.open();
+   w.document.write(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Sale Invoice / Invoice</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fa;color:#173b4e;font-family:Arial,Helvetica,sans-serif;font-size:12px}
+  .toolbar{
+    position:sticky;top:0;z-index:10;height:58px;
+    display:flex;justify-content:flex-end;align-items:center;gap:8px;
+    padding:0 26px;background:#fff;border-bottom:1px solid #d9e7ed
+  }
+  .toolbar button{
+    height:34px;padding:0 16px;border-radius:7px;border:1px solid #c9dce5;
+    background:#fff;color:#315d72;font-weight:700;cursor:pointer
+  }
+  .toolbar .print{background:#0aa563;border-color:#0aa563;color:#fff}
+  .sheet{
+    width:min(1140px,calc(100% - 36px));margin:22px auto 40px;background:#fff;
+    border:1px solid #d6e5ec;border-radius:14px;overflow:hidden;
+    box-shadow:0 8px 24px rgba(34,78,99,.08)
+  }
+  .head{display:flex;justify-content:space-between;gap:20px;padding:25px 28px 20px;border-bottom:1px solid #dbe8ee}
+  .head h1{margin:0;font-size:26px;color:#083b59}
+  .head p{margin:7px 0 0;color:#7a919d;font-size:11px}
+  .doc{text-align:right}
+  .doc small{display:block;color:#8ca1ab;text-transform:uppercase;letter-spacing:.08em}
+  .doc strong{display:block;margin-top:4px;color:#0b8c54;font-size:15px}
+  .info{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+    padding:18px 28px;background:#fbfdfe;border-bottom:1px solid #dbe8ee
+  }
+  .ibox{min-height:64px;padding:10px 12px;border:1px solid #d9e6ec;border-radius:7px;background:#fff}
+  .ibox small{display:block;color:#879ba5;font-size:9px;text-transform:uppercase;margin-bottom:5px}
+  .ibox strong{display:block;color:#274e61;font-size:11px;line-height:1.4}
+  .section{padding:18px 28px 0}
+  .section-title{margin:0 0 8px;color:#078f51;font-weight:900;font-size:12px}
+  table{width:100%;border-collapse:collapse}
+  th{
+    padding:8px 6px;background:#edf6fa;border:1px solid #d8e6ec;
+    color:#456474;font-size:9px;text-align:left;text-transform:uppercase
+  }
+  td{padding:8px 6px;border:1px solid #e2ebef;color:#536a75;font-size:10px;vertical-align:top}
+  td.num,th.num{text-align:right}
+  td.strong{font-weight:800;color:#0a7dad}
+  .empty{text-align:center;padding:28px;color:#96a6ad}
+  .bottom{
+    display:grid;grid-template-columns:1fr 320px;gap:26px;
+    padding:20px 28px 28px
+  }
+  .memo{border:1px solid #d9e6ec;border-radius:8px;padding:12px}
+  .memo small{display:block;color:#879ba5;font-size:9px;text-transform:uppercase;margin-bottom:6px}
+  .memo div{color:#506b78;line-height:1.5}
+  .summary{border:1px solid #d9e6ec;border-radius:8px;padding:10px 12px;background:#fbfdfe}
+  .sumrow{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid #e4edf1}
+  .sumrow:last-child{border-bottom:0}
+  .sumrow span{color:#647b86}
+  .sumrow strong{color:#183f52}
+  .sumrow.grand{margin-top:4px;padding:11px 8px;background:#eaf8ef;border-radius:6px;border:0}
+  .sumrow.grand span,.sumrow.grand strong{font-size:14px;font-weight:900;color:#008c49}
+  .footer{padding:0 28px 24px;color:#9aa9af;font-size:9px}
+  @media print{
+    body{background:#fff}
+    .toolbar{display:none}
+    .sheet{width:100%;margin:0;border:0;border-radius:0;box-shadow:none}
+    @page{size:A4 landscape;margin:10mm}
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button onclick="window.close()">Close</button>
+  <button class="print" onclick="window.print()">Print</button>
+</div>
+
+<div class="sheet">
+  <div class="head">
+    <div>
+      <h1>Sale Invoice / Invoice</h1>
+      <p>Customer sales invoice and receivable document.</p>
+    </div>
+    <div class="doc">
+      <small>Invoice No.</small>
+      <strong>${number}</strong>
+    </div>
+  </div>
+
+  <div class="info">
+    <div class="ibox"><small>Customer</small><strong>${customer}</strong></div>
+    <div class="ibox"><small>Date</small><strong>${invoiceDate}</strong></div>
+    <div class="ibox"><small>Due Date</small><strong>${dueDate}</strong></div>
+    <div class="ibox"><small>Currency</small><strong>${currency}</strong></div>
+    <div class="ibox"><small>Debit / A/R Account</small><strong>${ar}</strong></div>
+    <div class="ibox"><small>PO Number</small><strong>${poNumber}</strong></div>
+    <div class="ibox"><small>Sale Order</small><strong>${saleOrder}</strong></div>
+    <div class="ibox"><small>Warehouse</small><strong>${warehouse}</strong></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Invoice Detail</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Item</th><th>Code</th><th>Description</th>
+          <th class="num">Qty</th><th>Unit</th><th class="num">Price</th>
+          <th class="num">Amount</th><th class="num">Discount</th>
+          <th class="num">Tax</th><th class="num">Grand Total</th><th>Memo</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${detailRows.length?detailRows.join(''):'<tr><td colspan="12" class="empty">No invoice detail lines.</td></tr>'}
+      </tbody>
+    </table>
+  </div>
+
+  ${creditRows.length?`
+  <div class="section">
+    <div class="section-title">Credit Accounts</div>
+    <table>
+      <thead><tr><th>#</th><th>Item / Description</th><th>Memo</th><th class="num">Credit Amount</th><th>Credit Account</th></tr></thead>
+      <tbody>${creditRows.join('')}</tbody>
+    </table>
+  </div>`:''}
+
+  <div class="bottom">
+    <div class="memo"><small>Memo</small><div>${memo}</div></div>
+    <div class="summary">
+      <div class="sumrow"><span>Sub Total</span><strong>$ ${subtotal}</strong></div>
+      <div class="sumrow"><span>Discount</span><strong>$ ${discount}</strong></div>
+      <div class="sumrow"><span>Tax</span><strong>$ ${tax}</strong></div>
+      <div class="sumrow grand"><span>Grand Total</span><strong>$ ${grand}</strong></div>
+    </div>
+  </div>
+
+  <div class="footer">Prepared from AsianCam Sale Invoice.</div>
+</div>
+</body>
+</html>`);
+   w.document.close();
+   w.focus();
+ });
+ document.getElementById('invoiceForm').addEventListener('submit',()=>{document.querySelectorAll('.money-input').forEach(i=>i.value=String(i.value||'').replace(/,/g,''));});
+ calc();
+})();
+</script>
+{% endblock %}

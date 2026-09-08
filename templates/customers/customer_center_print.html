@@ -1,0 +1,265 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Customer Transactions - {{ customer.name }}</title>
+<style>
+@page{size:A4 landscape;margin:12mm}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  color:#263b46;
+  background:#edf4f7;
+}
+.print-wrap{
+  width:min(1120px,calc(100% - 36px));
+  margin:24px auto;
+  background:#fff;
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 14px 34px rgba(36,68,84,.08);
+}
+.actions{
+  height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  padding:0 18px;
+  border-bottom:1px solid #dfe8ec;
+  background:#fff;
+}
+.btn{
+  height:34px;
+  padding:0 14px;
+  border:1px solid #cbdde5;
+  border-radius:7px;
+  background:#fff;
+  color:#087db7;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.btn.print{
+  color:#fff;
+  background:#0aa35d;
+  border-color:#0aa35d;
+}
+.sheet-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:24px 28px 20px;
+  border-bottom:2px solid #0aa35d;
+}
+.company-name{
+  font-size:22px;
+  line-height:1;
+  font-weight:900;
+  color:#183948;
+}
+.company-sub{
+  margin-top:7px;
+  font-size:11px;
+  color:#758792;
+}
+.report-name{
+  text-align:right;
+  font-size:20px;
+  line-height:1;
+  font-weight:900;
+  color:#07964f;
+  text-transform:uppercase;
+}
+.report-sub{
+  margin-top:6px;
+  text-align:right;
+  color:#83939b;
+  font-size:11px;
+}
+.summary{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:12px;
+  padding:16px 28px;
+  background:#fbfdfe;
+  border-bottom:1px solid #dfe8ec;
+}
+.summary-card{
+  min-height:74px;
+  border:1px solid #d7e3e8;
+  border-radius:9px;
+  padding:12px 14px;
+  background:#fff;
+}
+.summary-label{
+  color:#81919a;
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+.summary-main{
+  margin-top:7px;
+  color:#203b49;
+  font-size:13px;
+  font-weight:900;
+}
+.summary-sub{
+  margin-top:5px;
+  color:#788b95;
+  font-size:10px;
+}
+.summary-balance{
+  margin-top:8px;
+  color:#087fc1;
+  font-size:18px;
+  font-weight:900;
+}
+.table-area{
+  padding:16px 28px 22px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+}
+th{
+  height:30px;
+  padding:0 7px;
+  background:#eef4f6;
+  border-top:1px solid #d9e4e8;
+  border-bottom:1px solid #d5e1e6;
+  color:#3f5864;
+  font-size:8px;
+  font-weight:900;
+  text-align:left;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+td{
+  min-height:30px;
+  padding:8px 7px;
+  border-bottom:1px solid #e7edef;
+  color:#536b76;
+  font-size:9px;
+  vertical-align:top;
+  word-break:break-word;
+}
+.money{text-align:right}
+.empty{
+  height:96px;
+  text-align:center;
+  vertical-align:middle;
+  color:#8798a1;
+}
+.footer-note{
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid #dfe8ec;
+  color:#7e9099;
+  font-size:8px;
+}
+@media print{
+  body{background:#fff}
+  .print-wrap{
+    width:100%;
+    margin:0;
+    border-radius:0;
+    box-shadow:none;
+  }
+  .actions{display:none}
+}
+</style>
+</head>
+<body>
+<div class="print-wrap">
+
+  <div class="actions">
+    <button class="btn" onclick="window.close()">Close</button>
+    <button class="btn print" onclick="window.print()">Print</button>
+  </div>
+
+  <div class="sheet-head">
+    <div>
+      <div class="company-name">{{ company.name }}</div>
+      <div class="company-sub">Customer transaction report</div>
+    </div>
+    <div>
+      <div class="report-name">Customer Transactions</div>
+      <div class="report-sub">Prepared from Customer Center</div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-card">
+      <div class="summary-label">Customer</div>
+      <div class="summary-main">{{ customer.name }}</div>
+      <div class="summary-sub">
+        {{ customer.code|default:"No customer code" }}
+        {% if customer.phone %} · {{ customer.phone }}{% endif %}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">Period</div>
+      <div class="summary-main">
+        {% if date_from %}{{ date_from }}{% else %}Beginning{% endif %}
+        →
+        {% if date_to %}{{ date_to }}{% else %}Today{% endif %}
+      </div>
+      <div class="summary-sub">
+        {% if tran_type %}{{ tran_type }}{% else %}All Transactions{% endif %}
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label">A/R Balance</div>
+      <div class="summary-balance">$ {{ ar_balance|floatformat:2 }}</div>
+      <div class="summary-sub">{{ customer.currency|default:"Dollar USD" }}</div>
+    </div>
+  </div>
+
+  <div class="table-area">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:11%">Type</th>
+          <th style="width:9%">Date</th>
+          <th style="width:12%">Number</th>
+          <th style="width:11%">SO Number</th>
+          <th style="width:13%">Currency</th>
+          <th style="width:11%" class="money">Amount</th>
+          <th style="width:13%" class="money">Open Balance</th>
+          <th style="width:20%">Memo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr>
+          <td>{{ t.type }}</td>
+          <td>{{ t.date|date:"d-m-Y" }}</td>
+          <td>{{ t.number }}</td>
+          <td>{{ t.so_number|default:"" }}</td>
+          <td>{{ t.currency|default:"Dollar USD ($)" }}</td>
+          <td class="money">{{ t.amount|floatformat:2 }}</td>
+          <td class="money">{{ t.open_balance|floatformat:2 }}</td>
+          <td>{{ t.memo|default:"" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="empty">No transaction data for this filter.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="footer-note">
+      Printed from AsianCam Customer Center. Only the currently selected transaction filters are included.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

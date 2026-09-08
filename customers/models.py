@@ -146,7 +146,12 @@ class Customer(models.Model):
             ]
         ).aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
 
-        return self.opening_balance + debit - credit
+        new_invoices = self.sales_invoices.filter(
+            document_type=SalesInvoice.TYPE_INVOICE,
+            status=SalesInvoice.STATUS_POSTED,
+        )
+        open_new = sum((invoice.open_balance for invoice in new_invoices), Decimal("0.00"))
+        return self.opening_balance + debit - credit + open_new
 
 
 class CustomerTransaction(models.Model):
@@ -293,6 +298,20 @@ class SalesInvoice(models.Model):
     due_date = models.DateField(null=True, blank=True)
     number = models.CharField(max_length=80, blank=True)
     po_number = models.CharField(max_length=80, blank=True)
+    quotation_no = models.CharField(max_length=80, blank=True)
+    sale_order_no = models.CharField(max_length=80, blank=True)
+    address_name = models.CharField(max_length=180, blank=True)
+    truck_no = models.CharField(max_length=80, blank=True)
+    credit_term = models.PositiveIntegerField(default=0)
+    price_level = models.ForeignKey("customers.PriceLevel", on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_invoices")
+    warehouse = models.ForeignKey("stock.Warehouse", on_delete=models.SET_NULL, null=True, blank=True, related_name="sales_invoices")
+    DISCOUNT_BEFORE_TAX = "before_tax"
+    DISCOUNT_AFTER_TAX = "after_tax"
+    DISCOUNT_TAX_MODE_CHOICES = [
+        (DISCOUNT_BEFORE_TAX, "Discount Before Tax"),
+        (DISCOUNT_AFTER_TAX, "Discount After Tax"),
+    ]
+    discount_tax_mode = models.CharField(max_length=20, choices=DISCOUNT_TAX_MODE_CHOICES, default=DISCOUNT_BEFORE_TAX)
     currency = models.CharField(max_length=20, default="USD")
     exchange_rate = models.DecimalField(max_digits=14, decimal_places=4, default=1)
     accounts_receivable_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="sales_invoices_ar")
@@ -327,7 +346,10 @@ class SalesInvoice(models.Model):
 
     @property
     def allocated_amount(self):
-        return self.receipt_allocations.filter(receipt__status=CustomerReceipt.STATUS_POSTED).aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        qs = self.receipt_allocations.filter(receipt__status=CustomerReceipt.STATUS_POSTED)
+        paid = qs.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        discount = qs.aggregate(total=models.Sum("discount"))["total"] or Decimal("0.00")
+        return paid + discount
 
     @property
     def open_balance(self):
@@ -347,6 +369,8 @@ class SalesInvoiceLine(models.Model):
     discount_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     revenue_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="sales_invoice_revenue_lines")
     tax_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    memo = models.CharField(max_length=255, blank=True)
+    credit_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
 
     class Meta:
         ordering = ["id"]
