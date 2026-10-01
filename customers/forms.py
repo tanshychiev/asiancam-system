@@ -9,6 +9,7 @@ from .models import (
     Region,
     SalesDocument,
     Salesperson,
+    SalesInvoiceLine,
 )
 
 
@@ -266,15 +267,18 @@ class SalesInvoiceForm(forms.ModelForm):
 class SalesInvoiceLineForm(forms.ModelForm):
     class Meta:
         model=SalesInvoiceLine
-        fields=["item","description","qty","unit_name","unit_price","discount_amount","tax_amount","memo","revenue_account","credit_amount"]
+        fields=["item","description","qty","unit_name","unit_price","discount_type","discount_value","discount_amount","tax_rate","tax_amount","memo","revenue_account","credit_amount"]
         widgets={
             "item":forms.Select(attrs={"class":"form-control js-sale-item"}),
             "description":forms.TextInput(attrs={"class":"form-control"}),
             "qty":forms.NumberInput(attrs={"class":"form-control js-qty","step":"0.01","min":"0"}),
             "unit_name":forms.TextInput(attrs={"class":"form-control"}),
             "unit_price":forms.TextInput(attrs={"class":"form-control js-price money-input","inputmode":"decimal"}),
-            "discount_amount":forms.TextInput(attrs={"class":"form-control js-discount money-input","inputmode":"decimal"}),
-            "tax_amount":forms.TextInput(attrs={"class":"form-control js-tax money-input","inputmode":"decimal"}),
+            "discount_type":forms.Select(attrs={"class":"form-control js-discount-type"}),
+            "discount_value":forms.TextInput(attrs={"class":"form-control js-discount-value money-input","inputmode":"decimal"}),
+            "discount_amount":forms.TextInput(attrs={"class":"form-control js-discount money-input","inputmode":"decimal","readonly":"readonly"}),
+            "tax_rate":forms.NumberInput(attrs={"class":"form-control js-tax-rate","step":"0.01","min":"0","placeholder":"0"}),
+            "tax_amount":forms.TextInput(attrs={"class":"form-control js-tax money-input","inputmode":"decimal","readonly":"readonly"}),
             "memo":forms.TextInput(attrs={"class":"form-control","placeholder":"Memo"}),
             "revenue_account":forms.Select(attrs={"class":"form-control js-credit-account"}),
             "credit_amount":forms.TextInput(attrs={"class":"form-control js-credit-amount money-input","inputmode":"decimal","placeholder":"0.00"}),
@@ -287,14 +291,29 @@ class SalesInvoiceLineForm(forms.ModelForm):
         else:
             self.fields["item"].queryset=Item.objects.none()
             self.fields["revenue_account"].queryset=ChartOfAccount.objects.none()
-        # If the user does not manually choose Set Credit, use the selected Item's Sale/Revenue Account.
+        self.fields["item"].required=False
         self.fields["revenue_account"].required=False
 
     def clean(self):
         cleaned=super().clean()
         item=cleaned.get("item")
-        if not cleaned.get("revenue_account") and item and item.revenue_account_id:
-            cleaned["revenue_account"]=item.revenue_account
+        description=(cleaned.get("description") or "").strip()
+        revenue=cleaned.get("revenue_account")
+        if not revenue and item and item.revenue_account_id:
+            revenue=item.revenue_account
+            cleaned["revenue_account"]=revenue
+        if not item and not description and not cleaned.get("DELETE"):
+            self.add_error("description", "Enter a description when no Item is selected.")
+        if not revenue and not cleaned.get("DELETE"):
+            self.add_error("revenue_account", "Revenue / credit account is required.")
+        dtype=cleaned.get("discount_type")
+        dval=cleaned.get("discount_value") or 0
+        if dtype == SalesInvoiceLine.DISCOUNT_PERCENT and dval > 100:
+            self.add_error("discount_value", "Discount percentage cannot exceed 100%.")
+        if dval < 0:
+            self.add_error("discount_value", "Discount cannot be negative.")
+        if (cleaned.get("tax_rate") or 0) < 0:
+            self.add_error("tax_rate", "Tax rate cannot be negative.")
         return cleaned
 
 SalesInvoiceLineFormSet=inlineformset_factory(SalesInvoice,SalesInvoiceLine,form=SalesInvoiceLineForm,extra=1,can_delete=True,min_num=1,validate_min=True)
@@ -338,6 +357,20 @@ class CustomerReceiptAllocationForm(forms.ModelForm):
             if customer_id: qs=qs.filter(customer_id=customer_id)
         self.fields["invoice"].queryset=qs.order_by("invoice_date","id")
 
+    def clean(self):
+        cleaned=super().clean()
+        invoice=cleaned.get("invoice")
+        amount=cleaned.get("amount") or 0
+        discount=cleaned.get("discount") or 0
+        if amount < 0 or discount < 0:
+            raise forms.ValidationError("Payment and discount cannot be negative.")
+        if invoice:
+            available=invoice.open_balance
+            if self.instance and self.instance.pk and self.instance.invoice_id == invoice.pk:
+                available += (self.instance.amount or 0) + (self.instance.discount or 0)
+            if amount + discount > available:
+                raise forms.ValidationError(f"Payment + discount cannot exceed remaining amount {available:.2f}.")
+        return cleaned
 
 class CustomerReceiptOtherChargeForm(forms.ModelForm):
     class Meta:

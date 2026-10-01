@@ -13,7 +13,7 @@ from django.urls import reverse
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 
-from accounting.models import JournalEntry, JournalEntryLine
+from accounting.models import ChartOfAccount, JournalEntry, JournalEntryLine
 from core.models import Company
 
 from .forms import (
@@ -140,7 +140,8 @@ def validate_purchase_bill_lines(bill_form, item_formset, expense_formset):
         account = data.get("account")
         qty = data.get("qty") or Decimal("0.00")
         unit_cost = data.get("unit_cost") or Decimal("0.00")
-        vat = data.get("vat_amount") or Decimal("0.00")
+        tax_code = data.get("tax_code") or "NA"
+        vat = ((qty * unit_cost) * Decimal("0.10")).quantize(Decimal("0.01")) if tax_code == "VAT10" else Decimal("0.00")
         vat_total += vat
 
         if qty <= 0:
@@ -159,7 +160,8 @@ def validate_purchase_bill_lines(bill_form, item_formset, expense_formset):
             continue
 
         amount = data.get("amount") or Decimal("0.00")
-        vat = data.get("vat_amount") or Decimal("0.00")
+        tax_code = data.get("tax_code") or "NA"
+        vat = (amount * Decimal("0.10")).quantize(Decimal("0.01")) if tax_code == "VAT10" else Decimal("0.00")
         vat_total += vat
         if amount <= 0:
             line_form.add_error("amount", "Amount must be more than zero.")
@@ -883,7 +885,7 @@ def purchase_bill_create(request):
                     "unit_name": line.unit_name,
                     "unit_cost": line.unit_cost,
                     "account": line.account_id,
-                    "vat_amount": line.vat_amount,
+                    "tax_code": line.tax_code,
                 }
                 for line in source.item_lines.all()
             ]
@@ -892,7 +894,7 @@ def purchase_bill_create(request):
                     "description": line.description,
                     "amount": line.amount,
                     "account": line.account_id,
-                    "vat_amount": line.vat_amount,
+                    "tax_code": line.tax_code,
                 }
                 for line in source.expense_lines.all()
             ]
@@ -924,7 +926,8 @@ def purchase_bill_create(request):
                     bill = form.save(commit=False)
                     bill.company = company
                     bill.created_by = request.user
-                    bill.status = PurchaseBill.STATUS_POSTED
+                    action = request.POST.get("save_action") or "post"
+                    bill.status = PurchaseBill.STATUS_POSTED if action == "post" else PurchaseBill.STATUS_DRAFT
                     bill.save()
 
                     item_formset.instance = bill
@@ -933,33 +936,23 @@ def purchase_bill_create(request):
                     expense_formset.save()
 
                     bill.recalculate_totals(save=True)
-                    create_purchase_bill_journal(bill, request.user)
+                    if bill.status == PurchaseBill.STATUS_POSTED:
+                        create_purchase_bill_journal(bill, request.user)
+                    elif bill.journal_entry_id:
+                        bill.journal_entry.delete()
+                        bill.journal_entry = None
+                        bill.save(update_fields=["journal_entry"])
 
-                messages.success(
-                    request,
-                    f"Purchase Bill {bill.number or bill.id} saved and journal generated.",
-                )
-
-                keep = {"ap": bill.accounts_payable_account_id}
-                if bill.input_vat_account_id:
-                    keep["vat"] = bill.input_vat_account_id
-
-                save_action = request.POST.get("save_action")
-                next_url = (
-                    f"{reverse('purchase_bill_create')}?{urlencode(keep)}"
-                    if save_action == "save_new"
-                    else reverse("purchase_bill_list")
-                )
-
-                if request.POST.get("print_after_save") == "1":
-                    query = urlencode({"autoprint": "1", "next": next_url})
-                    return redirect(
-                        f"{reverse('purchase_bill_print', args=[bill.id])}?{query}"
-                    )
-
-                if save_action == "save_new":
+                if bill.status == PurchaseBill.STATUS_POSTED:
+                    messages.success(request, f"Purchase Bill {bill.number or bill.id} posted successfully.")
+                    next_url = reverse("purchase_bill_list")
+                    if request.POST.get("print_after_save") == "1":
+                        query = urlencode({"autoprint": "1", "next": next_url})
+                        return redirect(f"{reverse('purchase_bill_print', args=[bill.id])}?{query}")
                     return redirect(next_url)
-                return redirect("purchase_bill_list")
+
+                messages.success(request, f"Purchase Bill {bill.number or bill.id} saved as Draft.")
+                return redirect("purchase_bill_edit", bill_id=bill.id)
             except Exception as exc:
                 messages.error(request, f"Could not save Purchase Bill: {exc}")
 
@@ -995,40 +988,31 @@ def purchase_bill_edit(request, bill_id):
                 with transaction.atomic():
                     bill = form.save(commit=False)
                     bill.company = company
-                    bill.status = PurchaseBill.STATUS_POSTED
+                    action = request.POST.get("save_action") or "post"
+                    bill.status = PurchaseBill.STATUS_POSTED if action == "post" else PurchaseBill.STATUS_DRAFT
                     bill.save()
 
                     item_formset.save()
                     expense_formset.save()
 
                     bill.recalculate_totals(save=True)
-                    create_purchase_bill_journal(bill, request.user)
+                    if bill.status == PurchaseBill.STATUS_POSTED:
+                        create_purchase_bill_journal(bill, request.user)
+                    elif bill.journal_entry_id:
+                        bill.journal_entry.delete()
+                        bill.journal_entry = None
+                        bill.save(update_fields=["journal_entry"])
 
-                messages.success(
-                    request,
-                    "Purchase Bill updated and journal regenerated.",
-                )
-
-                keep = {"ap": bill.accounts_payable_account_id}
-                if bill.input_vat_account_id:
-                    keep["vat"] = bill.input_vat_account_id
-
-                save_action = request.POST.get("save_action")
-                next_url = (
-                    f"{reverse('purchase_bill_create')}?{urlencode(keep)}"
-                    if save_action == "save_new"
-                    else reverse("purchase_bill_list")
-                )
-
-                if request.POST.get("print_after_save") == "1":
-                    query = urlencode({"autoprint": "1", "next": next_url})
-                    return redirect(
-                        f"{reverse('purchase_bill_print', args=[bill.id])}?{query}"
-                    )
-
-                if save_action == "save_new":
+                if bill.status == PurchaseBill.STATUS_POSTED:
+                    messages.success(request, "Purchase Bill posted successfully.")
+                    next_url = reverse("purchase_bill_list")
+                    if request.POST.get("print_after_save") == "1":
+                        query = urlencode({"autoprint": "1", "next": next_url})
+                        return redirect(f"{reverse('purchase_bill_print', args=[bill.id])}?{query}")
                     return redirect(next_url)
-                return redirect("purchase_bill_list")
+
+                messages.success(request, "Purchase Bill saved as Draft.")
+                return redirect("purchase_bill_edit", bill_id=bill.id)
             except Exception as exc:
                 messages.error(request, f"Could not update Purchase Bill: {exc}")
 
@@ -1248,17 +1232,56 @@ from .forms import VendorPaymentForm, VendorPaymentAllocationFormSet, VendorPaym
 from .models import VendorPayment, VendorPaymentAllocation, VendorPaymentOtherCharge
 
 
+def _find_vendor_discount_account(company):
+    qs=ChartOfAccount.objects.filter(company=company,is_active=True,is_group=False)
+    return (qs.filter(name__icontains="Purchase Discount").first()
+            or qs.filter(name__icontains="Discount Income").first()
+            or qs.filter(account_type=ChartOfAccount.ACCOUNT_TYPE_OTHER_INCOME).first()
+            or qs.filter(account_type=ChartOfAccount.ACCOUNT_TYPE_REVENUE).first())
+
+
+def _find_input_vat_account(company):
+    qs = ChartOfAccount.objects.filter(company=company, is_active=True, is_group=False)
+    return (qs.filter(name__icontains="Input VAT").first()
+            or qs.filter(name__icontains="VAT Input").first()
+            or qs.filter(name__icontains="Input Tax").first())
+
+
 def create_vendor_payment_journal(payment,user):
-    if payment.status!=VendorPayment.STATUS_POSTED or payment.total_amount<=0:return None
+    if payment.status!=VendorPayment.STATUS_POSTED or payment.total_amount<=0:
+        return None
+    discount_total=payment.allocations.aggregate(total=Sum("discount"))["total"] or Decimal("0.00")
+    discount_account=_find_vendor_discount_account(payment.company) if discount_total>0 else None
+    if discount_total>0 and not discount_account:
+        raise ValueError("A vendor discount is used but no Purchase Discount / Other Income account exists in the Chart of Accounts.")
     with transaction.atomic():
-        if payment.journal_entry_id:payment.journal_entry.delete()
+        if payment.journal_entry_id:
+            payment.journal_entry.delete()
         entry=JournalEntry.objects.create(company=payment.company,entry_date=payment.payment_date,reference_no=payment.number,description=f"Payment - {payment.vendor.name}",status=get_posted_status(),created_by=user)
-        ap_total=payment.allocations.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-        if ap_total>0:JournalEntryLine.objects.create(journal_entry=entry,account=payment.accounts_payable_account,description="Apply to bills",debit=ap_total,credit=Decimal("0.00"))
+        ap_total=(payment.allocations.aggregate(total=Sum("amount"))["total"] or Decimal("0.00"))+discount_total
+        if ap_total>0:
+            JournalEntryLine.objects.create(journal_entry=entry,account=payment.accounts_payable_account,description="Apply to bills",debit=ap_total,credit=Decimal("0.00"))
+        vat_total = Decimal("0.00")
         for ch in payment.other_charges.select_related("account"):
-            if ch.amount>0:JournalEntryLine.objects.create(journal_entry=entry,account=ch.account,description=ch.memo,debit=ch.amount,credit=Decimal("0.00"))
+            if ch.amount>0:
+                JournalEntryLine.objects.create(journal_entry=entry,account=ch.account,description=ch.memo,debit=ch.amount,credit=Decimal("0.00"))
+                vat_total += ch.tax_amount
+        if vat_total > 0:
+            input_vat_account = _find_input_vat_account(payment.company)
+            if not input_vat_account:
+                raise ValueError("VAT 10% is used, but no Input VAT / VAT Input / Input Tax account exists in the Chart of Accounts.")
+            JournalEntryLine.objects.create(
+                journal_entry=entry,
+                account=input_vat_account,
+                description="Input VAT on immediate expenses",
+                debit=vat_total,
+                credit=Decimal("0.00"),
+            )
+        if discount_total>0:
+            JournalEntryLine.objects.create(journal_entry=entry,account=discount_account,description="Vendor payment discount",debit=Decimal("0.00"),credit=discount_total)
         JournalEntryLine.objects.create(journal_entry=entry,account=payment.payment_account,description=payment.memo or "Vendor payment",debit=Decimal("0.00"),credit=payment.total_amount)
-        payment.journal_entry=entry;payment.save(update_fields=["journal_entry"])
+        payment.journal_entry=entry
+        payment.save(update_fields=["journal_entry"])
     return entry
 
 
@@ -1269,6 +1292,37 @@ def _vendor_payment_formset(formset_class,data,instance,company,prefix,extra=Non
     elif initial is not None:
         kwargs["initial"]=initial
     return formset_class(**kwargs)
+
+
+def _payment_post_data_with_defaults(request, company, mode):
+    """Make Payment submit reliably even when the user leaves helper accounts blank.
+
+    Payment Account defaults to the first Cash/Bank asset account. A/P is only
+    operationally used for invoice payments, but the existing database field is
+    required, so expense-only payments receive the default A/P account silently.
+    """
+    if request.method != "POST":
+        return None
+    data = request.POST.copy()
+    accounts = ChartOfAccount.objects.filter(company=company, is_active=True, is_group=False)
+
+    if not data.get("payment_account"):
+        cash = (accounts.filter(name__icontains="cash").first()
+                or accounts.filter(name__icontains="bank").first()
+                or accounts.filter(account_type=ChartOfAccount.ACCOUNT_TYPE_ASSET).first())
+        if cash:
+            data["payment_account"] = str(cash.pk)
+
+    if not data.get("accounts_payable_account"):
+        ap = (accounts.filter(name__icontains="Accounts Payable").first()
+              or accounts.filter(name__icontains="Payable").first()
+              or accounts.filter(account_type=ChartOfAccount.ACCOUNT_TYPE_LIABILITY).first())
+        if ap:
+            data["accounts_payable_account"] = str(ap.pk)
+
+    data["transaction_mode"] = mode
+    return data
+
 
 @login_required
 def vendor_payment_new(request):
@@ -1290,6 +1344,8 @@ def vendor_payment_new(request):
     ) or "invoice"
     if mode not in {"invoice", "expense"}:
         mode = "invoice"
+
+    post_data = _payment_post_data_with_defaults(request, company, mode)
 
     form_initial = {"vendor": vendor_id} if vendor_id else {}
 
@@ -1327,7 +1383,7 @@ def vendor_payment_new(request):
                 )
 
     form = VendorPaymentForm(
-        request.POST or None,
+        post_data,
         instance=payment,
         company=company,
         initial=form_initial if request.method != "POST" else None,
@@ -1357,7 +1413,7 @@ def vendor_payment_new(request):
 
     allocations = _vendor_payment_formset(
         allocation_formset_class,
-        request.POST if request.method == "POST" else None,
+        post_data,
         payment,
         company,
         "alloc",
@@ -1366,7 +1422,7 @@ def vendor_payment_new(request):
     )
     charges = _vendor_payment_formset(
         VendorPaymentOtherChargeFormSet,
-        request.POST if request.method == "POST" else None,
+        post_data,
         payment,
         company,
         "charge",
@@ -1383,7 +1439,8 @@ def vendor_payment_new(request):
                 payment = form.save(commit=False)
                 payment.company = company
                 payment.created_by = request.user
-                payment.status = VendorPayment.STATUS_POSTED
+                action = request.POST.get("save_action") or "post"
+                payment.status = VendorPayment.STATUS_POSTED if action == "post" else VendorPayment.STATUS_DRAFT
                 payment.save()
 
                 allocations.instance = payment
@@ -1392,26 +1449,20 @@ def vendor_payment_new(request):
                 charges.save()
 
                 payment.recalculate_total()
-                create_vendor_payment_journal(payment, request.user)
+                if payment.status == VendorPayment.STATUS_POSTED:
+                    create_vendor_payment_journal(payment, request.user)
+                elif payment.journal_entry_id:
+                    payment.journal_entry.delete(); payment.journal_entry=None; payment.save(update_fields=["journal_entry"])
 
-            messages.success(request, "Payment saved successfully.")
-
-            save_action = request.POST.get("save_action")
-            next_url = (
-                reverse("vendor_payment_create")
-                if save_action == "save_new"
-                else f"{reverse('vendor_center')}?vendor={payment.vendor_id}"
-            )
-
-            if request.POST.get("print_after_save") == "1":
-                query = urlencode({"autoprint": "1", "next": next_url})
-                return redirect(
-                    f"{reverse('vendor_payment_print', args=[payment.id])}?{query}"
-                )
-
-            if save_action == "save_new":
-                return redirect("vendor_payment_create")
-            return redirect(f"{reverse('vendor_center')}?vendor={payment.vendor_id}")
+            if payment.status == VendorPayment.STATUS_POSTED:
+                messages.success(request, "Payment posted successfully.")
+                next_url=f"{reverse('vendor_center')}?vendor={payment.vendor_id}"
+                if request.POST.get("print_after_save") == "1":
+                    query=urlencode({"autoprint":"1","next":next_url})
+                    return redirect(f"{reverse('vendor_payment_print', args=[payment.id])}?{query}")
+                return redirect(next_url)
+            messages.success(request, "Payment saved as Draft.")
+            return redirect("vendor_payment_edit", payment_id=payment.id)
         except Exception as exc:
             messages.error(request, f"Could not save payment: {exc}")
 
@@ -1457,14 +1508,16 @@ def vendor_payment_edit(request, payment_id):
             else "invoice"
         )
 
+    post_data = _payment_post_data_with_defaults(request, company, mode)
+
     form = VendorPaymentForm(
-        request.POST or None,
+        post_data,
         instance=payment,
         company=company,
     )
     allocations = _vendor_payment_formset(
         VendorPaymentAllocationFormSet,
-        request.POST if request.method == "POST" else None,
+        post_data,
         payment,
         company,
         "alloc",
@@ -1472,7 +1525,7 @@ def vendor_payment_edit(request, payment_id):
     )
     charges = _vendor_payment_formset(
         VendorPaymentOtherChargeFormSet,
-        request.POST if request.method == "POST" else None,
+        post_data,
         payment,
         company,
         "charge",
@@ -1488,7 +1541,8 @@ def vendor_payment_edit(request, payment_id):
             with transaction.atomic():
                 payment = form.save(commit=False)
                 payment.company = company
-                payment.status = VendorPayment.STATUS_POSTED
+                action = request.POST.get("save_action") or "post"
+                payment.status = VendorPayment.STATUS_POSTED if action == "post" else VendorPayment.STATUS_DRAFT
                 payment.save()
 
                 allocations.instance = payment
@@ -1497,26 +1551,20 @@ def vendor_payment_edit(request, payment_id):
                 charges.save()
 
                 payment.recalculate_total()
-                create_vendor_payment_journal(payment, request.user)
+                if payment.status == VendorPayment.STATUS_POSTED:
+                    create_vendor_payment_journal(payment, request.user)
+                elif payment.journal_entry_id:
+                    payment.journal_entry.delete(); payment.journal_entry=None; payment.save(update_fields=["journal_entry"])
 
-            messages.success(request, "Payment updated successfully.")
-
-            save_action = request.POST.get("save_action")
-            next_url = (
-                reverse("vendor_payment_create")
-                if save_action == "save_new"
-                else f"{reverse('vendor_center')}?vendor={payment.vendor_id}"
-            )
-
-            if request.POST.get("print_after_save") == "1":
-                query = urlencode({"autoprint": "1", "next": next_url})
-                return redirect(
-                    f"{reverse('vendor_payment_print', args=[payment.id])}?{query}"
-                )
-
-            if save_action == "save_new":
-                return redirect("vendor_payment_create")
-            return redirect(f"{reverse('vendor_center')}?vendor={payment.vendor_id}")
+            if payment.status == VendorPayment.STATUS_POSTED:
+                messages.success(request, "Payment posted successfully.")
+                next_url=f"{reverse('vendor_center')}?vendor={payment.vendor_id}"
+                if request.POST.get("print_after_save") == "1":
+                    query=urlencode({"autoprint":"1","next":next_url})
+                    return redirect(f"{reverse('vendor_payment_print', args=[payment.id])}?{query}")
+                return redirect(next_url)
+            messages.success(request, "Payment saved as Draft.")
+            return redirect("vendor_payment_edit", payment_id=payment.id)
         except Exception as exc:
             messages.error(request, f"Could not update payment: {exc}")
 

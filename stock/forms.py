@@ -43,6 +43,8 @@ class ItemForm(forms.ModelForm):
         fields = [
             "code",
             "name",
+            "description",
+            "cost_method",
             "item_type",
             "item_group",
             "item_brand",

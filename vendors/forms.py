@@ -246,7 +246,7 @@ class PurchaseBillItemLineForm(forms.ModelForm):
     account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), required=False, widget=forms.Select(attrs={"class":"form-control"}))
     class Meta:
         model = PurchaseBillItemLine
-        fields = ["item", "description", "qty", "unit_name", "unit_cost", "account", "vat_amount"]
+        fields = ["item", "description", "qty", "unit_name", "unit_cost", "account", "tax_code"]
         widgets = {
             "item": forms.Select(attrs={"class": "form-control item-select"}),
             "description": forms.TextInput(attrs={"class": "form-control", "placeholder": "Description"}),
@@ -254,7 +254,7 @@ class PurchaseBillItemLineForm(forms.ModelForm):
             "unit_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Unit"}),
             "unit_cost": forms.TextInput(attrs={"class": "form-control js-unit-cost money-input", "inputmode":"decimal"}),
             "account": forms.Select(attrs={"class": "form-control"}),
-            "vat_amount": forms.TextInput(attrs={"class": "form-control js-vat money-input", "inputmode":"decimal"}),
+            "tax_code": forms.Select(attrs={"class": "form-control js-tax-code"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -275,12 +275,12 @@ class PurchaseBillExpenseLineForm(forms.ModelForm):
     account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), widget=forms.Select(attrs={"class":"form-control"}))
     class Meta:
         model = PurchaseBillExpenseLine
-        fields = ["description", "amount", "account", "vat_amount"]
+        fields = ["description", "amount", "account", "tax_code"]
         widgets = {
             "description": forms.TextInput(attrs={"class": "form-control", "placeholder": "Expense / service description"}),
             "amount": forms.TextInput(attrs={"class": "form-control js-expense-amount money-input", "inputmode":"decimal"}),
             "account": forms.Select(attrs={"class": "form-control"}),
-            "vat_amount": forms.TextInput(attrs={"class": "form-control js-vat money-input", "inputmode":"decimal"}),
+            "tax_code": forms.Select(attrs={"class": "form-control js-tax-code"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -358,6 +358,21 @@ class VendorPaymentAllocationForm(forms.ModelForm):
             open_ids=[bill.pk for bill in qs.order_by("bill_date","id") if bill.open_balance > 0]
             qs=qs.filter(pk__in=open_ids)
         self.fields["bill"].queryset=qs.order_by("bill_date","id")
+
+    def clean(self):
+        cleaned=super().clean()
+        bill=cleaned.get("bill")
+        amount=cleaned.get("amount") or 0
+        discount=cleaned.get("discount") or 0
+        if amount < 0 or discount < 0:
+            raise forms.ValidationError("Payment and discount cannot be negative.")
+        if bill:
+            available=bill.open_balance
+            if self.instance and self.instance.pk and self.instance.bill_id == bill.pk:
+                available += (self.instance.amount or 0) + (self.instance.discount or 0)
+            if amount + discount > available:
+                raise forms.ValidationError(f"Payment + discount cannot exceed remaining amount {available:.2f}.")
+        return cleaned
 
 class VendorPaymentOtherChargeForm(forms.ModelForm):
     account = AccountModelChoiceField(queryset=ChartOfAccount.objects.none(), widget=forms.Select(attrs={"class":"form-control"}))

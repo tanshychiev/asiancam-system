@@ -1124,9 +1124,12 @@
                 <th class="num-head">Price ($)</th>
                 <th class="num-head">Standard Price</th>
                 <th class="num-head">Amount ($)</th>
+                <th class="num-head">Discount</th>
+                <th>Type</th>
                 <th class="num-head">Discount ($)</th>
-                <th class="num-head">Grand Total</th>
+                <th class="num-head">Tax Rate (%)</th>
                 <th class="num-head">Tax ($)</th>
+                <th class="num-head">Grand Total</th>
                 <th>Memo</th>
                 <th>Action</th>
               </tr>
@@ -1143,9 +1146,12 @@
                 <td>{{ f.unit_price }}{{ f.unit_price.errors }}</td>
                 <td><span class="standard-price value-cell">0.00</span></td>
                 <td><span class="line-amount value-cell">0.00</span></td>
+                <td>{{ f.discount_value }}{{ f.discount_value.errors }}</td>
+                <td>{{ f.discount_type }}{{ f.discount_type.errors }}</td>
                 <td>{{ f.discount_amount }}{{ f.discount_amount.errors }}</td>
-                <td><span class="line-grand value-cell">0.00</span></td>
+                <td>{{ f.tax_rate }}{{ f.tax_rate.errors }}</td>
                 <td>{{ f.tax_amount }}{{ f.tax_amount.errors }}</td>
+                <td><span class="line-grand value-cell">0.00</span></td>
                 <td>{{ f.memo }}{{ f.memo.errors }}</td>
                 <td class="delete-cell">
                   <span style="display:none">{{ f.DELETE }}</span>
@@ -1200,8 +1206,8 @@
             <input type="checkbox" id="printAfterSave" name="print_after_save" value="1">
             Print After Save
           </label>
-          <button class="btn pb-btn btn-green" name="save_action" value="save_new">▣ Save & New</button>
-          <button class="btn pb-btn btn-blue" name="save_action" value="save_close">▣ Save & Close</button>
+          <button class="btn pb-btn" name="save_action" value="draft">▣ Save Draft</button>
+          <button class="btn pb-btn btn-green" name="save_action" value="post">✓ Post</button>
           <a class="btn pb-btn btn-close-bottom" href="{% if document_type == 'sale_receipt' %}{% url 'sale_receipt_list' %}{% else %}{% url 'customer_invoice_list' %}{% endif %}">× Close</a>
         </div>
       </div>
@@ -1258,9 +1264,19 @@
  }
  function calc(){
    let sub=0,dis=0,tax=0;
+   const taxMode=document.getElementById('id_discount_tax_mode')?.value||'before_tax';
    document.querySelectorAll('.line-row').forEach(r=>{
      if(r.style.display==='none'||r.querySelector('input[name$="-DELETE"]')?.checked){syncCreditRow(r);return}
-     const q=money(r.querySelector('.js-qty')?.value),p=money(r.querySelector('.js-price')?.value),d=money(r.querySelector('.js-discount')?.value),t=money(r.querySelector('.js-tax')?.value),amount=q*p,gt=amount-d+t;
+     const q=money(r.querySelector('.js-qty')?.value),p=money(r.querySelector('.js-price')?.value),amount=q*p;
+     const discountValue=money(r.querySelector('.js-discount-value')?.value);
+     const discountType=r.querySelector('.js-discount-type')?.value||'fixed';
+     let d=discountType==='percent'?amount*discountValue/100:discountValue;
+     d=Math.max(0,Math.min(d,amount));
+     const rate=Math.max(0,money(r.querySelector('.js-tax-rate')?.value));
+     const taxBase=taxMode==='before_tax'?Math.max(0,amount-d):amount;
+     const t=taxBase*rate/100,gt=amount-d+t;
+     const dInput=r.querySelector('.js-discount'),tInput=r.querySelector('.js-tax');
+     if(dInput)dInput.value=fmt(d);if(tInput)tInput.value=fmt(t);
      r.querySelector('.line-amount').textContent=fmt(amount);r.querySelector('.line-grand').textContent=fmt(gt);
      sub+=amount;dis+=d;tax+=t;syncCreditRow(r)
    });
@@ -1409,7 +1425,8 @@
    });
  }
 
- document.addEventListener('input',e=>{if(e.target.matches('.js-qty,.js-price,.js-discount,.js-tax,input[name$="-description"],input[name$="-memo"]'))calc()});
+ document.addEventListener('input',e=>{if(e.target.matches('.js-qty,.js-price,.js-discount-value,.js-tax-rate,input[name$="-description"],input[name$="-memo"]'))calc()});
+ document.addEventListener('change',e=>{if(e.target.matches('.js-discount-type,#id_discount_tax_mode'))calc()});
  wireRows();wireCreditRows();
 
  // Working tabs

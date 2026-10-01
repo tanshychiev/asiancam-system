@@ -307,7 +307,7 @@
 .read-cell{
   display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
-.bill-model-select{display:none!important}
+.bill-model-select{display:block!important}
 
 .manual-invoice-row .bill-model-select{
   display:block!important;
@@ -476,6 +476,12 @@
 
   <form method="post" id="paymentForm">
     {% csrf_token %}
+    {% if form.errors or allocation_formset.errors or charge_formset.errors %}
+    <div class="errorlist" style="margin:12px 20px;padding:10px 12px;border:1px solid #efb6b6;background:#fff5f5;border-radius:8px;color:#9b1c1c;">
+      <strong>Cannot save yet.</strong> Please check the highlighted fields below.
+      {{ form.non_field_errors }}
+    </div>
+    {% endif %}
     <input type="hidden" name="transaction_mode" id="transactionMode" value="{{ transaction_mode|default:'invoice' }}">
 
     <div class="payment-body">
@@ -529,24 +535,14 @@
 
         <div class="field account">
           <label>Payment Account <span class="req">*</span></label>
-          <div class="search-select js-search-select">
-            <input type="text" class="search-select-input" autocomplete="off" placeholder="Type cash / bank account...">
-            <span class="search-select-arrow">⌄</span>
-            <div class="search-select-menu" hidden></div>
-            <div class="hidden-select">{{ form.payment_account }}</div>
-          </div>
+          {{ form.payment_account }}
           {{ form.payment_account.errors }}
           <small>Cash or bank account where the money is paid from.</small>
         </div>
 
         <div class="field ap">
           <label>A/P Account <span class="req">*</span></label>
-          <div class="search-select js-search-select">
-            <input type="text" class="search-select-input" autocomplete="off" placeholder="Type Accounts Payable...">
-            <span class="search-select-arrow">⌄</span>
-            <div class="search-select-menu" hidden></div>
-            <div class="hidden-select">{{ form.accounts_payable_account }}</div>
-          </div>
+          {{ form.accounts_payable_account }}
           {{ form.accounts_payable_account.errors }}
           <small>Used when applying payment to vendor invoices.</small>
         </div>
@@ -576,6 +572,7 @@
           <div class="summary-row"><span>Invoice / Expense Sub Total</span><strong>$<span id="subTotal">0.00</span></strong></div>
           <div class="summary-row"><span>Discount</span><strong>-$<span id="discountTotal">0.00</span></strong></div>
           <div class="summary-row"><span>Other Charge</span><strong>$<span id="chargeTotal">0.00</span></strong></div>
+          <div class="summary-row"><span>Tax</span><strong>$<span id="taxTotal">0.00</span></strong></div>
           <div class="summary-row total"><span>Grand Total Paid</span><strong>$<span id="grandTotal">0.00</span></strong></div>
           <div class="amount-paid">
             <label><span>Amount Paid</span><span>USD</span></label>
@@ -618,12 +615,14 @@
                 {% for h in f.hidden_fields %}{{ h }}{% endfor %}
                 <td style="text-align:center">
                   <input type="checkbox" class="apply-check" aria-label="Apply payment to this invoice">
-                  <div class="bill-model-select">{{ f.bill }}</div>
-                  {{ f.bill.errors }}
                 </td>
                 <td><span class="read-cell tran-type">Bill</span></td>
                 <td><span class="read-cell tran-date">—</span></td>
-                <td><span class="read-cell tran-number">—</span></td>
+                <td>
+                  <div class="bill-model-select">{{ f.bill }}</div>
+                  {{ f.bill.errors }}
+                  <span class="read-cell tran-number" style="display:none">—</span>
+                </td>
                 <td class="num"><span class="read-cell tran-total">0.00</span></td>
                 <td class="num"><span class="read-cell tran-open">0.00</span></td>
                 <td>{{ f.amount }}{{ f.amount.errors }}</td>
@@ -666,6 +665,7 @@
                 <th class="num">Amount ($)</th>
                 <th>Expense / Debit Account</th>
                 <th style="width:145px">Tax</th>
+                <th class="num" style="width:120px">Tax ($)</th>
                 <th style="width:55px">Action</th>
               </tr>
             </thead>
@@ -676,16 +676,9 @@
                 <td class="charge-index" style="text-align:center"></td>
                 <td>{{ f.memo }}{{ f.memo.errors }}</td>
                 <td>{{ f.amount }}{{ f.amount.errors }}</td>
-                <td class="charge-account">
-                  <div class="search-select js-search-select">
-                    <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account code or name...">
-                    <span class="search-select-arrow">⌄</span>
-                    <div class="search-select-menu" hidden></div>
-                    <div class="hidden-select">{{ f.account }}</div>
-                  </div>
-                  {{ f.account.errors }}
-                </td>
+                <td class="charge-account">{{ f.account }}{{ f.account.errors }}</td>
                 <td class="charge-tax">{{ f.tax_code }}{{ f.tax_code.errors }}</td>
+                <td class="num"><span class="charge-tax-amount">0.00</span></td>
                 <td style="text-align:center">
                   <span class="delete-field">{{ f.DELETE }}</span>
                   <button type="button" class="trash" title="Delete row">🗑</button>
@@ -714,8 +707,8 @@
             <input type="checkbox" name="print_after_save" value="1">
             Print After Save
           </label>
-          <button type="submit" class="btn green" name="save_action" value="save_new">▣ Save & New</button>
-          <button type="submit" class="btn blue" name="save_action" value="save_close">▣ Save & Close</button>
+          <button type="submit" class="btn" name="save_action" value="draft">▣ Save Draft</button>
+          <button type="submit" class="btn green" name="save_action" value="post">✓ Post</button>
           <a class="btn danger" href="{% url 'vendor_center' %}">× Close</a>
         </div>
       </div>
@@ -753,15 +746,9 @@
     <td class="charge-index" style="text-align:center"></td>
     <td>{{ charge_formset.empty_form.memo }}</td>
     <td>{{ charge_formset.empty_form.amount }}</td>
-    <td class="charge-account">
-      <div class="search-select js-search-select">
-        <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account code or name...">
-        <span class="search-select-arrow">⌄</span>
-        <div class="search-select-menu" hidden></div>
-        <div class="hidden-select">{{ charge_formset.empty_form.account }}</div>
-      </div>
-    </td>
+    <td class="charge-account">{{ charge_formset.empty_form.account }}</td>
     <td class="charge-tax">{{ charge_formset.empty_form.tax_code }}</td>
+    <td class="num"><span class="charge-tax-amount">0.00</span></td>
     <td style="text-align:center">
       <span class="delete-field">{{ charge_formset.empty_form.DELETE }}</span>
       <button type="button" class="trash" title="Delete row">🗑</button>
@@ -862,18 +849,17 @@
       check.dataset.initialized = '1';
     }
 
-    const enabled = hasBill && Boolean(check?.checked);
+    // The user can tick the row first, then select a bill and enter values.
+    // Existing bill rows are also editable immediately.
+    const enabled = hasBill || Boolean(check?.checked);
     row.classList.toggle('row-disabled', !enabled);
 
     row.querySelectorAll('input[name$="-amount"],input[name$="-discount"],input[name$="-memo"]').forEach(input => {
       input.disabled = !enabled;
     });
 
-    if(!hasBill && !row.classList.contains('manual-invoice-row')){
-      row.style.display = 'none';
-    }else{
-      row.style.display = '';
-    }
+    // Never hide the row. A visible Number dropdown makes it clear what must be selected.
+    row.style.display = '';
   }
 
   function updateChargeIndexes(){
@@ -887,10 +873,18 @@
     document.getElementById('chargeCount').textContent = n;
   }
 
+  function chargeTaxAmount(row){
+    const amount = money(row.querySelector('input[name$="-amount"]')?.value);
+    const taxCode = row.querySelector('select[name$="-tax_code"]')?.value || 'NA';
+    if(taxCode === 'VAT10') return Math.round(amount * 0.10 * 100) / 100;
+    return 0;
+  }
+
   function totals(){
     let invoicePayment = 0;
     let discount = 0;
     let charges = 0;
+    let taxTotal = 0;
     let invoiceCount = 0;
 
     document.querySelectorAll('#allocationRows .allocation-row').forEach(row => {
@@ -902,18 +896,25 @@
 
     document.querySelectorAll('#chargeRows .charge-row').forEach(row => {
       if(rowDeleted(row)) return;
-      charges += money(row.querySelector('input[name$="-amount"]')?.value);
+      const amount = money(row.querySelector('input[name$="-amount"]')?.value);
+      const tax = chargeTaxAmount(row);
+      charges += amount;
+      taxTotal += tax;
+      const taxCell = row.querySelector('.charge-tax-amount');
+      if(taxCell) taxCell.textContent = fmt(tax);
     });
 
     const appliedBeforeDiscount = invoicePayment + discount;
     const sub = modeInput.value === 'invoice' ? appliedBeforeDiscount : charges;
-    const cashPaid = modeInput.value === 'invoice' ? invoicePayment : charges;
+    const cashPaid = modeInput.value === 'invoice' ? invoicePayment : charges + taxTotal;
 
     document.getElementById('subTotal').textContent = fmt(sub);
     document.getElementById('discountTotal').textContent =
       fmt(modeInput.value === 'invoice' ? discount : 0);
     document.getElementById('chargeTotal').textContent =
       fmt(modeInput.value === 'expense' ? charges : 0);
+    document.getElementById('taxTotal').textContent =
+      fmt(modeInput.value === 'expense' ? taxTotal : 0);
     document.getElementById('grandTotal').textContent = fmt(cashPaid);
     document.getElementById('paymentTotal').value = fmt(cashPaid);
     document.getElementById('invoiceCount').textContent = invoiceCount;
@@ -940,6 +941,33 @@
       if(check && !check.dataset.wired){
         check.dataset.wired = '1';
         check.addEventListener('change', () => {
+          if(check.checked && billSelect && !billSelect.value){
+            const available = [...billSelect.options].filter(option => option.value);
+            if(available.length === 1){
+              billSelect.value = available[0].value;
+            }
+          }
+          syncAllocationRow(row);
+          totals();
+        });
+      }
+
+      // Click Open Balance to pay the full remaining bill amount.
+      const openCell = row.querySelector('.tran-open');
+      if(openCell && !openCell.dataset.wired){
+        openCell.dataset.wired = '1';
+        openCell.style.cursor = 'pointer';
+        openCell.title = 'Click to fill full remaining payment';
+        openCell.addEventListener('click', () => {
+          const billSelect = row.querySelector('select[name$="-bill"]');
+          if(!billSelect?.value) return;
+          const amountInput = row.querySelector('input[name$="-amount"]');
+          const discountInput = row.querySelector('input[name$="-discount"]');
+          if(!amountInput) return;
+          const remaining = money(openCell.textContent) - money(discountInput?.value);
+          amountInput.value = fmt(Math.max(0, remaining));
+          const apply = row.querySelector('.apply-check');
+          if(apply) apply.checked = true;
           syncAllocationRow(row);
           totals();
         });
@@ -1152,7 +1180,14 @@
       }
     }
 
-    initAllocationRows();
+    document.getElementById('chargeRows')?.addEventListener('input', e => {
+    if(e.target.matches('input[name$="-amount"]')) totals();
+  });
+  document.getElementById('chargeRows')?.addEventListener('change', e => {
+    if(e.target.matches('select[name$="-tax_code"]')) totals();
+  });
+
+  initAllocationRows();
     initTrash(tbody);
     totals();
   }
@@ -1190,12 +1225,25 @@
   });
 
   // Before POST, only the active transaction type is saved.
-  form.addEventListener('submit', () => {
+  form.addEventListener('submit', (event) => {
     document.querySelectorAll('.money-input').forEach(input => {
       input.value = String(input.value || '').replace(/,/g,'');
     });
 
     if(modeInput.value === 'invoice'){
+      let missingBill = false;
+      document.querySelectorAll('#allocationRows .allocation-row').forEach(row => {
+        const checked = row.querySelector('.apply-check')?.checked;
+        const amount = money(row.querySelector('input[name$="-amount"]')?.value);
+        const discount = money(row.querySelector('input[name$="-discount"]')?.value);
+        const bill = row.querySelector('select[name$="-bill"]')?.value;
+        if(checked && (amount > 0 || discount > 0) && !bill) missingBill = true;
+      });
+      if(missingBill){
+        event.preventDefault();
+        alert('Please select a Bill Number for every checked payment row.');
+        return;
+      }
       document.querySelectorAll('#chargeRows .charge-row').forEach(row => {
         const del = row.querySelector('input[name$="-DELETE"]');
         if(del) del.checked = true;
@@ -1318,6 +1366,7 @@ ${details}
 <div><span>Sub Total</span><b>$${esc(document.getElementById('subTotal').textContent)}</b></div>
 <div><span>Discount</span><b>-$${esc(document.getElementById('discountTotal').textContent)}</b></div>
 <div><span>Other Charge</span><b>$${esc(document.getElementById('chargeTotal').textContent)}</b></div>
+<div><span>Tax</span><b>$${esc(document.getElementById('taxTotal').textContent)}</b></div>
 <div><span>Grand Total Paid</span><b>$${esc(document.getElementById('grandTotal').textContent)}</b></div>
 </div></body></html>`);
     popup.document.close();

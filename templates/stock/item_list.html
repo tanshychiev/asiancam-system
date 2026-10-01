@@ -126,6 +126,17 @@
   color:#c83d3d;
 }
 .toolbar-action.disabled{opacity:.4;pointer-events:none}
+.toolbar-action.new-item-btn{
+  background:#0aa35d;
+  border-color:#0aa35d;
+  color:#fff;
+  padding:0 10px;
+}
+.toolbar-action.new-item-btn:hover{
+  background:#078a4f;
+  border-color:#078a4f;
+  color:#fff;
+}
 .toolbar-icon{
   font-size:11px;
   line-height:1;
@@ -468,6 +479,9 @@
     <div class="toolbar-spacer"></div>
 
     <div class="item-toolbar-actions">
+      <a class="toolbar-action new-item-btn" href="{% url 'stock_item_create' %}" title="Create a new item">
+        <span class="toolbar-icon">＋</span><span>New Item</span>
+      </a>
       <button type="button" class="toolbar-action edit-main-btn" id="editSelected" title="Edit selected item">
         <span class="toolbar-icon">✎</span><span>Edit</span>
       </button>

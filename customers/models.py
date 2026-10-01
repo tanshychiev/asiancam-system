@@ -360,14 +360,20 @@ class SalesInvoice(models.Model):
 
 class SalesInvoiceLine(models.Model):
     invoice = models.ForeignKey(SalesInvoice, on_delete=models.CASCADE, related_name="lines")
-    item = models.ForeignKey("stock.Item", on_delete=models.PROTECT, related_name="sales_invoice_lines")
+    item = models.ForeignKey("stock.Item", on_delete=models.PROTECT, related_name="sales_invoice_lines", null=True, blank=True)
     description = models.CharField(max_length=255, blank=True)
     qty = models.DecimalField(max_digits=14, decimal_places=2, default=1)
     unit_name = models.CharField(max_length=50, blank=True)
     unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     line_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    DISCOUNT_FIXED = "fixed"
+    DISCOUNT_PERCENT = "percent"
+    DISCOUNT_TYPE_CHOICES = [(DISCOUNT_FIXED, "$"), (DISCOUNT_PERCENT, "%")]
+    discount_type = models.CharField(max_length=10, choices=DISCOUNT_TYPE_CHOICES, default=DISCOUNT_FIXED)
+    discount_value = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     discount_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     revenue_account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="sales_invoice_revenue_lines")
+    tax_rate = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     memo = models.CharField(max_length=255, blank=True)
     credit_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
@@ -377,6 +383,15 @@ class SalesInvoiceLine(models.Model):
 
     def save(self, *args, **kwargs):
         self.line_amount = (self.qty or Decimal("0")) * (self.unit_price or Decimal("0"))
+        if self.discount_type == self.DISCOUNT_PERCENT:
+            pct = min(max(self.discount_value or Decimal("0"), Decimal("0")), Decimal("100"))
+            self.discount_amount = (self.line_amount * pct / Decimal("100")).quantize(Decimal("0.01"))
+        else:
+            self.discount_amount = min(max(self.discount_value or Decimal("0"), Decimal("0")), self.line_amount).quantize(Decimal("0.01"))
+        tax_base = self.line_amount
+        if self.invoice_id and self.invoice.discount_tax_mode == SalesInvoice.DISCOUNT_BEFORE_TAX:
+            tax_base = max(Decimal("0"), self.line_amount - self.discount_amount)
+        self.tax_amount = (tax_base * (self.tax_rate or Decimal("0")) / Decimal("100")).quantize(Decimal("0.01"))
         if not self.unit_name and self.item_id and self.item.unit_set_id:
             self.unit_name = self.item.unit_set.default_sale or self.item.unit_set.base_unit
         if not self.revenue_account_id and self.item_id:

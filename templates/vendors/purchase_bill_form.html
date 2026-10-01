@@ -606,27 +606,14 @@
 
         <div class="pb-field ap-field">
           <label>A/P Account <span class="req">*</span></label>
-          <div class="search-select js-search-select">
-            <div class="search-select-display">
-              <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account code or name...">
-              <span class="search-select-arrow">⌄</span>
-            </div>
-            <div class="search-select-menu" hidden></div>
-            <div class="search-select-original">{{ form.accounts_payable_account }}</div>
-          </div>{{ form.accounts_payable_account.errors }}
+          {{ form.accounts_payable_account }}{{ form.accounts_payable_account.errors }}
           <small>Credit account. Normally Accounts Payable.</small>
         </div>
 
         <div class="pb-field vat-field">
           <label>VAT Input Tax Account</label>
-          <div class="search-select js-search-select">
-            <div class="search-select-display">
-              <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account code or name...">
-              <span class="search-select-arrow">⌄</span>
-            </div>
-            <div class="search-select-menu" hidden></div>
-            <div class="search-select-original">{{ form.input_vat_account }}</div>
-          </div>{{ form.input_vat_account.errors }}
+          {{ form.input_vat_account }}{{ form.input_vat_account.errors }}
+          <small>Required when any row uses VAT 10%.</small>
         </div>
 
         <div class="pb-field memo-field">
@@ -681,7 +668,8 @@
                 <th>Cost ($)</th>
                 <th>Amount ($)</th>
                 <th>Account / Debit Account</th>
-                <th>VAT Input Tax</th>
+                <th>Tax Rate</th>
+                <th>Tax ($)</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -708,18 +696,9 @@
                 <td class="pb-unit-col">{{ line.unit_name }}{{ line.unit_name.errors }}</td>
                 <td>{{ line.unit_cost }}{{ line.unit_cost.errors }}</td>
                 <td><div class="pb-amount-display js-line-amount">0.00</div></td>
-                <td class="pb-account-col">
-                  <div class="search-select js-search-select">
-                    <div class="search-select-display">
-                      <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account...">
-                      <span class="search-select-arrow">⌄</span>
-                    </div>
-                    <div class="search-select-menu" hidden></div>
-                    <div class="search-select-original">{{ line.account }}</div>
-                  </div>
-                  {{ line.account.errors }}
-                </td>
-                <td>{{ line.vat_amount }}{{ line.vat_amount.errors }}</td>
+                <td class="pb-account-col">{{ line.account }}{{ line.account.errors }}</td>
+                <td>{{ line.tax_code }}{{ line.tax_code.errors }}</td>
+                <td><div class="pb-amount-display js-tax-amount">0.00</div></td>
                 <td style="text-align:center">
                   <span style="display:none">{{ line.DELETE }}</span>
                   <button type="button" class="pb-delete js-delete-row" title="Delete row">🗑</button>
@@ -747,7 +726,8 @@
                 <th>Description</th>
                 <th>Amount ($)</th>
                 <th>Account / Debit Account</th>
-                <th>VAT Input Tax</th>
+                <th>Tax Rate</th>
+                <th>Tax ($)</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -757,18 +737,9 @@
                 <td class="pb-row-index"></td>
                 <td class="pb-desc-col">{{ line.id }}{{ line.description }}{{ line.description.errors }}</td>
                 <td>{{ line.amount }}{{ line.amount.errors }}</td>
-                <td class="pb-account-col">
-                  <div class="search-select js-search-select">
-                    <div class="search-select-display">
-                      <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account...">
-                      <span class="search-select-arrow">⌄</span>
-                    </div>
-                    <div class="search-select-menu" hidden></div>
-                    <div class="search-select-original">{{ line.account }}</div>
-                  </div>
-                  {{ line.account.errors }}
-                </td>
-                <td>{{ line.vat_amount }}{{ line.vat_amount.errors }}</td>
+                <td class="pb-account-col">{{ line.account }}{{ line.account.errors }}</td>
+                <td>{{ line.tax_code }}{{ line.tax_code.errors }}</td>
+                <td><div class="pb-amount-display js-tax-amount">0.00</div></td>
                 <td style="text-align:center">
                   <span style="display:none">{{ line.DELETE }}</span>
                   <button type="button" class="pb-delete js-delete-row" title="Delete row">🗑</button>
@@ -798,8 +769,8 @@
             <input type="checkbox" name="print_after_save" value="1">
             Print after save
           </label>
-          <button type="submit" name="save_action" value="save_new" class="pb-btn green">▣ Save & New</button>
-          <button type="submit" name="save_action" value="save_close" class="pb-btn blue">▣ Save & Close</button>
+          <button type="submit" name="save_action" value="draft" class="pb-btn">▣ Save Draft</button>
+          <button type="submit" name="save_action" value="post" class="pb-btn green">✓ Post</button>
           <a class="pb-btn danger" href="{% url 'purchase_bill_list' %}">× Close</a>
         </div>
       </div>
@@ -828,17 +799,9 @@
     <td class="pb-unit-col">{{ item_formset.empty_form.unit_name }}</td>
     <td>{{ item_formset.empty_form.unit_cost }}</td>
     <td><div class="pb-amount-display js-line-amount">0.00</div></td>
-    <td class="pb-account-col">
-      <div class="search-select js-search-select">
-        <div class="search-select-display">
-          <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account...">
-          <span class="search-select-arrow">⌄</span>
-        </div>
-        <div class="search-select-menu" hidden></div>
-        <div class="search-select-original">{{ item_formset.empty_form.account }}</div>
-      </div>
-    </td>
-    <td>{{ item_formset.empty_form.vat_amount }}</td>
+    <td class="pb-account-col">{{ item_formset.empty_form.account }}</td>
+    <td>{{ item_formset.empty_form.tax_code }}</td>
+    <td><div class="pb-amount-display js-tax-amount">0.00</div></td>
     <td style="text-align:center">
       <span style="display:none">{{ item_formset.empty_form.DELETE }}</span>
       <button type="button" class="pb-delete js-delete-row" title="Delete row">🗑</button>
@@ -851,17 +814,9 @@
     <td class="pb-row-index"></td>
     <td class="pb-desc-col">{{ expense_formset.empty_form.id }}{{ expense_formset.empty_form.description }}</td>
     <td>{{ expense_formset.empty_form.amount }}</td>
-    <td class="pb-account-col">
-      <div class="search-select js-search-select">
-        <div class="search-select-display">
-          <input type="text" class="search-select-input" autocomplete="off" placeholder="Type account...">
-          <span class="search-select-arrow">⌄</span>
-        </div>
-        <div class="search-select-menu" hidden></div>
-        <div class="search-select-original">{{ expense_formset.empty_form.account }}</div>
-      </div>
-    </td>
-    <td>{{ expense_formset.empty_form.vat_amount }}</td>
+    <td class="pb-account-col">{{ expense_formset.empty_form.account }}</td>
+    <td>{{ expense_formset.empty_form.tax_code }}</td>
+    <td><div class="pb-amount-display js-tax-amount">0.00</div></td>
     <td style="text-align:center">
       <span style="display:none">{{ expense_formset.empty_form.DELETE }}</span>
       <button type="button" class="pb-delete js-delete-row" title="Delete row">🗑</button>
@@ -948,16 +903,25 @@
       const amount = qty * cost;
 
       subtotal += amount;
-      vat += money(row.querySelector('.js-vat')?.value);
+      const taxCode = row.querySelector('.js-tax-code')?.value || 'NA';
+      const rowTax = taxCode === 'VAT10' ? amount * 0.10 : 0;
+      vat += rowTax;
 
       const output = row.querySelector('.js-line-amount');
       if(output) output.textContent = fmt(amount);
+      const taxOutput = row.querySelector('.js-tax-amount');
+      if(taxOutput) taxOutput.textContent = fmt(rowTax);
     });
 
     document.querySelectorAll('#expenseRows .expense-row').forEach(row => {
       if(isDeleted(row)) return;
-      subtotal += money(row.querySelector('.js-expense-amount')?.value);
-      vat += money(row.querySelector('.js-vat')?.value);
+      const amount = money(row.querySelector('.js-expense-amount')?.value);
+      subtotal += amount;
+      const taxCode = row.querySelector('.js-tax-code')?.value || 'NA';
+      const rowTax = taxCode === 'VAT10' ? amount * 0.10 : 0;
+      vat += rowTax;
+      const taxOutput = row.querySelector('.js-tax-amount');
+      if(taxOutput) taxOutput.textContent = fmt(rowTax);
     });
 
     const discountInput = document.getElementById('discountValue');
@@ -1030,7 +994,7 @@
 
   // Live totals and item code.
   document.addEventListener('input', event => {
-    if(event.target.matches('.js-qty,.js-unit-cost,.js-expense-amount,.js-vat,#discountValue')){
+    if(event.target.matches('.js-qty,.js-unit-cost,.js-expense-amount,#discountValue')){
       recalc();
     }
   });
@@ -1038,7 +1002,7 @@
     if(event.target.matches('.hidden-item-select select, select[name$="-item"]')){
       updateItemCode(event.target.closest('.item-row'));
     }
-    if(event.target.matches('.js-qty,.js-unit-cost,.js-expense-amount,.js-vat,#discountType,#discountValue')){
+    if(event.target.matches('.js-qty,.js-unit-cost,.js-expense-amount,.js-tax-code,#discountType,#discountValue')){
       recalc();
     }
   });
@@ -1289,18 +1253,18 @@
 
   // Number formatting without changing submitted values.
   document.addEventListener('focusin', event => {
-    if(event.target.matches('.pb-money,.money-input,.js-unit-cost,.js-expense-amount,.js-vat')){
+    if(event.target.matches('.pb-money,.money-input,.js-unit-cost,.js-expense-amount')){
       event.target.value = String(event.target.value || '').replace(/,/g, '');
     }
   });
   document.addEventListener('focusout', event => {
-    if(event.target.matches('.pb-money,.money-input,.js-unit-cost,.js-expense-amount,.js-vat')){
+    if(event.target.matches('.pb-money,.money-input,.js-unit-cost,.js-expense-amount')){
       if(event.target.value.trim() !== '') event.target.value = fmt(event.target.value);
     }
   });
 
   form.addEventListener('submit', () => {
-    document.querySelectorAll('.js-unit-cost,.js-expense-amount,.js-vat,.money-input').forEach(input => {
+    document.querySelectorAll('.js-unit-cost,.js-expense-amount,.money-input').forEach(input => {
       input.value = String(input.value || '').replace(/,/g, '');
     });
   });
@@ -1351,7 +1315,7 @@
         cost: cost,
         amount: qty * cost,
         account: account?.options[account.selectedIndex]?.textContent?.trim() || '',
-        vat: money(row.querySelector('.js-vat')?.value)
+        vat: (row.querySelector('.js-tax-code')?.value === 'VAT10' ? (qty * cost * 0.10) : 0)
       });
     });
     return rows;
@@ -1370,7 +1334,7 @@
         description,
         amount,
         account: account?.options[account.selectedIndex]?.textContent?.trim() || '',
-        vat: money(row.querySelector('.js-vat')?.value)
+        vat: (row.querySelector('.js-tax-code')?.value === 'VAT10' ? (amount * 0.10) : 0)
       });
     });
     return rows;

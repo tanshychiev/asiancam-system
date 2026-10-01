@@ -285,6 +285,15 @@ class PurchaseBill(models.Model):
 
 
 class PurchaseBillItemLine(models.Model):
+    TAX_NA = "NA"
+    TAX_VAT0 = "VAT0"
+    TAX_VAT10 = "VAT10"
+    TAX_CHOICES = [
+        (TAX_NA, "N/A"),
+        (TAX_VAT0, "VAT 0%"),
+        (TAX_VAT10, "VAT 10%"),
+    ]
+
     bill = models.ForeignKey(PurchaseBill, on_delete=models.CASCADE, related_name="item_lines")
     item = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="purchase_bill_lines")
     description = models.CharField(max_length=255, blank=True)
@@ -300,13 +309,19 @@ class PurchaseBillItemLine(models.Model):
         related_name="purchase_bill_item_lines",
         help_text="Defaults to the item's Inventory Account when blank.",
     )
+    tax_code = models.CharField(max_length=20, choices=TAX_CHOICES, default=TAX_NA)
     vat_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
     class Meta:
         ordering = ["id"]
 
+    @property
+    def tax_rate(self):
+        return Decimal("0.10") if self.tax_code == self.TAX_VAT10 else Decimal("0.00")
+
     def save(self, *args, **kwargs):
         self.line_amount = (self.qty or Decimal("0.00")) * (self.unit_cost or Decimal("0.00"))
+        self.vat_amount = (self.line_amount * self.tax_rate).quantize(Decimal("0.01"))
         if not self.unit_name and self.item_id and self.item.unit_set_id:
             self.unit_name = self.item.unit_set.default_purchase or self.item.unit_set.base_unit
         if not self.account_id and self.item_id:
@@ -327,6 +342,15 @@ class PurchaseBillItemLine(models.Model):
 
 
 class PurchaseBillExpenseLine(models.Model):
+    TAX_NA = "NA"
+    TAX_VAT0 = "VAT0"
+    TAX_VAT10 = "VAT10"
+    TAX_CHOICES = [
+        (TAX_NA, "N/A"),
+        (TAX_VAT0, "VAT 0%"),
+        (TAX_VAT10, "VAT 10%"),
+    ]
+
     bill = models.ForeignKey(PurchaseBill, on_delete=models.CASCADE, related_name="expense_lines")
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
@@ -335,10 +359,20 @@ class PurchaseBillExpenseLine(models.Model):
         on_delete=models.PROTECT,
         related_name="purchase_bill_expense_lines",
     )
+    tax_code = models.CharField(max_length=20, choices=TAX_CHOICES, default=TAX_NA)
     vat_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
     class Meta:
         ordering = ["id"]
+
+    @property
+    def tax_rate(self):
+        return Decimal("0.10") if self.tax_code == self.TAX_VAT10 else Decimal("0.00")
+
+    def save(self, *args, **kwargs):
+        amount = self.amount or Decimal("0.00")
+        self.vat_amount = (amount * self.tax_rate).quantize(Decimal("0.01"))
+        super().save(*args, **kwargs)
 
     def clean(self):
         if self.account_id and self.bill_id and self.account.company_id != self.bill.company_id:
@@ -378,7 +412,11 @@ class VendorPayment(models.Model):
 
     def recalculate_total(self, save=True):
         allocations = self.allocations.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
-        charges = self.other_charges.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+        charges = Decimal("0.00")
+        for charge in self.other_charges.all():
+            amount = charge.amount or Decimal("0.00")
+            tax = charge.tax_amount
+            charges += amount + tax
         self.total_amount = allocations + charges
         if save:
             self.save(update_fields=["total_amount"])
@@ -410,3 +448,18 @@ class VendorPaymentOtherCharge(models.Model):
     amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     account = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, related_name="vendor_payment_other_charges")
     tax_code = models.CharField(max_length=20, choices=TAX_CHOICES, default=TAX_NA)
+
+    @property
+    def tax_rate(self):
+        if self.tax_code == self.TAX_VAT10:
+            return Decimal("0.10")
+        return Decimal("0.00")
+
+    @property
+    def tax_amount(self):
+        amount = self.amount or Decimal("0.00")
+        return (amount * self.tax_rate).quantize(Decimal("0.01"))
+
+    @property
+    def gross_amount(self):
+        return (self.amount or Decimal("0.00")) + self.tax_amount

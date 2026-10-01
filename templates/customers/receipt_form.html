@@ -1011,6 +1011,7 @@
   border-radius:6px;font-size:10px;box-sizing:border-box
 }
 .rc-num{text-align:right;font-variant-numeric:tabular-nums}
+.use-remaining{border:0;background:#eef8ff;color:#0877b3;border-radius:6px;padding:4px 7px;cursor:pointer;font-weight:800}.use-remaining:hover{background:#dff1ff}
 .rc-delete{
   width:30px!important;height:30px!important;min-height:30px!important;padding:0!important;
   border:1px solid #f3caca!important;background:#fff7f7!important;border-radius:8px!important;
@@ -1187,7 +1188,7 @@
                 <td>{{ f.invoice }}{{ f.invoice.errors }}</td>
                 <td><span class="alloc-date">—</span></td>
                 <td class="rc-num"><span class="alloc-total">0.00</span></td>
-                <td class="rc-num"><span class="alloc-open">0.00</span></td>
+                <td class="rc-num"><button type="button" class="use-remaining" title="Use remaining amount"><span class="alloc-open">0.00</span></button></td>
                 <td>{{ f.amount }}{{ f.amount.errors }}</td>
                 <td>{{ f.discount }}{{ f.discount.errors }}</td>
                 <td>{{ f.memo }}{{ f.memo.errors }}</td>
@@ -1248,8 +1249,8 @@
         </div>
         <div class="rc-footer-right">
           <label class="rc-print-after"><input type="checkbox" id="receiptPrintAfterSave"> Print After Save</label>
-          <button class="pb-btn green" name="save_action" value="save_new">▣ Save & New</button>
-          <button class="pb-btn blue" name="save_action" value="save_close">▣ Save & Close</button>
+          <button class="pb-btn" name="save_action" value="draft">▣ Save Draft</button>
+          <button class="pb-btn green" name="save_action" value="post">✓ Post</button>
           <a class="pb-btn danger" href="{% url 'customer_center' %}">× Close</a>
         </div>
       </div>
@@ -1257,8 +1258,10 @@
   </form>
 </div>
 
+{{ invoice_defaults|json_script:"receipt-invoice-defaults" }}
 <script>
 (function(){
+  const invoiceData=JSON.parse(document.getElementById('receipt-invoice-defaults')?.textContent||'{}')||{};
   const money=v=>{const n=parseFloat(String(v||0).replace(/,/g,''));return Number.isFinite(n)?n:0};
   const fmt=v=>money(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
@@ -1317,6 +1320,45 @@
     syncCustomer();
   }
 
+  function syncAllocationRow(row){
+    const sel=row.querySelector('select[name$="-invoice"]');
+    const d=invoiceData[String(sel?.value)]||null;
+    row.querySelector('.alloc-date').textContent=d?d.date:'—';
+    row.querySelector('.alloc-total').textContent=d?fmt(d.total):'0.00';
+    row.querySelector('.alloc-open').textContent=d?fmt(d.open):'0.00';
+  }
+
+  function activeAllocationRows(){return [...document.querySelectorAll('.allocation-row')].filter(r=>r.style.display!=='none')}
+
+  function populateCustomerInvoices(){
+    if(!customerSelect)return;
+    const wanted=Object.entries(invoiceData).filter(([,d])=>String(d.customer)===String(customerSelect.value)&&money(d.open)>0);
+    const body=document.getElementById('allocationBody'), total=document.getElementById('id_alloc-TOTAL_FORMS');
+    if(!body||!total)return;
+    let rows=activeAllocationRows();
+    while(rows.length<wanted.length){addFormsetRow('allocationBody','id_alloc-TOTAL_FORMS','.allocation-row');rows=activeAllocationRows()}
+    rows.forEach((row,i)=>{
+      const del=row.querySelector('input[name$="-DELETE"]');if(del)del.checked=false;
+      if(i<wanted.length){
+        row.style.display='';const sel=row.querySelector('select[name$="-invoice"]');if(sel)sel.value=wanted[i][0];
+        const amt=row.querySelector('input[name$="-amount"]'),disc=row.querySelector('input[name$="-discount"]');if(amt)amt.value='';if(disc)disc.value='';syncAllocationRow(row);
+      }else{
+        if(del){del.checked=true;row.style.display='none'}
+      }
+    });
+    recalc();
+  }
+
+  document.addEventListener('change',e=>{
+    if(e.target===customerSelect)populateCustomerInvoices();
+    if(e.target.matches('select[name$="-invoice"]'))syncAllocationRow(e.target.closest('.allocation-row'));
+  });
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('.use-remaining');if(!btn)return;
+    const row=btn.closest('.allocation-row'),sel=row?.querySelector('select[name$="-invoice"]'),d=invoiceData[String(sel?.value)]||null;
+    const amt=row?.querySelector('input[name$="-amount"]');if(amt&&d){amt.value=fmt(d.open);recalc()}
+  });
+
   /* Totals */
   function recalc(){
     let payment=0,discount=0,charge=0;
@@ -1356,7 +1398,7 @@
       delete el.dataset.searchReady;
     });
     const first=row.querySelector('td:first-child');if(first)first.textContent=idx+1;
-    body.appendChild(row);total.value=idx+1;wireRows(row);wireChargeAccounts(row);recalc();
+    body.appendChild(row);total.value=idx+1;wireRows(row);wireChargeAccounts(row);syncAllocationRow(row);recalc();
   }
 
   document.getElementById('addAllocationRow')?.addEventListener('click',()=>addFormsetRow('allocationBody','id_alloc-TOTAL_FORMS','.allocation-row'));
@@ -1440,6 +1482,7 @@
   });
 
   wireRows();wireChargeAccounts();recalc();
-})();
+{% if should_prefill_allocations %}if(customerSelect?.value)populateCustomerInvoices();{% endif %}
+  })();
 </script>
 {% endblock %}

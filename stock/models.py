@@ -85,6 +85,18 @@ class Item(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="stock_items")
     code = models.CharField(max_length=80)
     name = models.CharField(max_length=180)
+    description = models.TextField(blank=True)
+
+    COST_METHOD_STANDARD = "standard"
+    COST_METHOD_CHOICES = [
+        (COST_METHOD_STANDARD, "Standard Cost"),
+    ]
+    cost_method = models.CharField(
+        max_length=20,
+        choices=COST_METHOD_CHOICES,
+        default=COST_METHOD_STANDARD,
+        help_text="Current AsianCam costing uses the item Cost Price as the standard cost.",
+    )
 
     item_type = models.CharField(max_length=30, choices=ITEM_TYPE_CHOICES, default=TYPE_STOCK_PART)
     item_group = models.ForeignKey(ItemGroup, on_delete=models.SET_NULL, null=True, blank=True)

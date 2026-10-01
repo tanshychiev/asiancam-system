@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -177,7 +178,7 @@ def customer_center(request):
                     "id": inv.id, "kind": "invoice", "type": inv.get_document_type_display(),
                     "date": inv.invoice_date, "number": inv.number, "so_number": getattr(inv,"sale_order_no","") or getattr(inv,"po_number",""),
                     "currency": inv.currency, "amount": inv.total_amount, "open_balance": inv.open_balance,
-                    "memo": inv.memo, "sent": "", "detail_url": "",
+                    "memo": inv.memo, "sent": "", "detail_url": f"/customers/invoices/{inv.id}/edit/",
                     "duplicate_url": f"/customers/invoices/{inv.id}/duplicate/",
                     "action_url": f"/customers/invoices/{inv.id}/center-action/",
                 })
@@ -189,7 +190,7 @@ def customer_center(request):
                     "id": rec.id, "kind": "receipt", "type": "Receipt / Collection",
                     "date": rec.receipt_date, "number": rec.number, "so_number": "",
                     "currency": rec.currency, "amount": rec.total_amount, "open_balance": Decimal("0.00"),
-                    "memo": rec.memo, "sent": "", "detail_url": "",
+                    "memo": rec.memo, "sent": "", "detail_url": f"/customers/receipts/{rec.id}/edit/",
                     "duplicate_url": f"/customers/receipts/{rec.id}/duplicate/",
                     "action_url": f"/customers/receipts/{rec.id}/center-action/",
                 })
@@ -812,39 +813,103 @@ def _formset_with_company(formset_class, data, instance, company, extra_kwargs=N
     return formset_class(**kwargs)
 
 
+def _find_tax_payable_account(company):
+    qs = ChartOfAccount.objects.filter(company=company, is_active=True, is_group=False)
+    return (qs.filter(name__icontains="VAT Payable").first()
+            or qs.filter(name__icontains="Tax Payable").first()
+            or qs.filter(account_type=ChartOfAccount.ACCOUNT_TYPE_LIABILITY).first())
+
+
+def _find_customer_discount_account(company):
+    qs = ChartOfAccount.objects.filter(company=company, is_active=True, is_group=False)
+    return (qs.filter(name__icontains="Sales Discount").first()
+            or qs.filter(name__icontains="Customer Discount").first()
+            or qs.filter(account_type=ChartOfAccount.ACCOUNT_TYPE_OTHER_EXPENSE).first()
+            or qs.filter(account_type=ChartOfAccount.ACCOUNT_TYPE_EXPENSE).first())
+
+
 def create_sales_invoice_journal(invoice, user):
     if invoice.status != SalesInvoice.STATUS_POSTED or invoice.total_amount <= 0:
         return None
+    tax_account = _find_tax_payable_account(invoice.company) if invoice.tax_total > 0 else None
+    if invoice.tax_total > 0 and not tax_account:
+        raise ValidationError("Tax is used but no VAT Payable / Tax Payable account exists in the Chart of Accounts.")
     with transaction.atomic():
         if invoice.journal_entry_id:
             invoice.journal_entry.delete()
-        entry = JournalEntry.objects.create(company=invoice.company, entry_date=invoice.invoice_date,
-            reference_no=invoice.number, description=f"{invoice.get_document_type_display()} - {invoice.customer.name}", status=get_posted_status(), created_by=user)
+        entry = JournalEntry.objects.create(
+            company=invoice.company, entry_date=invoice.invoice_date,
+            reference_no=invoice.number,
+            description=f"{invoice.get_document_type_display()} - {invoice.customer.name}",
+            status=get_posted_status(), created_by=user
+        )
         debit_account = invoice.deposit_account if invoice.document_type == SalesInvoice.TYPE_SALE_RECEIPT else invoice.accounts_receivable_account
-        JournalEntryLine.objects.create(journal_entry=entry, account=debit_account, description=invoice.memo or invoice.get_document_type_display(), debit=invoice.total_amount, credit=Decimal("0.00"))
-        for line in invoice.lines.select_related("revenue_account"):
-            net = (line.line_amount or Decimal("0")) + (line.tax_amount or Decimal("0")) - (line.discount_amount or Decimal("0"))
-            if net > 0:
-                JournalEntryLine.objects.create(journal_entry=entry, account=line.revenue_account, description=line.description or line.item.name, debit=Decimal("0.00"), credit=net)
-        invoice.journal_entry = entry; invoice.save(update_fields=["journal_entry"])
+        JournalEntryLine.objects.create(
+            journal_entry=entry, account=debit_account,
+            description=invoice.memo or invoice.get_document_type_display(),
+            debit=invoice.total_amount, credit=Decimal("0.00")
+        )
+        for line in invoice.lines.select_related("revenue_account", "item"):
+            revenue = max(Decimal("0.00"), (line.line_amount or Decimal("0")) - (line.discount_amount or Decimal("0")))
+            if revenue > 0:
+                JournalEntryLine.objects.create(
+                    journal_entry=entry, account=line.revenue_account,
+                    description=line.description or (line.item.name if line.item_id else "Service / Sale"),
+                    debit=Decimal("0.00"), credit=revenue
+                )
+            if (line.tax_amount or Decimal("0")) > 0:
+                JournalEntryLine.objects.create(
+                    journal_entry=entry, account=tax_account,
+                    description=f"Tax - {line.description or (line.item.name if line.item_id else 'Service / Sale')}",
+                    debit=Decimal("0.00"), credit=line.tax_amount
+                )
+        invoice.journal_entry = entry
+        invoice.save(update_fields=["journal_entry"])
     return entry
 
 
 def create_customer_receipt_journal(receipt, user):
     if receipt.status != CustomerReceipt.STATUS_POSTED or receipt.total_amount <= 0:
         return None
+    discount_total = receipt.allocations.aggregate(total=Sum("discount"))["total"] or Decimal("0.00")
+    discount_account = _find_customer_discount_account(receipt.company) if discount_total > 0 else None
+    if discount_total > 0 and not discount_account:
+        raise ValidationError("A receipt discount is used but no Sales Discount / expense account exists in the Chart of Accounts.")
     with transaction.atomic():
-        if receipt.journal_entry_id: receipt.journal_entry.delete()
-        entry=JournalEntry.objects.create(company=receipt.company,entry_date=receipt.receipt_date,reference_no=receipt.number,description=f"Receipt / Collection - {receipt.customer.name}",status=get_posted_status(),created_by=user)
-        JournalEntryLine.objects.create(journal_entry=entry,account=receipt.deposit_account,description=receipt.memo or "Customer receipt",debit=receipt.total_amount,credit=Decimal("0.00"))
-        ar_account=None
+        if receipt.journal_entry_id:
+            receipt.journal_entry.delete()
+        entry = JournalEntry.objects.create(
+            company=receipt.company, entry_date=receipt.receipt_date,
+            reference_no=receipt.number, description=f"Receipt / Collection - {receipt.customer.name}",
+            status=get_posted_status(), created_by=user
+        )
+        JournalEntryLine.objects.create(
+            journal_entry=entry, account=receipt.deposit_account,
+            description=receipt.memo or "Customer receipt",
+            debit=receipt.total_amount, credit=Decimal("0.00")
+        )
         for alloc in receipt.allocations.select_related("invoice__accounts_receivable_account"):
-            ar_account=alloc.invoice.accounts_receivable_account
-            credit=(alloc.amount or Decimal("0"))+(alloc.discount or Decimal("0"))
-            if credit>0: JournalEntryLine.objects.create(journal_entry=entry,account=ar_account,description=f"Apply {alloc.invoice.number}",debit=Decimal("0.00"),credit=credit)
+            credit = (alloc.amount or Decimal("0")) + (alloc.discount or Decimal("0"))
+            if credit > 0:
+                JournalEntryLine.objects.create(
+                    journal_entry=entry, account=alloc.invoice.accounts_receivable_account,
+                    description=f"Apply {alloc.invoice.number or alloc.invoice_id}",
+                    debit=Decimal("0.00"), credit=credit
+                )
+            if (alloc.discount or Decimal("0")) > 0:
+                JournalEntryLine.objects.create(
+                    journal_entry=entry, account=discount_account,
+                    description=f"Discount {alloc.invoice.number or alloc.invoice_id}",
+                    debit=alloc.discount, credit=Decimal("0.00")
+                )
         for ch in receipt.other_charges.select_related("account"):
-            if ch.amount>0: JournalEntryLine.objects.create(journal_entry=entry,account=ch.account,description=ch.memo,debit=Decimal("0.00"),credit=ch.amount)
-        receipt.journal_entry=entry;receipt.save(update_fields=["journal_entry"])
+            if ch.amount > 0:
+                JournalEntryLine.objects.create(
+                    journal_entry=entry, account=ch.account, description=ch.memo,
+                    debit=Decimal("0.00"), credit=ch.amount
+                )
+        receipt.journal_entry = entry
+        receipt.save(update_fields=["journal_entry"])
     return entry
 
 
@@ -962,184 +1027,171 @@ def _invoice_formsets(request,company,invoice):
     return _formset_with_company(SalesInvoiceLineFormSet,request.POST if request.method=="POST" else None,invoice,company,prefix="lines")
 
 @login_required
-def sales_invoice_create(request, document_type=SalesInvoice.TYPE_INVOICE):
+def sales_invoice_create(request, document_type=SalesInvoice.TYPE_INVOICE, invoice_id=None):
     company, response = require_company_access(request)
     if response:
         return response
 
-    invoice = SalesInvoice(
-        company=company,
-        document_type=document_type,
-        created_by=request.user,
-    )
+    if invoice_id:
+        invoice = get_object_or_404(SalesInvoice, company=company, id=invoice_id)
+        document_type = invoice.document_type
+    else:
+        invoice = SalesInvoice(company=company, document_type=document_type, created_by=request.user)
 
-    # Default main debit account for a normal Sale Invoice.
-    # Prefer code 12000, otherwise any account named Accounts Receivable.
     initial = {}
-    if request.method != "POST" and document_type == SalesInvoice.TYPE_INVOICE:
+    if request.method != "POST" and not invoice_id and document_type == SalesInvoice.TYPE_INVOICE:
         ar_account = (
-            ChartOfAccount.objects.filter(
-                company=company,
-                code="12000",
-            ).first()
-            or ChartOfAccount.objects.filter(
-                company=company,
-                name__icontains="Accounts Receivable",
-            ).order_by("code").first()
+            ChartOfAccount.objects.filter(company=company, code="12000").first()
+            or ChartOfAccount.objects.filter(company=company, name__icontains="Accounts Receivable").order_by("code").first()
         )
         if ar_account:
             initial["accounts_receivable_account"] = ar_account.pk
-
         requested_customer = (request.GET.get("customer") or "").strip()
         if requested_customer.isdigit():
-            customer = Customer.objects.filter(
-                company=company,
-                pk=int(requested_customer),
-                is_active=True,
-            ).first()
+            customer = Customer.objects.filter(company=company, pk=int(requested_customer), is_active=True).first()
             if customer:
                 initial["customer"] = customer.pk
 
-    form = SalesInvoiceForm(
-        request.POST or None,
-        instance=invoice,
-        company=company,
-        document_type=document_type,
-        initial=initial if request.method != "POST" else None,
-    )
+    form = SalesInvoiceForm(request.POST or None, instance=invoice, company=company, document_type=document_type, initial=initial if request.method != "POST" else None)
     lines = _invoice_formsets(request, company, invoice)
 
     if request.method == "POST" and form.is_valid() and lines.is_valid():
         try:
+            action = request.POST.get("save_action") or "post"
             with transaction.atomic():
                 invoice = form.save(commit=False)
                 invoice.company = company
                 invoice.document_type = document_type
-                invoice.created_by = request.user
-                invoice.status = SalesInvoice.STATUS_POSTED
+                if not invoice.created_by_id:
+                    invoice.created_by = request.user
+                invoice.status = SalesInvoice.STATUS_POSTED if action == "post" else SalesInvoice.STATUS_DRAFT
                 invoice.save()
-
                 lines.instance = invoice
                 lines.save()
                 invoice.recalculate_totals()
-                create_sales_invoice_journal(invoice, request.user)
+                if invoice.status == SalesInvoice.STATUS_POSTED:
+                    create_sales_invoice_journal(invoice, request.user)
+                elif invoice.journal_entry_id:
+                    invoice.journal_entry.delete()
+                    invoice.journal_entry = None
+                    invoice.save(update_fields=["journal_entry"])
 
-            messages.success(
-                request,
-                f"{invoice.get_document_type_display()} saved successfully.",
-            )
-
-            if request.POST.get("save_action") == "save_new":
-                return redirect(
-                    "sale_receipt_create"
-                    if document_type == SalesInvoice.TYPE_SALE_RECEIPT
-                    else "customer_invoice_create_v2"
-                )
-
-            # Save & Close returns to the invoice list.
-            return redirect(
-                "sale_receipt_list"
-                if document_type == SalesInvoice.TYPE_SALE_RECEIPT
-                else "customer_invoice_list"
-            )
-
+            if invoice.status == SalesInvoice.STATUS_POSTED:
+                messages.success(request, f"{invoice.get_document_type_display()} posted successfully.")
+                return redirect("sale_receipt_list" if document_type == SalesInvoice.TYPE_SALE_RECEIPT else "customer_invoice_list")
+            messages.success(request, f"{invoice.get_document_type_display()} saved as Draft.")
+            return redirect("sale_receipt_edit" if document_type == SalesInvoice.TYPE_SALE_RECEIPT else "customer_invoice_edit", invoice_id=invoice.id)
         except Exception as exc:
             messages.error(request, f"Could not save: {exc}")
 
-    # Customer defaults used by the searchable Customer picker.
     customer_defaults = {}
     try:
-        customer_qs = form.fields["customer"].queryset.select_related(
-            "customer_type", "price_level", "salesperson"
-        )
+        customer_qs = form.fields["customer"].queryset.select_related("customer_type", "price_level", "salesperson")
         for customer in customer_qs:
             credit_term = getattr(customer, "credit_term", None)
             if credit_term in (None, ""):
-                credit_term = getattr(
-                    getattr(customer, "customer_type", None),
-                    "credit_term",
-                    0,
-                ) or 0
-
+                credit_term = getattr(getattr(customer, "customer_type", None), "credit_term", 0) or 0
             customer_defaults[str(customer.pk)] = {
-                "credit_term": credit_term or 0,
-                "price_level": getattr(customer, "price_level_id", None),
-                "salesperson": getattr(customer, "salesperson_id", None),
-                "address": getattr(customer, "address", "") or "",
+                "credit_term": credit_term or 0, "price_level": getattr(customer, "price_level_id", None),
+                "salesperson": getattr(customer, "salesperson_id", None), "address": getattr(customer, "address", "") or "",
             }
     except Exception:
-        customer_defaults = {}
+        pass
 
-    # Item defaults used when an item is selected.
     item_defaults = {}
     try:
         first_line_form = lines.forms[0] if lines.forms else None
-        item_qs = (
-            first_line_form.fields["item"].queryset
-            if first_line_form and "item" in first_line_form.fields
-            else Item.objects.filter(company=company)
-        )
-
+        item_qs = first_line_form.fields["item"].queryset if first_line_form and "item" in first_line_form.fields else Item.objects.filter(company=company)
         for item in item_qs:
-            unit_name = ""
             unit_set = getattr(item, "unit_set", None)
-            if unit_set:
-                unit_name = (
-                    getattr(unit_set, "default_sale", "")
-                    or getattr(unit_set, "base_unit", "")
-                    or ""
-                )
-
+            unit_name = (getattr(unit_set, "default_sale", "") or getattr(unit_set, "base_unit", "") or "") if unit_set else ""
             item_defaults[str(item.pk)] = {
-                "code": getattr(item, "code", "") or "",
-                "description": getattr(item, "description", "") or "",
-                "unit": unit_name,
-                "sale_price": str(getattr(item, "sale_price", 0) or 0),
+                "code": getattr(item, "code", "") or "", "description": getattr(item, "description", "") or "",
+                "unit": unit_name, "sale_price": str(getattr(item, "sale_price", 0) or 0),
                 "revenue_account": getattr(item, "revenue_account_id", None),
             }
     except Exception:
-        item_defaults = {}
+        pass
 
-    return render(
-        request,
-        "customers/invoice_form.html",
-        {
-            "company": company,
-            "form": form,
-            "line_formset": lines,
-            "document_type": document_type,
-            "page_title": (
-                "Sale Receipt"
-                if document_type == SalesInvoice.TYPE_SALE_RECEIPT
-                else "Sale Invoice"
-            ),
-            "customer_defaults": customer_defaults,
-            "item_defaults": item_defaults,
-        },
-    )
+    return render(request, "customers/invoice_form.html", {
+        "company": company, "form": form, "line_formset": lines, "document_type": document_type,
+        "page_title": "Sale Receipt" if document_type == SalesInvoice.TYPE_SALE_RECEIPT else "Sale Invoice",
+        "customer_defaults": customer_defaults, "item_defaults": item_defaults, "invoice": invoice, "is_edit": bool(invoice_id),
+    })
 
 
 @login_required
-def customer_receipt_create(request):
-    company,response=require_company_access(request)
-    if response:return response
-    receipt=CustomerReceipt(company=company,created_by=request.user)
-    customer_id=(request.POST.get("customer") if request.method=="POST" else request.GET.get("customer")) or None
-    form=CustomerReceiptForm(request.POST or None,instance=receipt,company=company)
-    allocations=_formset_with_company(CustomerReceiptAllocationFormSet,request.POST if request.method=="POST" else None,receipt,company,{"customer_id":customer_id},"alloc")
-    charges=_formset_with_company(CustomerReceiptOtherChargeFormSet,request.POST if request.method=="POST" else None,receipt,company,prefix="charge")
-    if request.method=="POST" and form.is_valid() and allocations.is_valid() and charges.is_valid():
+def sales_invoice_edit(request, invoice_id):
+    company, response = require_company_access(request)
+    if response:
+        return response
+    invoice = get_object_or_404(SalesInvoice, company=company, id=invoice_id)
+    return sales_invoice_create(request, document_type=invoice.document_type, invoice_id=invoice_id)
+
+
+@login_required
+def customer_receipt_create(request, receipt_id=None):
+    company, response = require_company_access(request)
+    if response:
+        return response
+    receipt = get_object_or_404(CustomerReceipt, company=company, id=receipt_id) if receipt_id else CustomerReceipt(company=company, created_by=request.user)
+    customer_id = (request.POST.get("customer") if request.method == "POST" else (request.GET.get("customer") or receipt.customer_id)) or None
+    receipt_initial = {"customer": customer_id} if request.method != "POST" and not receipt_id and customer_id else None
+    form = CustomerReceiptForm(request.POST or None, instance=receipt, company=company, initial=receipt_initial)
+    allocations = _formset_with_company(CustomerReceiptAllocationFormSet, request.POST if request.method == "POST" else None, receipt, company, {"customer_id": customer_id}, "alloc")
+    charges = _formset_with_company(CustomerReceiptOtherChargeFormSet, request.POST if request.method == "POST" else None, receipt, company, prefix="charge")
+    if request.method == "POST" and form.is_valid() and allocations.is_valid() and charges.is_valid():
         try:
+            action = request.POST.get("save_action") or "post"
             with transaction.atomic():
-                receipt=form.save(commit=False);receipt.company=company;receipt.created_by=request.user;receipt.status=CustomerReceipt.STATUS_POSTED;receipt.save()
-                allocations.instance=receipt;allocations.save();charges.instance=receipt;charges.save();receipt.recalculate_total();create_customer_receipt_journal(receipt,request.user)
-            messages.success(request,"Receipt / Collection saved.")
-            if request.POST.get("save_action")=="save_new":return redirect("receive_payment_create")
-            return redirect("customer_center")
-        except Exception as exc:messages.error(request,f"Could not save receipt: {exc}")
-    open_invoices=SalesInvoice.objects.filter(company=company,document_type=SalesInvoice.TYPE_INVOICE,status=SalesInvoice.STATUS_POSTED)
-    if customer_id:open_invoices=open_invoices.filter(customer_id=customer_id)
-    return render(request,"customers/receipt_form.html",{"company":company,"form":form,"allocation_formset":allocations,"charge_formset":charges,"open_invoices":open_invoices})
+                receipt = form.save(commit=False)
+                receipt.company = company
+                if not receipt.created_by_id:
+                    receipt.created_by = request.user
+                receipt.status = CustomerReceipt.STATUS_POSTED if action == "post" else CustomerReceipt.STATUS_DRAFT
+                receipt.save()
+                allocations.instance = receipt
+                allocations.save()
+                charges.instance = receipt
+                charges.save()
+                receipt.recalculate_total()
+                if receipt.status == CustomerReceipt.STATUS_POSTED:
+                    create_customer_receipt_journal(receipt, request.user)
+                elif receipt.journal_entry_id:
+                    receipt.journal_entry.delete()
+                    receipt.journal_entry = None
+                    receipt.save(update_fields=["journal_entry"])
+            if receipt.status == CustomerReceipt.STATUS_POSTED:
+                messages.success(request, "Receipt / Collection posted successfully.")
+                return redirect(f"{reverse('customer_center')}?customer={receipt.customer_id}")
+            messages.success(request, "Receipt / Collection saved as Draft.")
+            return redirect("receive_payment_edit", receipt_id=receipt.id)
+        except Exception as exc:
+            messages.error(request, f"Could not save receipt: {exc}")
+
+    open_invoices = SalesInvoice.objects.filter(company=company, document_type=SalesInvoice.TYPE_INVOICE, status=SalesInvoice.STATUS_POSTED).select_related("customer").order_by("invoice_date", "id")
+    invoice_defaults = {}
+    for inv in open_invoices:
+        open_amount = inv.open_balance
+        if receipt_id:
+            current_alloc = receipt.allocations.filter(invoice=inv).aggregate(a=Sum("amount"), d=Sum("discount"))
+            open_amount += (current_alloc["a"] or Decimal("0.00")) + (current_alloc["d"] or Decimal("0.00"))
+        if open_amount > 0:
+            invoice_defaults[str(inv.id)] = {
+                "customer": inv.customer_id, "number": inv.number or f"INV-{inv.id}",
+                "date": inv.invoice_date.isoformat(), "total": str(inv.total_amount or 0),
+                "open": str(open_amount),
+            }
+    return render(request, "customers/receipt_form.html", {
+        "company": company, "form": form, "allocation_formset": allocations, "charge_formset": charges,
+        "open_invoices": open_invoices, "invoice_defaults": invoice_defaults, "receipt": receipt, "is_edit": bool(receipt_id),
+        "should_prefill_allocations": request.method != "POST" and not receipt_id,
+    })
+
+
+@login_required
+def customer_receipt_edit(request, receipt_id):
+    return customer_receipt_create(request, receipt_id=receipt_id)
 
 
 # =========================================================

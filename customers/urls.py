@@ -12,8 +12,10 @@ urlpatterns = [
     path("transactions/<int:transaction_id>/duplicate/", views.customer_transaction_duplicate, name="customer_transaction_duplicate"),
     path("invoices/<int:invoice_id>/center-action/", views.customer_center_invoice_action, name="customer_center_invoice_action"),
     path("invoices/<int:invoice_id>/duplicate/", views.customer_invoice_duplicate, name="customer_invoice_duplicate"),
+    path("invoices/<int:invoice_id>/edit/", views.sales_invoice_edit, name="customer_invoice_edit"),
     path("receipts/<int:receipt_id>/center-action/", views.customer_center_receipt_action, name="customer_center_receipt_action"),
     path("receipts/<int:receipt_id>/duplicate/", views.customer_receipt_duplicate, name="customer_receipt_duplicate"),
+    path("receipts/<int:receipt_id>/edit/", views.customer_receipt_edit, name="receive_payment_edit"),
 
     path("invoice-list/", views.sales_invoice_list, name="customer_invoice_list"),
 
@@ -28,6 +30,7 @@ urlpatterns = [
 
     path("sale-receipt/", lambda request: views.sales_invoice_list(request, views.SalesInvoice.TYPE_SALE_RECEIPT), name="sale_receipt_list"),
     path("sale-receipt/new/", lambda request: views.sales_invoice_create(request, views.SalesInvoice.TYPE_SALE_RECEIPT), name="sale_receipt_create"),
+    path("sale-receipt/<int:invoice_id>/edit/", views.sales_invoice_edit, name="sale_receipt_edit"),
     path("customer-center/", views.customer_center, name="customer_center"),
     path("customer-center/new/", views.customer_create, name="customer_create"),
     path("customer-center/<int:customer_id>/edit/", views.customer_edit, name="customer_edit"),
